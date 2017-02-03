@@ -68,7 +68,8 @@ PYBIND11_PLUGIN(sample) {
     py::module m("sample", "pybind11 example plugin");
 
     m.attr("N") = N;
-    m.def("square_float", &square<float>);
+    m.def("square", &square<int>);
+    m.def("square", &square<float>);
     m.def("reverse", &reverse);
 
     py::class_<Hz>(m, "Hz")

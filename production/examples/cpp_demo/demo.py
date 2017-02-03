@@ -3,7 +3,7 @@ from production.examples.cpp_demo import sample
 
 def main():  # pragma: no cover
     print('N =', sample.N)
-    print(sample.square_float(2))
+    print(sample.square(2), sample.square(2.0))
     print(sample.reverse([1, 2, 3]))
 
     hz = sample.Hz()
