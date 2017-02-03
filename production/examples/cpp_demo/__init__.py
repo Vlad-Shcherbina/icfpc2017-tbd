@@ -4,4 +4,4 @@ magic_extension(
     __file__,
     name='sample',
     sources=['sample.cpp'],
-    headers=['sample.h'])
+    headers=[])
