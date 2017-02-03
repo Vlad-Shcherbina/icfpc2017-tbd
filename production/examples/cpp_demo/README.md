@@ -8,7 +8,7 @@ similar diagnostics for crashes inside the C/C++ code invoked from
 the Python code.
 
 The debugging scenario below targets Linux and was tested on Ubuntu.
-SWIG extensions themselves should work fine on all reasonable OSes.
+C++ extensions themselves should work fine on all reasonable OSes.
 
 ### Preparation
 
@@ -25,7 +25,7 @@ rm -f core
 ### Running the program
 
 ```bash
-python3 -m production.examples.swig_demo.debugging_demo fail_assert
+python3 -m production.examples.cpp_demo.debugging_demo fail_assert
 ```
 
 You will get the Python part of the stacktrace right away,
@@ -66,7 +66,7 @@ For example,
 ```bash
 # enable tail call elimination
 TBD_RELEASE=yes \
-python3 -m production.examples.swig_demo.debugging_demo infinite_recursion
+python3 -m production.examples.cpp_demo.debugging_demo infinite_recursion
 ```
 
 Hit `Ctrl-\` to kill it with `SIGQUIT`. The rest is the same.

@@ -2,7 +2,7 @@ import faulthandler
 faulthandler.enable()
 
 import sys
-from production.examples.swig_demo.sample import Fail
+from production.examples.cpp_demo.sample import Fail
 
 
 def main():  # pragma: no cover

@@ -1,4 +1,4 @@
-from production.examples.swig_demo import sample
+from production.examples.cpp_demo import sample
 
 
 def main():  # pragma: no cover
