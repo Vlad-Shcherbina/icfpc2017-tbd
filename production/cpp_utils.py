@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import inspect
 import contextlib
 import distutils.core
 import distutils.util
@@ -8,9 +9,10 @@ import distutils.util
 import pybind11
 
 
-def magic_extension(caller_file, *, name, sources, headers):
+def magic_extension(*, name, sources, headers):
     '''See examples/cpp_demo/__init__.py.'''
-
+    caller_file = inspect.stack()[1].filename
+    assert os.path.basename(caller_file) == '__init__.py', caller_file
     with contextlib.redirect_stdout(sys.stderr):
         build_extension(caller_file, name, sources, headers)
 
