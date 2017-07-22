@@ -48,7 +48,9 @@ tar -zcvf tbd_python.tar.gz tbd_python
 # (Copy tbd_python.tar.gz to the host machine somehow)
 ```
 
-Now revert to the original pristine snapshot, to transplant tbd_python there.
+Now revert the VM to the original pristine snapshot, to transplant tbd_python there.
+
+Login as punter, password "icfp2017".
 
 ```
 # (Copy tbd_python.tar.gz to the VM somehow)
