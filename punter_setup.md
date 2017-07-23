@@ -35,6 +35,17 @@ make altinstall
 ```
 
 ```
+# This step is optional, in case we need z3py.
+Z3_VERSION=z3-4.5.1.0f1583309d08-x64-debian-8.5
+curl -O --ssl-reqd https://raw.githubusercontent.com/Z3Prover/bin/master/nightly/$Z3_VERSION.zip
+unzip $Z3_VERSION.zip
+cd $Z3_VERSION
+cp -r bin/python/z3 ~/tbd_python/lib/python3.6/site-packages/
+cp bin/libz3.so ~/tbd_python/lib/python3.6/site-packages/z3
+cp LICENSE.txt ~/tbd_python/lib/python3.6/site-packages/z3
+```
+
+```
 # (Copy our repository icfpc2017-tbd to the VM somehow)
 cd ~/icfpc2017-tbd
 ~/tbd_python/bin/pip3.6 install -r requirements.txt
