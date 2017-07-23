@@ -43,6 +43,13 @@ cd ~/icfpc2017-tbd
 ```
 
 ```
+cd ~/tbd_python
+find . -name '__pycache__' | xargs rm -rf
+find . -name '*.a' | xargs rm
+rm -rf lib/python3.6/test
+```
+
+```
 cd ~
 tar -zcvf tbd_python.tar.gz tbd_python
 # (Copy tbd_python.tar.gz to the host machine somehow)
