@@ -11,13 +11,13 @@ Make a VM snapshot for testing (this is how things are meant to be: no root, no 
 
 Enable NAT network adapter.
 
-Login as root, password "icfp2017":
+Login as root, password "icfp2017".
 
 ```
 apt-get build-dep python3.5 -y
 ```
 
-Login as punter, password "icfp2017"
+Login as punter, password "icfp2017".
 
 ```
 curl -O --ssl-reqd https://www.python.org/ftp/python/3.6.2/Python-3.6.2.tgz
@@ -51,8 +51,8 @@ rm -rf lib/python3.6/test
 
 ```
 cd ~
-tar -zcvf tbd_python.tar.gz tbd_python
-# (Copy tbd_python.tar.gz to the host machine somehow)
+tar -cvJf tbd_python.tar.xz tbd_python
+# (Copy tbd_python.tar.xz to the host machine somehow)
 ```
 
 Now revert the VM to the original pristine snapshot, to transplant tbd_python there.
@@ -60,8 +60,8 @@ Now revert the VM to the original pristine snapshot, to transplant tbd_python th
 Login as punter, password "icfp2017".
 
 ```
-# (Copy tbd_python.tar.gz to the VM somehow)
-tar -xvzf tbd_python.tar.gz
+# (Copy tbd_python.tar.xz to the VM somehow)
+tar xf tbd_python.tar.xz
 
 # (Copy our repository icfpc2017-tbd to the VM somehow)
 cd ~/icfpc2017-tbd
