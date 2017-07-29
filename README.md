@@ -1,8 +1,8 @@
 ## Setup
 
-On Windows, Visual Studio 2015 Community or Express edition (for C++11 compiler).
+On Windows, you'll need C++ compiler. Install Visual Studio 2015 Community or Express edition _or_ Visual C++ Build Tools 2015. Visual Studio 2017 wouldn't suffice, you'd still need 2015 Build Tools.
 
-CPython 3.5.2 (the latest stable release).
+CPython 3.6.2 (the latest stable release).
 
 Virtualenv is optional.
 
@@ -15,6 +15,6 @@ Copy `git_hooks/pre-push` to `.git/hooks/`.
 
 Root of this repository should be in `PYTHONPATH`, because we use absolute imports (`from production import utils`). There are several ways to achieve that:
   - add project path to the environment variable
-  - create the file `<python installation or venv>/lib/python3.5/site-packages/tbd.pth` whose content is a single line `/path/to/icfpc2016-tbd`
+  - create the file `<python installation or venv>/lib/python3.6/site-packages/tbd.pth` whose content is a single line `/path/to/icfpc2017-tbd`
   - configure your favorite IDE appropriately
   - use `python3 -m production.some_script` instead of `python3 production/some_script.py`
