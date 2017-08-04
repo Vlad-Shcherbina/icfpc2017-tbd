@@ -2,5 +2,6 @@ htmlcov/
 .coverage
 .project
 .pydevproject
+.vscode/
 __pycache__/
 .cache/
