@@ -58,3 +58,48 @@ def parse_setup_request(d) -> SetupRequest:
 
 def format_setup_response(r: SetupResponse):
     return dict(ready=r.ready, state=r.state)
+
+
+def parse_move(d) -> Move:
+    if 'claim' in d:
+        claim = d.pop('claim')
+        assert not d, d
+        punter = claim.pop('punter')
+        source = claim.pop('source')
+        target = claim.pop('target')
+        assert not claim, claim
+        return ClaimMove(punter=punter, source=source, target=target)
+    elif 'pass' in d:
+        p = d.pop('pass')
+        assert not d, d
+        punter = p.pop('punter')
+        assert not p, p
+        return PassMove(punter=punter)
+    else:
+        assert False, d
+
+def format_move(m: Move):
+    if isinstance(m, ClaimMove):
+        return dict(
+            claim=dict(punter=m.punter, source=m.source, target=m.target))
+    elif isinstance(m, PassMove):
+        return {'pass': dict(punter=m.punter)}
+    else:
+        assert False, m
+
+
+def parse_gameplay_request(d) -> GameplayRequest:
+    m = d.pop('move')
+    state = d.pop('state')
+    assert not d, d
+    moves = m.pop('moves')
+    assert not m, m
+    moves = [parse_move(move) for move in moves]
+    return GameplayRequest(moves=moves, state=state)
+
+
+def format_gameplay_response(r: GameplayResponse):
+    d = format_move(r.move)
+    assert 'state' not in d
+    d['state'] = r.state
+    return d

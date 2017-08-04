@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import Any, NamedTuple, Callable, Set, Dict, Tuple
+from typing import Any, NamedTuple, Callable, Set, Dict, Tuple, Union, List
 
 
 Graph = Dict[int, Set[int]]
@@ -17,6 +17,17 @@ class Map(NamedTuple):
     site_coords: Dict[int, Tuple[float, float]]
 
 
+class ClaimMove(NamedTuple):
+    punter: int
+    source: int
+    target: int
+
+class PassMove(NamedTuple):
+    punter: int
+
+Move = Union[ClaimMove, PassMove]
+
+
 GameState = Any
 # Better call it 'bot state', but they chose this name.
 # teuwer | @mangbo: GameState
@@ -28,22 +39,21 @@ GameState = Any
 
 
 class SetupRequest(NamedTuple):
-    punter: str  # my name
+    punter: int  # my punter ID
     punters: int
     map: Map
 
 class SetupResponse(NamedTuple):
-    ready: str  # my name
+    ready: int  # my punter ID
     state: GameState
 
 
 class GameplayRequest(NamedTuple):
-    moves: Any  # TODO
+    moves: List[Move]
     state: GameState
 
 class GameplayResponse(NamedTuple):
-    # TODO: don't undestand what they wrote about the disjoint union
-    move: Any  # TODO
+    move: Move
     state: GameState
 
 
