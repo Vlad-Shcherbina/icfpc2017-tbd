@@ -5,24 +5,22 @@
 
 from PIL import Image, ImageDraw
 from production.bot_interface import Map
-#from typing import NamedTuple
 from collections import namedtuple
 
 Point = namedtuple('Point', 'x y')
+
 river_color = (120, 140, 220)
 site_color = (255, 255, 255)
 mine_color = (255, 50, 50)
 back_color = (60, 60, 60)
 
-#class Map(NamedTuple):
-#    g: Graph
-#    mines: Set[int]
-
-    # Dunno if we can rely on these, but it's nice for visualization.
-#    site_coords: Dict[int, Tuple[float, float]]
 
 class Visualization:
+    """ Draws one image of game state or a pile of them.
 
+    Example:
+    img = Visualization().draw_state(somegamestate).get_image()
+    """
 
     def __init__(self, width=800, height=800):
         self.draw_commands = []
@@ -133,7 +131,7 @@ def main():
     from production.json_format import parse_map
 
     # V for Visualization ^^
-    v = Visualization()
+    v = Visualization(width=1000, height=1000)
     d = utils.project_root() / 'maps' / 'official_map_samples' / 'gothenburg-sparse.json'
     m = parse_map(json.loads(d.read_text()))
 
