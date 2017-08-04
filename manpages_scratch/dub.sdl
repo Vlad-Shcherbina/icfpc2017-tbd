@@ -1,0 +1,7 @@
+name "manpages_scratch"
+description "Basic strategy with some pruning"
+copyright "WTFPL"
+authors "manpages"
+dependency "darg" version="~>0.0.4"
+dependency "std_data_json" version="~>0.18.2"
+dependency "vibe-d" version="~>0.8.0"
