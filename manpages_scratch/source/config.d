@@ -9,7 +9,7 @@ struct Options {
 
   @Option("server", "s")
   @Help("Game server to connect to.")
-  char[] hostname; 
+  string hostname; 
 
   @Option("port", "p")
   @Help("Port of the game server")

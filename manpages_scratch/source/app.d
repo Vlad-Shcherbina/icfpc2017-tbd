@@ -6,7 +6,10 @@ import std.algorithm.searching;
 import std.conv;
 import std.format;
 
+import vibe.vibe;
+
 import config;
+static import networking;
 
 int main(string[] args) {
   try {
@@ -24,28 +27,16 @@ int main(string[] args) {
     return 0;
   }
 
-  //online(o.hostname, o.port);
-
-
-	if (globalConfig.playground) {
-		writeln(toJSONValue(`{"name":"dlang"}`));
-		writeln(find("2:{}", ":")[1 .. $]);
-		writeln(pJ("{\"hello\":\"world\"}"));
+  if (globalConfig.playground) {
+    writeln(toJSONValue(`{"name":"dlang"}`));
+    writeln(find("2:{}", ":")[1 .. $]);
+    writeln(pJ("{\"hello\":\"world\"}"));
   }
 
-  return 0;
-}
+  // runWorkerTask(&networking.start);
+  // runEventLoop();
 
-void online(const char[] hostname, ushort port) {
-	auto socket = new Socket(AddressFamily.INET,  SocketType.STREAM);
-	char[1024] buffer;
-	socket.connect(new InternetAddress(hostname, port));
-	auto received = socket.receive(buffer); // wait for the server to say hello
-	writeln("Server said: ", buffer[0 .. received]);
-	foreach(line; stdin.byLine) {
-		socket.send(line);
-		writeln("Server said: ", buffer[0 .. socket.receive(buffer)]);
-	}
+  return 0;
 }
 
 string xJ(string x) {
