@@ -6,6 +6,7 @@
 from PIL import Image, ImageDraw
 from production.bot_interface import Map
 from collections import namedtuple
+from typing import Tuple
 
 Point = namedtuple('Point', 'x y')
 
@@ -38,7 +39,7 @@ class Visualization:
             return img
         self.draw_commands.append(draw_command)
 
-    def draw_point(self, coord: (float, float), color=site_color, size=4):
+    def draw_point(self, coord: Tuple[float, float], color=site_color, size=4):
         coord = self.get_coord(coord)
         def draw_command(img):
             draw = ImageDraw.Draw(img)
@@ -55,7 +56,11 @@ class Visualization:
             return img
         self.draw_commands.append(draw_command)
 
-    def draw_edge(self, p1: (float, float), p2: (float, float), color=river_color):
+    def draw_edge(
+            self,
+            p1: Tuple[float, float],
+            p2: Tuple[float, float],
+            color=river_color):
         p1 = self.get_coord(p1)
         p2 = self.get_coord(p2)
 
@@ -92,7 +97,7 @@ class Visualization:
         return int(y)
 
 
-    def get_coord(self, p: (float, float)) -> (int, int):
+    def get_coord(self, p: Tuple[float, float]) -> Tuple[int, int]:
         return (self.get_x(p[0]), self.get_y(p[1]))
 
 
@@ -114,7 +119,7 @@ class Visualization:
 
 
 
-    def get_image(self, size=None) -> Image:
+    def get_image(self, size=None) -> Image.Image:
         if size: 
             self.size = size
 
