@@ -3,3 +3,4 @@ pytest-cov
 coverage
 pybind11
 beautifulsoup4
+pillow
