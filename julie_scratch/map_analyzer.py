@@ -18,36 +18,47 @@ official_maps = {
 
 
 for name in official_maps:
-    with open('official_map_samples/' + name + '.json') as mapfile:
+    with open('../maps/official_map_samples/' + name + '.json') as mapfile:
         data = json.load(mapfile)
         official_maps[name] = data
 
 # Data!
 for name, data in official_maps.items():
-    print('\n', name)
+    datagraph = {'name' : name , 'sites' : {}, 'mines' : []}
+
+    print('\n\n' + name)
     print(
           'Sites:', len(data['sites']), 
-          'rivers:', len(data['rivers']), 
-          'mines:', len(data['mines'])
+          '| rivers:', len(data['rivers']), 
+          '| mines:', len(data['mines'])
          )
-    degrees = []
+
     for site in data['sites']:
-        ID = site['id']
-        degrees.append(sum(1 for river in data['rivers'] 
-                                       if river['source'] == ID
-                                       or river['target'] == ID))
-    print(sum(degrees) / len(degrees))
-    degrees.sort()
-    print(degrees[len(degrees)//2])
-    print("MIN:", min(degrees), "MAX:", max(degrees))
-    count = 0
-    current = 0
-    for d in degrees:
-        if not d == current:
-            print("  of degree", current, ":", count)
-            current = d
-            count = 1
-        else:
-            count += 1
+        datagraph['sites'][site['id']] = []
 
+    for river in data['rivers']:
+        datagraph['sites'][river['source']].append(river['target'])
+        datagraph['sites'][river['target']].append(river['source'])
+        
+    degree_count = {}
+    for site in datagraph['sites'].values():
+        d = len(site)
+        if d not in degree_count: degree_count[d] = 0
+        degree_count[d] += 1
 
+    print(
+          'min:', min(degree_count.keys()), 
+          '| max:', max(degree_count.keys()), 
+          '| average:', '%.1f' % (
+                    sum(d * n for d, n in degree_count.items())
+                    / sum(degree_count.values()))
+         )
+
+    line1 = '['
+    line2 = '['
+    for x in sorted(degree_count):
+        line1 += '{:>5}'.format(x)
+        line2 += '{:>5}'.format(degree_count[x])
+    line1 += ' ]'
+    line2 += ' ]'
+    print(line1 + '\n' + line2)

@@ -4,4 +4,3 @@ htmlcov/
 .pydevproject
 __pycache__/
 .cache/
-/julie_scratch/*.pdf
