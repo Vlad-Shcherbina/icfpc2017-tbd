@@ -26,7 +26,7 @@ class FirstMoveBot(Bot):
         return SetupResponse(ready=req.punter, state=state)
 
     def gameplay(self, req: GameplayRequest) -> GameplayResponse:
-        map = parse_map(copy.deepcopy(req.state['map']))
+        map = parse_map(req.state['map'])
 
         rivers = set((u, w) for u, ws in map.g.items() for w in ws)
         for move in req.state['all_past_moves']:

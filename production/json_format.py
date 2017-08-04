@@ -1,7 +1,6 @@
 """
 parse_zzz()
     Converts JSON object to the corresponding datatype from bot_interface.
-    Destroys the JSON object in the process.
     Fails early on the unsupported entries, to make it easier to adapt
     to the spec updates.
 
@@ -16,6 +15,7 @@ from production.bot_interface import *
 
 
 def parse_map(d) -> Map:
+    d = copy.deepcopy(d)
     raw_map = copy.deepcopy(d)
 
     sites = d.pop('sites')
@@ -52,6 +52,7 @@ def parse_map(d) -> Map:
 
 
 def parse_setup_request(d) -> SetupRequest:
+    d = copy.deepcopy(d)
     punter = d.pop('punter')
     punters = d.pop('punters')
     map = d.pop('map')
@@ -65,6 +66,7 @@ def format_setup_response(r: SetupResponse):
 
 
 def parse_move(d) -> Move:
+    d = copy.deepcopy(d)
     if 'claim' in d:
         claim = d.pop('claim')
         assert not d, d
@@ -93,6 +95,7 @@ def format_move(m: Move):
 
 
 def parse_gameplay_request(d) -> GameplayRequest:
+    d = copy.deepcopy(d)
     m = d.pop('move')
     state = d.pop('state')
     assert not d, d
@@ -111,6 +114,7 @@ def format_gameplay_response(r: GameplayResponse):
 
 
 def parse_score_request(d) -> ScoreRequest:
+    d = copy.deepcopy(d)
     s = d.pop('stop')
     state = d.pop('state')
     assert not d, d
