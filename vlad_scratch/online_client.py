@@ -9,6 +9,7 @@ import logging; log = logging.getLogger(__name__)
 import json
 import time
 import socket
+import random
 
 from production import dumb_bots
 from production import json_format
@@ -91,7 +92,9 @@ def main():
     log.setLevel(logging.DEBUG)
 
     while True:
-        for game in scraper.games():
+        games = list(scraper.games())
+        random.shuffle(games)
+        for game in games:
             log.info(game)
             if game.punters_num + 1 == game.punters_max:
                 log.info('this game is about to begin!')
