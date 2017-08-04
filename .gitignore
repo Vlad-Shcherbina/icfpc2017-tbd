@@ -5,3 +5,4 @@ htmlcov/
 .vscode/
 __pycache__/
 .cache/
+.idea/
