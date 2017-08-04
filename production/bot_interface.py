@@ -59,8 +59,8 @@ class GameplayResponse(NamedTuple):
 
 class ScoreRequest(NamedTuple):
     state: GameState
-    moves: Any  # TODO
-    scores: Any  # TODO
+    moves: List[Move]
+    score_by_punter: Dict[int, int]
 
 
 class Bot(metaclass=ABCMeta):

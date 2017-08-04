@@ -103,3 +103,36 @@ def format_gameplay_response(r: GameplayResponse):
     assert 'state' not in d
     d['state'] = r.state
     return d
+
+
+def parse_score_request(d) -> ScoreRequest:
+    s = d.pop('stop')
+    state = d.pop('state')
+    assert not d, d
+    moves = s.pop('moves')
+    scores = s.pop('scores')
+    assert not s, s
+
+    moves = [parse_move(move) for move in moves]
+
+    score_by_punter = {}
+    for score in scores:
+        punter = score.pop('punter')
+        points = score.pop('score')
+        assert not score, score
+        assert punter not in score_by_punter
+        score_by_punter[punter] = points
+
+    return ScoreRequest(
+        moves=moves, score_by_punter=score_by_punter, state=state)
+
+
+def parse_any_request(d) -> Union[SetupRequest, GameplayRequest, ScoreRequest]:
+    if 'ready' in d:
+        return parse_setup_request(d)
+    elif 'move' in d:
+        return parse_gameplay_request(d)
+    elif 'stop' in d:
+        return parse_score_request(d)
+    else:
+        assert False, d
