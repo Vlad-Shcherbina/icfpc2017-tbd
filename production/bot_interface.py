@@ -1,9 +1,20 @@
-import json
 from abc import ABCMeta, abstractmethod
-from typing import Any, NamedTuple, Callable
+from typing import Any, NamedTuple, Callable, Set, Dict, Tuple
 
 
-Map = Any  # TODO
+Graph = Dict[int, Set[int]]
+# GvR form:
+#   iter(G) lists all vertices
+#   iter(G[v]) lists the neighbors of v
+#   w in G[v] tests adjacency
+
+
+class Map(NamedTuple):
+    g: Graph
+    mines: Set[int]
+
+    # Dunno if we can rely on these, but it's nice for visualization.
+    site_coords: Dict[int, Tuple[float, float]]
 
 
 GameState = Any
@@ -17,7 +28,7 @@ GameState = Any
 
 
 class SetupRequest(NamedTuple):
-    punter: str
+    punter: str  # my name
     punters: int
     map: Map
 
