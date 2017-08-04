@@ -9,12 +9,15 @@ format_zzz()
     bot_interface.Zzz -> JSON object
 """
 
+import copy
 import json
 
 from production.bot_interface import *
 
 
 def parse_map(d) -> Map:
+    raw_map = copy.deepcopy(d)
+
     sites = d.pop('sites')
     rivers = d.pop('rivers')
     mines = d.pop('mines')
@@ -45,15 +48,16 @@ def parse_map(d) -> Map:
         assert source not in g[target]
         g[target].add(source)
 
-    return Map(g=g, mines=set(mines), site_coords=site_coords)
+    return Map(g=g, mines=set(mines), site_coords=site_coords, raw_map=raw_map)
 
 
 def parse_setup_request(d) -> SetupRequest:
     punter = d.pop('punter')
     punters = d.pop('punters')
-    map = d.pop(map)
+    map = d.pop('map')
     assert not d, d
-    return SetupRequest(punter=punter, punters=punters, map=map)
+    assert 0 <= punter < punters, (punter, punters)
+    return SetupRequest(punter=punter, punters=punters, map=parse_map(map))
 
 
 def format_setup_response(r: SetupResponse):
@@ -94,8 +98,9 @@ def parse_gameplay_request(d) -> GameplayRequest:
     assert not d, d
     moves = m.pop('moves')
     assert not m, m
+    raw_moves = copy.deepcopy(moves)
     moves = [parse_move(move) for move in moves]
-    return GameplayRequest(moves=moves, state=state)
+    return GameplayRequest(moves=moves, state=state, raw_moves=raw_moves)
 
 
 def format_gameplay_response(r: GameplayResponse):
@@ -128,7 +133,7 @@ def parse_score_request(d) -> ScoreRequest:
 
 
 def parse_any_request(d) -> Union[SetupRequest, GameplayRequest, ScoreRequest]:
-    if 'ready' in d:
+    if 'map' in d:
         return parse_setup_request(d)
     elif 'move' in d:
         return parse_gameplay_request(d)

@@ -13,6 +13,8 @@ class Map(NamedTuple):
     g: Graph
     mines: Set[int]
 
+    raw_map: dict  # map in their format
+
     # Dunno if we can rely on these, but it's nice for visualization.
     site_coords: Dict[int, Tuple[float, float]]
 
@@ -50,6 +52,7 @@ class SetupResponse(NamedTuple):
 
 class GameplayRequest(NamedTuple):
     moves: List[Move]
+    raw_moves: list  # moves in their format
     state: GameState
 
 class GameplayResponse(NamedTuple):
