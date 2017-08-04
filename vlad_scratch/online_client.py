@@ -7,11 +7,13 @@ except ImportError:
 import logging; log = logging.getLogger(__name__)
 
 import json
+import time
 import socket
 
 from production import dumb_bots
 from production import json_format
 from production.bot_interface import *
+from production import scraper
 
 
 class CommsException(Exception):
@@ -86,9 +88,21 @@ def main():
         format='%(levelname).1s %(module)10.10s:%(lineno)-4d %(message)s')
     log.setLevel(logging.DEBUG)
 
+    while True:
+        for game in scraper.games():
+            log.info(game)
+            if game.punters_num + 1 == game.punters_max:
+                log.info('this game is about to begin!')
+                break
+        else:  # no break
+            log.info('no imminent games, waiting...')
+            time.sleep(5)
+            continue
+        break
+
     bot = dumb_bots.FirstMoveBot()
 
-    con = Connection('punter.inf.ed.ac.uk', 9001, 'tbd tbd')
+    con = Connection('punter.inf.ed.ac.uk', game.port, 'tbd tbd')
     print('conn')
     con.perform_handshake()
 
