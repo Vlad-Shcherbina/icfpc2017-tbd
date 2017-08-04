@@ -1,18 +1,16 @@
 from bs4 import BeautifulSoup
 import re
 import sys
+import typing
 import urllib.request
 
 
-class Game(object):
-    def __init__(self, punters_num, punters_max, port, map_name):
-        self.punters_num = punters_num
-        self.punters_max = punters_max
-        self.port = port
-        self.map_name = map_name
-
-    def __repr__(self):
-        return f"Port={self.port}, punters_max={self.punters_max}, punters_num={self.punters_num}, map_name={self.map_name}."
+class Game(typing.NamedTuple):
+    punters_num: int
+    punters_max: int
+    port: int
+    map_name: str
+    punters: typing.List[str]
 
 
 def __parse_status(status):
@@ -33,8 +31,22 @@ def games():
         for tr in trs[1:]:
             tds = tr.contents
             status = __parse_status(tds[0].string)
+            print(tds)
             if status:
-                yield Game(status[0], status[1], int(tds[2].string), tds[3].string)
+                yield Game(status[0], status[1], int(tds[3].string), tds[4].string, (tds[1].string or '').split(','))
+
+
+def wait_for_game(predicate=lambda g: True):
+    names = [name] if isinstance(name, str) else name # None or list
+    while True:
+        for g in games():
+            if not predicate(g):
+                continue
+            if g.punters_max - g.punters_num != 1:
+                continue
+            return g
+        log.info('no imminent games, waiting...')
+        time.sleep(3)
 
 
 def main():
