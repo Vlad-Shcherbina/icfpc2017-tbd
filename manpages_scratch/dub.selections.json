@@ -1,0 +1,8 @@
+{
+	"fileVersion": 1,
+	"versions": {
+		"darg": "0.0.4",
+		"std_data_json": "0.18.2",
+		"taggedalgebraic": "0.10.7"
+	}
+}
