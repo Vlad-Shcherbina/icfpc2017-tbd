@@ -1,5 +1,8 @@
+# !python3
+
 import json
 from pprint import pprint
+from collections import deque
 
 # Get some statistics for given map.
 # Printing stuff out! Not for production.
@@ -62,3 +65,36 @@ for name, data in official_maps.items():
     line1 += ' ]'
     line2 += ' ]'
     print(line1 + '\n' + line2)
+
+    # very dirty...
+    unvisited = { ID : True for ID in datagraph['sites'] }
+    
+    components = []
+    useless_components = []
+    while True:
+        for site, is_unvisited in unvisited.items():
+            if is_unvisited:
+                break
+        else: break
+        if len(datagraph['sites'][site]) == 0:
+            # not counting zeros
+            unvisited[site] = False
+            continue
+        queue = deque([site])
+        count = 0
+        has_mine = False
+        while queue:
+            current = queue.popleft()
+            if not unvisited[current]: continue
+            if current in data['mines']: has_mine = True
+            unvisited[current] = False
+            count += 1
+            for adj in datagraph['sites'][current]:
+                if unvisited[adj]:
+                    queue.append(adj)
+        if has_mine: components.append(count) 
+        else: useless_components.append(count)
+    print ("Connected components:", components)
+    print ("Useless components:", useless_components)
+
+
