@@ -23,4 +23,5 @@ struct Options {
 immutable usage = usageString!Options("manpages_scratch");
 immutable help = helpString!Options;
 
-Options globalConfig;
+// quick gshared hack because options are only written during startup
+__gshared Options globalConfig;
