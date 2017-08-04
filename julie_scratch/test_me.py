@@ -1,10 +1,10 @@
-import sys
+import json
 
 def hello():
     '''Does nothing.
 
     >>> hello()
-    3
+    4
 
     '''
     return 4
