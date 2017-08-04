@@ -8,8 +8,6 @@ from production.bot_interface import Map
 from collections import namedtuple
 from typing import Tuple
 
-Point = namedtuple('Point', 'x y')
-
 river_color = (120, 140, 220)
 site_color = (255, 255, 255)
 mine_color = (255, 50, 50)
@@ -92,10 +90,8 @@ class Visualization:
     def get_x(self, x: float) -> int:
         return int(x)
 
-
     def get_y(self, y: float):
         return int(y)
-
 
     def get_coord(self, p: Tuple[float, float]) -> Tuple[int, int]:
         return (self.get_x(p[0]), self.get_y(p[1]))
@@ -109,9 +105,9 @@ class Visualization:
         canvas_height = self.height * (1 - 2 * border_coeff)
 
         def get_x(x):
-            return int(x / W * canvas_width + self.width * border_coeff)
+            return int((x - x_min) / W * canvas_width + self.width * border_coeff)
         def get_y(y):
-            return int(y / H * canvas_height + self.height * border_coeff)
+            return int((y - y_min) / H * canvas_height + self.height * border_coeff)
 
         self.get_x = get_x
         self.get_y = get_y
@@ -137,7 +133,7 @@ def main():
 
     # V for Visualization ^^
     v = Visualization(width=1000, height=1000)
-    d = utils.project_root() / 'maps' / 'official_map_samples' / 'gothenburg-sparse.json'
+    d = utils.project_root() / 'maps' / 'official_map_samples' / 'sample.json' #'gothenburg-sparse.json'
     m = parse_map(json.loads(d.read_text()))
 
     v.draw_background()
@@ -148,7 +144,7 @@ def main():
 
     v.draw_map(m)
     img = v.get_image()
-    img.save('foo.png')
+    img.save('sfoo.png')
 
 if __name__ == '__main__':
     main()

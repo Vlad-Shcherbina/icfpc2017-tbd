@@ -6,8 +6,7 @@
 from PIL import Image, ImageDraw
 from production.bot_interface import Map
 from collections import namedtuple
-
-Point = namedtuple('Point', 'x y')
+from typing import Tuple
 
 river_color = (120, 140, 220)
 site_color = (255, 255, 255)
@@ -38,7 +37,7 @@ class Visualization:
             return img
         self.draw_commands.append(draw_command)
 
-    def draw_point(self, coord: (float, float), color=site_color, size=4):
+    def draw_point(self, coord: Tuple[float, float], color=site_color, size=4):
         coord = self.get_coord(coord)
         def draw_command(img):
             draw = ImageDraw.Draw(img)
@@ -55,7 +54,11 @@ class Visualization:
             return img
         self.draw_commands.append(draw_command)
 
-    def draw_edge(self, p1: (float, float), p2: (float, float), color=river_color):
+    def draw_edge(
+            self,
+            p1: Tuple[float, float],
+            p2: Tuple[float, float],
+            color=river_color):
         p1 = self.get_coord(p1)
         p2 = self.get_coord(p2)
 
@@ -87,12 +90,10 @@ class Visualization:
     def get_x(self, x: float) -> int:
         return int(x)
 
-
-    def get_y(self, y: float):
+    def get_y(self, y: float) -> int:
         return int(y)
 
-
-    def get_coord(self, p: (float, float)) -> (int, int):
+    def get_coord(self, p: Tuple[float, float]) -> Tuple[int, int]:
         return (self.get_x(p[0]), self.get_y(p[1]))
 
 
@@ -104,17 +105,16 @@ class Visualization:
         canvas_height = self.height * (1 - 2 * border_coeff)
 
         def get_x(x):
-            return int(x / W * canvas_width + self.width * border_coeff)
+            return int((x - x_min) / W * canvas_width + self.width * border_coeff)
         def get_y(y):
-            return int(y / H * canvas_height + self.height * border_coeff)
+            return int((y - y_min) / H * canvas_height + self.height * border_coeff)
 
         self.get_x = get_x
         self.get_y = get_y
 
 
 
-
-    def get_image(self, size=None) -> Image:
+    def get_image(self) -> Image.Image:
         if size: 
             self.size = size
 
@@ -132,7 +132,7 @@ def main():
 
     # V for Visualization ^^
     v = Visualization(width=1000, height=1000)
-    d = utils.project_root() / 'maps' / 'official_map_samples' / 'gothenburg-sparse.json'
+    d = utils.project_root() / 'maps' / 'official_map_samples' / 'sample.json' #'gothenburg-sparse.json'
     m = parse_map(json.loads(d.read_text()))
 
     v.draw_background()
@@ -143,7 +143,7 @@ def main():
 
     v.draw_map(m)
     img = v.get_image()
-    img.save('foo.png')
+    img.save('sfoo.png')
 
 if __name__ == '__main__':
     main()
