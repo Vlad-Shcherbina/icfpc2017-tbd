@@ -14,6 +14,9 @@ import json
 from production.bot_interface import *
 
 
+REPORT_UNKNOWN_FIELDS = False
+
+
 def parse_map(d) -> Map:
     d = copy.deepcopy(d)
     raw_map = copy.deepcopy(d)
@@ -29,9 +32,9 @@ def parse_map(d) -> Map:
         id = site.pop('id')
         # x and y fields are not documented, but they appear to be present
         # on all official maps
-        x = site.pop('x')
-        y = site.pop('y')
-        assert not site, site
+        x = site.pop('x', 0.0)
+        y = site.pop('y', 0.0)
+        if REPORT_UNKNOWN_FIELDS: assert not site, site
         g[id] = set()
         site_coords[id] = x, y
 
@@ -42,7 +45,7 @@ def parse_map(d) -> Map:
     for river in rivers:
         source = river.pop('source')
         target = river.pop('target')
-        assert not river, river
+        if REPORT_UNKNOWN_FIELDS: assert not river, river
         assert target not in g[source]
         g[source].add(target)
         assert source not in g[target]
@@ -55,7 +58,7 @@ def parse_settings(d) -> Settings:
     raw_settings = copy.deepcopy(d)
     d = copy.deepcopy(d)
     futures = d.pop('futures', False)
-    assert not d, d
+    if REPORT_UNKNOWN_FIELDS: assert not d, d
     return Settings(futures=futures, raw_settings=raw_settings)
 
 
@@ -66,7 +69,7 @@ def parse_setup_request(d) -> SetupRequest:
     map = d.pop('map')
     settings = d.pop('settings', {})
     state = d.pop('state', {})
-    assert not d, d
+    if REPORT_UNKNOWN_FIELDS: assert not d, d
     assert 0 <= punter < punters, (punter, punters)
     return SetupRequest(
         punter=punter, punters=punters,
@@ -85,17 +88,17 @@ def parse_move(d) -> Move:
     d = copy.deepcopy(d)
     if 'claim' in d:
         claim = d.pop('claim')
-        assert not d, d
+        if REPORT_UNKNOWN_FIELDS: assert not d, d
         punter = claim.pop('punter')
         source = claim.pop('source')
         target = claim.pop('target')
-        assert not claim, claim
+        if REPORT_UNKNOWN_FIELDS: assert not claim, claim
         return ClaimMove(punter=punter, source=source, target=target)
     elif 'pass' in d:
         p = d.pop('pass')
-        assert not d, d
+        if REPORT_UNKNOWN_FIELDS: assert not d, d
         punter = p.pop('punter')
-        assert not p, p
+        if REPORT_UNKNOWN_FIELDS: assert not p, p
         return PassMove(punter=punter)
     else:
         assert False, d
@@ -114,9 +117,9 @@ def parse_gameplay_request(d) -> GameplayRequest:
     d = copy.deepcopy(d)
     m = d.pop('move')
     state = d.pop('state')
-    assert not d, d
+    if REPORT_UNKNOWN_FIELDS: assert not d, d
     moves = m.pop('moves')
-    assert not m, m
+    if REPORT_UNKNOWN_FIELDS: assert not m, m
     raw_moves = copy.deepcopy(moves)
     moves = [parse_move(move) for move in moves]
     return GameplayRequest(moves=moves, state=state, raw_moves=raw_moves)
@@ -133,10 +136,10 @@ def parse_score_request(d) -> ScoreRequest:
     d = copy.deepcopy(d)
     s = d.pop('stop')
     state = d.pop('state')
-    assert not d, d
+    if REPORT_UNKNOWN_FIELDS: assert not d, d
     moves = s.pop('moves')
     scores = s.pop('scores')
-    assert not s, s
+    if REPORT_UNKNOWN_FIELDS: assert not s, s
 
     moves = [parse_move(move) for move in moves]
 
@@ -144,7 +147,7 @@ def parse_score_request(d) -> ScoreRequest:
     for score in scores:
         punter = score.pop('punter')
         points = score.pop('score')
-        assert not score, score
+        if REPORT_UNKNOWN_FIELDS: assert not score, score
         assert punter not in score_by_punter
         score_by_punter[punter] = points
 
