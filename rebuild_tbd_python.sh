@@ -12,5 +12,5 @@ find ~/tbd_python/ -name '*.a' | xargs rm
 rm -rf ~/tbd_python/lib/python3.6/test
 
 # Pack
-tar -cvJf tbd_python.tar.xz ~/tbd_python
+tar -cvJf ../tbd_python.tar.xz ~/tbd_python
 
