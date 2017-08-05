@@ -72,7 +72,8 @@ def main():
 
             for move in msg.state['all_past_moves']:
                 move = json_format.parse_move(move)
-                vis.draw_move(move, map_)
+                me=(move.punter==msg.state['my_id'])
+                vis.draw_move(move, map_, me=me)
 
             im = vis.get_image()
             im.save(utils.project_root() / 'outputs' / f'{turn_number:04d}.png')

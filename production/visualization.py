@@ -14,15 +14,19 @@ site_color = (200, 200, 200)
 mine_color = (255, 50, 50)
 back_color = (60, 60, 60)
 text_color = (255, 255, 255)
+me_color = (255, 0, 0)
 
 mine_size = 4
 site_size = 1
 river_width = 1
+claimed_width = 2
+me_width = 3
+
 
 punter_colors = [(255, 245, 80),
                  (80, 255, 245),
-                 (255, 80, 245),
-                 (255, 120, 110),
+                 (240, 80, 240),
+                 (240, 120, 110),
                  (145, 155, 155),
                  (125, 255, 105)]
 
@@ -131,18 +135,20 @@ class Visualization:
         if len(punter_colors) <= len(legend): self.set_punters(len(legend) + 1)
         assert len(legend) <= len(punter_colors)
         for p_text, p_color in zip(legend, punter_colors):
+            if 'me' in p_text: 
+                p_color = me_color
             self.draw_text(p, p_text, color=p_color)
             p = (p[0], p[1] + 15)
 
 
-    def draw_move(self, mv: Move, m: Map):
+    def draw_move(self, mv: Move, m: Map, me=False):
         if isinstance(mv, PassMove): return
         assert isinstance(mv, ClaimMove)
         if len(punter_colors) <= mv.punter: self.set_punters(punter + 1)
         self.draw_edge(m.site_coords[mv.source],
                        m.site_coords[mv.target],
-                       punter_colors[mv.punter],
-                       width=2)
+                       punter_colors[mv.punter] if not me else me_color,
+                       width=claimed_width if not me else me_width)
 
 
     def draw_map(self, m: Map):
@@ -231,6 +237,8 @@ def main():
     # make move
     mv = parse_move(json.loads('{"claim":{"punter":1,"source":7,"target":1}}'))
     v.draw_move(mv, m)
+    mv = parse_move(json.loads('{"claim":{"punter":2,"source":15,"target":65}}'))
+    v.draw_move(mv, m, me=True)
 
     # save image
     img = v.get_image()
