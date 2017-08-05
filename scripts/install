@@ -8,7 +8,7 @@ set -euo pipefail
 tar -xaf tbd_python.tar.xz
 
 # link src, to make orgs happy
-ln -s production src
+ln -s production src || true
 
 # run tests to generate C++ bindings
 cd production && $HOME/tbd_python/bin/python3.6 -m pytest
