@@ -186,7 +186,7 @@ def main():
     game = scraper.wait_for_game(predicate=scraper.only_easy_eagers_p) 
     log.info(f'Joining {game}')
     scores = online_mainloop('punter.inf.ed.ac.uk', game.port, 'tbd tbd', bot)
-    log.info(f'Scores: {scores.score_by_punter}')
+    log.info(f'Scores: id={scores.state.get("my_id")} {scores.score_by_punter}')
 
 
 if __name__ == '__main__':
