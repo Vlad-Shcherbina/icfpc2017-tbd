@@ -9,7 +9,6 @@ import logging; log = logging.getLogger(__name__)
 import json
 import time
 import socket
-import random
 
 from production import dumb_bots
 from production import json_format
@@ -91,19 +90,7 @@ def main():
         format='%(levelname).1s %(module)10.10s:%(lineno)-4d %(message)s')
     log.setLevel(logging.DEBUG)
 
-    while True:
-        games = list(scraper.games())
-        random.shuffle(games)
-        for game in games:
-            log.info(game)
-            if game.punters_num + 1 == game.punters_max:
-                log.info('this game is about to begin!')
-                break
-        else:  # no break
-            log.info('no imminent games, waiting...')
-            time.sleep(5)
-            continue
-        break
+    game = scraper.wait_for_game(predicate=lambda g: g.extensions==[])
 
     bot = dumb_bots.FirstMoveBot()
 

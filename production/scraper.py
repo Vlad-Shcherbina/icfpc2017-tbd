@@ -3,6 +3,9 @@ import re
 import sys
 import typing
 import urllib.request
+import random
+
+import logging; log = logging.getLogger(__name__)
 
 
 class Game(typing.NamedTuple):
@@ -11,6 +14,7 @@ class Game(typing.NamedTuple):
     port: int
     map_name: str
     punters: typing.List[str]
+    extensions: typing.List[str]
 
 
 def __parse_status(status):
@@ -31,17 +35,37 @@ def games():
         for tr in trs[1:]:
             tds = tr.contents
             status = __parse_status(tds[0].string)
-            print(tds)
             if status:
-                yield Game(status[0], status[1], int(tds[3].string), tds[4].string, (tds[1].string or '').split(','))
+                punters = tds[1].string
+                if punters:
+                    punters = [p.strip() for p in punters.split(',')]
+                else:
+                    punters = []
+
+                extensions = tds[2].string
+                if extensions:
+                    extensions = [p.strip() for p in extensions.split(',')]
+                else:
+                    extensions = []
+
+                yield Game(
+                    punters_num=status[0],
+                    punters_max=status[1],
+                    port=int(tds[3].string),
+                    map_name=tds[4].string,
+                    punters=punters,
+                    extensions=extensions)
 
 
-def wait_for_game(predicate=lambda g: True):
-    names = [name] if isinstance(name, str) else name # None or list
+def wait_for_game(*, predicate=lambda g: True, shuffle=True):
     while True:
-        for g in games():
+        gs = list(games())
+        if shuffle:
+            random.shuffle(gs)
+        for g in gs:
             if not predicate(g):
                 continue
+            log.info(g)
             if g.punters_max - g.punters_num != 1:
                 continue
             return g
