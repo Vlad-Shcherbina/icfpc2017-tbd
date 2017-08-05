@@ -12,6 +12,7 @@ import socket
 import collections
 
 from production import dumb_bots
+from production import cpp_bot
 from production import json_format
 from production.bot_interface import *
 from production import scraper
@@ -33,7 +34,7 @@ def main():
 
     game = scraper.wait_for_game(
         predicate=scraper.only_easy_eagers_p, extensions={'futures'})
-    bot = dumb_bots.FirstMoveBot()
+    bot = cpp_bot.CppBot()
 
     turn_number = 0
 

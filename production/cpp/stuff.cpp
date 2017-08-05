@@ -38,17 +38,14 @@ vector<int> all_dists_from(const vector<vector<int>> &adj, int start) {
 struct Board {
     Board(const vector<vector<int>> &adj, const vector<int> &mines)
     : adj(adj), mines(mines), dist(adj.size()) {
-        debug(adj);
         for (int m : mines)
             dist[m] = all_dists_from(adj, m);
-        debug(dist);
     }
 
     void claim_river(int owner, int u, int v) {
         pair<int, int> k(min(u, v), max(u, v));
         assert(claimed_by.count(k) == 0);
         claimed_by[k] = owner;
-        debug(claimed_by);
     }
 
     vector<int> reachable_by_claimed(int owner, int start) const {
@@ -75,6 +72,18 @@ struct Board {
         return result;
     }
 
+    int base_score(int owner) const {
+        int result = 0;
+        for (int mine : mines) {
+            for (int v : reachable_by_claimed(owner, mine)) {
+                int d = dist[mine][v];
+                assert(d != -1);
+                result += d * d;
+            }
+        }
+        return result;
+    }
+
     vector<int> mines;
     vector<vector<int>> adj;
     map<pair<int, int>, int> claimed_by;
@@ -92,6 +101,7 @@ PYBIND11_PLUGIN(stuff) {
         .def(py::init<const Board&>())
         .def("claim_river", &Board::claim_river)
         .def("reachable_by_claimed", &Board::reachable_by_claimed)
+        .def("base_score", &Board::base_score)
     ;
 
     return m.ptr();
