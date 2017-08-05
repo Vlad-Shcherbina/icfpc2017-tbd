@@ -145,15 +145,17 @@ class OnlineTransport:
         self.conn.send(jf.format_gameplay_response(response))
 
 
-def online_mainloop(host, port, name: str, bot: bi.Bot):
+def online_mainloop(host, port, name: str, bot: bi.Bot, on_request_cb=lambda req: None):
     'Copypaste and augment as you wish'
     tr = OnlineTransport(host, port, name)
 
     req = tr.get_setup()
+    on_request_cb(req)
     tr.send_setup_response(bot.setup(req))
     
     while True:
         req = tr.get_gameplay()
+        on_request_cb(req)
         if isinstance(req, bi.ScoreRequest):
             return req
         tr.send_gameplay_response(bot.gameplay(req))
