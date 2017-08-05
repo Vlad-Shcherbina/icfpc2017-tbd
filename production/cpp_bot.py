@@ -28,7 +28,7 @@ def reconstruct_board(map: Map, moves: List[Move]):
             board.claim_river(
                 move.punter, pack[move.source], pack[move.target])
 
-    return board
+    return pack, unpack, board
 
 
 class CppBot(Bot):
@@ -65,14 +65,26 @@ class CppBot(Bot):
                 rivers.remove((move.source, move.target))
                 rivers.remove((move.target, move.source))
 
-        board = reconstruct_board(map, moves)
+        pack, unpack, board = reconstruct_board(map, moves)
         predicted_score = {}
         for punter in range(req.state['punters']):
             predicted_score[punter] = board.base_score(punter)
         logging.info(f'predicted score: {predicted_score}')
 
-        if rivers:
-            source, target = min(rivers)
+        cut_prob_grad = {}
+        for mine in map.mines:
+            cut_prob = 1.0 - 1.0 / req.state['punters']
+            rp = cpp.ReachProb(board, req.state['my_id'], pack[mine], cut_prob)
+            for k, v in rp.get_cut_prob_grad().items():
+                cut_prob_grad.setdefault(k, 0.0)
+                cut_prob_grad[k] += v
+        #logging.info(f'*********** {cut_prob_grad}')
+
+        if cut_prob_grad:
+            source, target = min(cut_prob_grad, key=cut_prob_grad.get)
+            #logging.info(f'*** {source}, {target}')
+            source = unpack[source]
+            target = unpack[target]
             move = ClaimMove(
                 punter=req.state['my_id'],
                 source=source, target=target)

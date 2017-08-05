@@ -36,6 +36,18 @@ def test_stuff():
     assert sorted(board.reachable_by_claimed(42, 1)) == [1, 2, 3]
 
 
+def test_reach_prob():
+    board = cpp.Board(make_adj(), [0, 1, 2, 3, 4])
+    board.claim_river(42, 0, 1)
+    #board.claim_river(43, 1, 2)
+
+    rp = cpp.ReachProb(board, 42, 2, 0.8)
+
+    print(rp.get_cut_prob_grad())
+
+    #assert False
+
+
 if __name__ == '__main__':
     import sys, pytest
     pytest.main([__file__] + sys.argv[1:])
