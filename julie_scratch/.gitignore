@@ -1,4 +1,5 @@
 *.pdf
 *.png
-practice*.py
+practice*
+my_*
 *.tmp

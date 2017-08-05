@@ -11,7 +11,7 @@ from random import randrange
 
 river_color = (100, 100, 100)
 site_color = (200, 200, 200)
-mine_color = (255, 50, 50)
+mine_color = (255, 255, 255)
 back_color = (60, 60, 60)
 text_color = (255, 255, 255)
 me_color = (255, 0, 0)
@@ -135,7 +135,7 @@ class Visualization:
         if len(punter_colors) <= len(legend): self.set_punters(len(legend) + 1)
         assert len(legend) <= len(punter_colors)
         for p_text, p_color in zip(legend, punter_colors):
-            if 'me' in p_text: 
+            if '(me)' in p_text: 
                 p_color = me_color
             self.draw_text(p, p_text, color=p_color)
             p = (p[0], p[1] + 15)
@@ -242,7 +242,7 @@ def main():
 
     # save image
     img = v.get_image()
-    img.save('foo.png')
+    img.save(utils.project_root() / 'outputs' / 'foo.png')
 
 if __name__ == '__main__':
     main()
