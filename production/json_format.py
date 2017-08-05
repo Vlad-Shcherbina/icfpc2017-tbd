@@ -51,18 +51,32 @@ def parse_map(d) -> Map:
     return Map(g=g, mines=set(mines), site_coords=site_coords, raw_map=raw_map)
 
 
+def parse_settings(d) -> Settings:
+    d = copy.deepcopy(d)
+    futures = d.pop('futures', False)
+    assert not d, d
+    return Settings(futures=futures)
+
+
 def parse_setup_request(d) -> SetupRequest:
     d = copy.deepcopy(d)
     punter = d.pop('punter')
     punters = d.pop('punters')
     map = d.pop('map')
+    settings = d.pop('settings', {})
     assert not d, d
     assert 0 <= punter < punters, (punter, punters)
-    return SetupRequest(punter=punter, punters=punters, map=parse_map(map))
+    return SetupRequest(
+        punter=punter, punters=punters,
+        map=parse_map(map),
+        settings=parse_settings(settings))
 
 
 def format_setup_response(r: SetupResponse):
-    return dict(ready=r.ready, state=r.state)
+    d = dict(ready=r.ready, state=r.state)
+    if r.futures:
+        d['futures'] = [dict(source=k, target=v) for k, v in r.futures.items()]
+    return d
 
 
 def parse_move(d) -> Move:

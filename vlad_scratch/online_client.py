@@ -88,9 +88,9 @@ def main():
     logging.basicConfig(
         level=logging.INFO,
         format='%(levelname).1s %(module)10.10s:%(lineno)-4d %(message)s')
-    log.setLevel(logging.DEBUG)
+    #log.setLevel(logging.DEBUG)
 
-    game = scraper.wait_for_game(predicate=lambda g: g.extensions==[])
+    game = scraper.wait_for_game(predicate=lambda g: g.extensions==['futures'])
 
     bot = dumb_bots.FirstMoveBot()
 
@@ -124,7 +124,7 @@ def main():
             assert False
 
         old_state = resp.pop('state')
-        log.info(f'state = {old_state}')
+        #log.info(f'state = {old_state}')
 
         con.send_move(resp)
 

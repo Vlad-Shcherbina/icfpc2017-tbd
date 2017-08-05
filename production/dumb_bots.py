@@ -23,7 +23,12 @@ class FirstMoveBot(Bot):
             my_id=req.punter,
             map=req.map.raw_map,
             all_past_moves=[])
-        return SetupResponse(ready=req.punter, state=state)
+        if req.settings.futures:
+            not_mines = set(req.map.g) - set(req.map.mines)
+            futures = dict(zip(sorted(req.map.mines), sorted(not_mines)))
+        else:
+            futures = {}
+        return SetupResponse(ready=req.punter, state=state, futures=futures)
 
     def gameplay(self, req: GameplayRequest) -> GameplayResponse:
         map = parse_map(req.state['map'])

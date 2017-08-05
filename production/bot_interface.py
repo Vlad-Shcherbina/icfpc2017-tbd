@@ -40,14 +40,20 @@ GameState = Any
 #        | changed
 
 
+class Settings(NamedTuple):
+    futures: bool
+
+
 class SetupRequest(NamedTuple):
     punter: int  # my punter ID
     punters: int
     map: Map
+    settings: Settings
 
 class SetupResponse(NamedTuple):
     ready: int  # my punter ID
     state: GameState
+    futures: Dict[int, int]  # mine -> target
 
 
 class GameplayRequest(NamedTuple):
