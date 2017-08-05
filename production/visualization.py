@@ -6,7 +6,7 @@
 from PIL import Image, ImageDraw
 from production.bot_interface import *
 from collections import namedtuple
-from typing import Tuple
+from typing import Tuple, List
 from random import randrange
 
 river_color = (100, 100, 100)
@@ -125,12 +125,13 @@ class Visualization:
                     break
 
 
-    def draw_legend(self, punters=DEFAULT_CLRS, p: Tuple[float, float]=None):
+    def draw_legend(self, legend: List[str], p: Tuple[float, float]=None):
         if not p:
-            p = (30, self.height - 30 - punters * 15)
-        if len(punter_colors) <= punters: self.set_punters(punters + 1)
-        for i, p_color in enumerate(punter_colors[:punters]):
-            self.draw_text(p, "Punter " + str(i), color=p_color)
+            p = (30, self.height - 30 - len(legend) * 15)
+        if len(punter_colors) <= len(legend): self.set_punters(len(legend) + 1)
+        assert len(legend) <= len(punter_colors)
+        for p_text, p_color in zip(legend, punter_colors):
+            self.draw_text(p, p_text, color=p_color)
             p = (p[0], p[1] + 15)
 
 
@@ -225,8 +226,7 @@ def main():
     v.draw_map(m)
 
     # set punters
-    v.set_punters(10)
-    v.draw_legend(10)
+    v.draw_legend([f'Punter {i}' for i in range(10)])
 
     # make move
     mv = parse_move(json.loads('{"claim":{"punter":1,"source":7,"target":1}}'))

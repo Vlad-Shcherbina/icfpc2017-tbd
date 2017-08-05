@@ -9,6 +9,7 @@ import logging; log = logging.getLogger(__name__)
 import json
 import time
 import socket
+import collections
 
 from production import dumb_bots
 from production import json_format
@@ -43,11 +44,31 @@ def main():
             log.info(f'my move: {msg.move}')
 
         if isinstance(msg, (GameplayRequest, ScoreRequest)):
+            log.info(f'server reports moves: {msg.moves}')
+
             vis = visualization.Visualization(600, 600)
             vis.draw_background()
             map_ = json_format.parse_map(msg.state['map'])
             vis.draw_map(map_)
-            vis.draw_legend(msg.state['punters'])
+
+            legend = [f'[{i}]' for i in range(msg.state['punters'])]
+
+            if isinstance(msg, ScoreRequest):
+                for k, v in msg.score_by_punter.items():
+                    legend[k] += f' score={v}'
+
+            pass_cnt = collections.Counter()
+            # Don't count pass moves in the first turn
+            # (they send placeholder pass moves for each player).
+            for move in msg.state['all_past_moves'][msg.state['punters']:]:
+                if 'pass' in move:
+                    pass_cnt[move['pass']['punter']] += 1
+            for i in range(len(legend)):
+                if pass_cnt[i]:
+                    legend[i] += f' passed {pass_cnt[i]} times'
+
+            legend[msg.state['my_id']] += ' (me)'
+            vis.draw_legend(legend)
 
             for move in msg.state['all_past_moves']:
                 move = json_format.parse_move(move)
