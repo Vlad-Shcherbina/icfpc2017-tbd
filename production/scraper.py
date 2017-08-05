@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import re
 import sys
+import time
 import typing
 import urllib.request
 import random
