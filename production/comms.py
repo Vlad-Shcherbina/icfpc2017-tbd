@@ -192,6 +192,38 @@ def online_mainloop(host, port, name: str, bot: bi.Bot, on_comms_cb=lambda msg: 
         res = bot.gameplay(req)
         tr.send_gameplay_response(res)
 
+def online_mainloop1(host, port, name: str, bots, on_comms_cb=lambda msg: msg):
+    'Pitting several bots against each other'
+
+    def mkName():
+        from random import choice
+        from string import ascii_uppercase
+        return ''.join(choice(ascii_uppercase) for i in range(6))
+
+    bots0 = []
+    bots1 = {}
+
+    for bot in bots:
+        tr = OnlineTransport(host, port, name + mkName(), on_comms_cb)
+        bots0.append((tr, bot))
+
+    for (tr, bot) in bots0:
+        req = tr.get_setup()
+        res = bot.setup(req)
+        tr.send_setup_response(res)
+        bots1[res.ready] = (tr, bot)
+
+    while True:
+        for i in bots1:
+            log.info(f'We think it\'s {i}th bot\'s turn')
+            tr  = bots1[i][0]
+            bot = bots1[i][1]
+            req = tr.get_gameplay()
+            if isinstance(req, bi.ScoreRequest):
+                # Todo: improve score reporting to report a score per bot
+                return req
+            res = bot.gameplay(req)
+            tr.send_gameplay_response(res)
 
 def main():
     from utils import config_logging
@@ -200,10 +232,13 @@ def main():
     log.setLevel(logging.DEBUG)
     from production.dumb_bots import FirstMoveBot
     bot = FirstMoveBot()
+    from production.cpp_bot import CppBot
+    bot1 = CppBot()
+    bot2 = CppBot()
 
-    game = scraper.wait_for_game(predicate=scraper.only_easy_eagers_p) 
+    game = scraper.wait_for_game1(punters=3, predicate=scraper.only_easy_eagers_p)
     log.info(f'Joining {game}')
-    scores = online_mainloop('punter.inf.ed.ac.uk', game.port, 'tbd tbd', bot)
+    scores = online_mainloop1('punter.inf.ed.ac.uk', game.port, 'tbd tbd', [bot, bot1, bot2])
     log.info(f'Scores: id={scores.state.get("my_id")} {scores.score_by_punter}')
 
 

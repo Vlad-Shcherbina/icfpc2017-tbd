@@ -76,6 +76,24 @@ def wait_for_game(*, predicate=lambda g: True, shuffle=True, extensions={}):
         time.sleep(3)
 
 
+def wait_for_game1(*, punters=1, predicate=lambda g: True, shuffle=True, extensions={}):
+    while True:
+        gs = list(games())
+        if shuffle:
+            random.shuffle(gs)
+        for g in gs:
+            if not predicate(g):
+                continue
+            if any(extension not in extensions for extension in g.extensions):
+                continue
+            log.info(g)
+            if g.punters_max - g.punters_num != punters:
+                continue
+            return g
+        log.info('no imminent games, waiting...')
+        time.sleep(3)
+
+
 # Use this to be nice to others
 def only_eagers_p(g: Game):
     return all(p == 'eager punter' for p in g.punters)
