@@ -15,7 +15,7 @@ site_color = (200, 200, 200)
 mine_color = (255, 255, 255)
 back_color = (60, 60, 60)
 text_color = (255, 255, 255)
-me_color = (255, 0, 0)
+me_color = (0, 255, 0)
 
 mine_size = 4
 site_size = 1
@@ -24,12 +24,12 @@ claimed_width = 2
 me_width = 3
 
 
-punter_colors = [(255, 245, 80),
-                 (80, 255, 245),
+punter_colors = [(255, 205, 80),
+                 (80, 205, 245),
                  (240, 80, 240),
                  (240, 120, 110),
                  (145, 155, 155),
-                 (125, 255, 105)]
+                 (125, 205, 105)]
 
 DEFAULT_CLRS = 6
 LEFT_MARGIN = 70  # for legend
@@ -85,6 +85,7 @@ class Visualization:
         self.draw_point(coord, color=site_color, size=site_size) # just in case
 
     def draw_mine(self, coord: Tuple[float, float]):
+        self.draw_point(coord, color=(0, 0, 0), size=2*mine_size) # just in case
         self.draw_point(coord, color=mine_color, size=mine_size) # just in case
 
 
