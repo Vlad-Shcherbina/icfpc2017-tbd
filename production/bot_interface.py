@@ -42,6 +42,7 @@ GameState = Any
 
 class Settings(NamedTuple):
     futures: bool
+    raw_settings: dict
 
 
 class SetupRequest(NamedTuple):

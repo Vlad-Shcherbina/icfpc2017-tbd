@@ -52,10 +52,11 @@ def parse_map(d) -> Map:
 
 
 def parse_settings(d) -> Settings:
+    raw_settings = copy.deepcopy(d)
     d = copy.deepcopy(d)
     futures = d.pop('futures', False)
     assert not d, d
-    return Settings(futures=futures)
+    return Settings(futures=futures, raw_settings=raw_settings)
 
 
 def parse_setup_request(d) -> SetupRequest:

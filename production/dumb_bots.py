@@ -10,6 +10,7 @@ class FirstMoveBot(Bot):
     GameState format:
     {'punters': 142,
      'my_id': 42,
+     'settings': <in their format>
      'map': <in their format>
      'all_past_moves': <list of moves in their format>}
     """
@@ -21,6 +22,7 @@ class FirstMoveBot(Bot):
         state = dict(
             punters=req.punters,
             my_id=req.punter,
+            settings=req.settings.raw_settings,
             map=req.map.raw_map,
             all_past_moves=[])
         if req.settings.futures:
