@@ -65,6 +65,7 @@ def parse_setup_request(d) -> SetupRequest:
     punters = d.pop('punters')
     map = d.pop('map')
     settings = d.pop('settings', {})
+    state = d.pop('state', {})
     assert not d, d
     assert 0 <= punter < punters, (punter, punters)
     return SetupRequest(

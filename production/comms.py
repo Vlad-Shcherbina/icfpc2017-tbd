@@ -34,7 +34,10 @@ class RedirectToStderr:
         self.stderr = stderr
     
     def write(self, data):
-        self.stderr.write(data)
+        self.stderr.write(data.decode())
+
+    def flush(self):
+        self.stderr.flush()
 
 
 class OfflineConnection:
@@ -45,14 +48,21 @@ class OfflineConnection:
 
 
     def read(self):
-        data = sys.stdin.read(4096)
+        import time
+        while True:
+            data = sys.stdin.read(4096).encode()
+            if data: break
+            time.sleep(0.01) # Something really weird happens with our stdin when run under lamduct
+        log.debug(f'read({data})')
         if not data:
             raise CommsException('Server unexpectedly closed connection')
         return data
 
 
     def write(self, data):
-        self.stdout.buffer.write(data)
+        log.debug(f'write({data})')
+        self.stdout.write(data.decode())
+        self.stdout.flush()
 
 
 class ColonCodec:
