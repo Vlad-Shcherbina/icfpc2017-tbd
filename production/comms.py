@@ -1,11 +1,10 @@
 import logging; log = logging.getLogger(__name__)
 
-import json
-import socket
+import json, socket, typing
 from copy import deepcopy
 
-from production.scraper import wait_for_game
-from production.bot_interface import Bot
+import production.scraper as scraper
+from production import bot_interface as bi
 from production import json_format as jf
 
 
@@ -14,9 +13,9 @@ class CommsException(Exception):
 
 
 class OnlineConnection:
-    def __init__(self, server, port):
+    def __init__(self, host, port):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.connect((server, port))
+        self.socket.connect((host, port))
 
 
     def read(self):
@@ -52,6 +51,8 @@ class ColonCodec:
             colon_pos = buf.find(b':')
             if colon_pos >= 0:
                 break
+            if len(buf) > 8:
+                raise CommsException('Buffer length part too long')
             buf.extend(self.connection.read())
 
         msg_len = int(buf[:colon_pos].decode())
@@ -67,34 +68,69 @@ class ColonCodec:
         return res
 
 
-def online_mainloop(conn, name: str, bot: Bot):
-    conn = ColonCodec(conn)
-    # handshake
+def handshake(conn, name):
     conn.send({'me': name})
     res = conn.recv()
     assert res['you'] == name
 
-    # setup
-    req = conn.recv()
-    res = bot.setup(jf.parse_setup_request(req))
-    state = deepcopy(res.state)
-    conn.send({'ready': res.ready})
 
-    while True:
-        req = conn.recv()
-        timeout = req.get('timeout')
-        if timeout is not None:
-            log.warning('OMG timeout:', timeout)
-            continue
+class OnlineTransport:
+    '''Flat procedural interface suitable for use with offline bots.abs
+    
+    There's no OfflineTransport btw'''
 
-        req['state'] = state
+    
+    def __init__(self, host, port, name):
+        self.name = name
+        self.conn = ColonCodec(OnlineConnection(host, port))
+        handshake(self.conn, name)
+    
+    
+    def get_setup(self) -> bi.SetupRequest:
+        req = self.conn.recv()
+        return jf.parse_setup_request(req)
+
+    
+    def send_setup_response(self, response: bi.SetupResponse):
+        self.state = deepcopy(response.state)
+        response = response._replace(state=None)
+        self.conn.send(jf.format_setup_response(response))
+
+    
+    def get_gameplay(self) -> typing.Union[bi.GameplayRequest, bi.ScoreRequest]:
+        while True:
+            req = self.conn.recv()
+            timeout = req.get('timeout')
+            if timeout is not None:
+                log.warning('OMG timeout:', timeout)
+            else:
+                break
+        
+        req['state'] = self.state
         if 'stop' in req:
             log.warning('game ended')
             return jf.parse_score_request(req)
+        else:
+            return jf.parse_gameplay_request(req)
 
-        res = bot.gameplay(jf.parse_gameplay_request(req))
-        state = res.state
-        conn.send(jf.format_gameplay_response(res))
+    def send_gameplay_response(self, response: bi.GameplayResponse):
+        self.state = deepcopy(response.state)
+        response = response._replace(state=None)
+        self.conn.send(jf.format_gameplay_response(response))
+
+
+def online_mainloop(host, port, name: str, bot: bi.Bot):
+    'Copypaste and augment as you wish'
+    tr = OnlineTransport(host, port, name)
+
+    req = tr.get_setup()
+    tr.send_setup_response(bot.setup(req))
+    
+    while True:
+        req = tr.get_gameplay()
+        if isinstance(req, bi.ScoreRequest):
+            return req
+        tr.send_gameplay_response(bot.gameplay(req))
 
 
 def main():
@@ -103,10 +139,14 @@ def main():
     from production.dumb_bots import FirstMoveBot
     bot = FirstMoveBot()
 
-    game = wait_for_game(lambda g: 'abject failure' not in g.punters)
+    # be nice to others
+    def only_eagers(g: scraper.Game):
+        return all(p == 'eager punter' for p in g.punters)
+
+    game = scraper.wait_for_game(predicate=only_eagers) 
     log.info(f'Joining {game}')
-    conn = OnlineConnection('punter.inf.ed.ac.uk', game.port)
-    log.info('Scores:', online_mainloop(conn, 'tbd tbd', bot))
+    scores = online_mainloop('punter.inf.ed.ac.uk', game.port, 'tbd tbd', bot)
+    log.info(f'Scores: {scores}')
 
 
 if __name__ == '__main__':
