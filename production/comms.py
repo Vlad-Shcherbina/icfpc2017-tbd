@@ -100,6 +100,24 @@ def handshake(conn, name):
     assert res['you'] == name
 
 
+def offline_mainloop(name: str, bot: bi.Bot):
+    'Do not touch'
+    conn = ColonCodec(OfflineConnection())
+    handshake(conn, name)
+
+    while True:
+        req = jf.parse_any_request(conn.recv())
+
+        if isinstance(req, bi.SetupRequest):
+            conn.send(jf.format_setup_response(bot.setup(req)))
+        elif isinstance(req, bi.GameplayRequest):
+            conn.send(jf.format_gameplay_response(bot.gameplay(req)))
+        elif isinstance(req, bi.ScoreRequest):
+            break
+        else:
+            assert False, f'wtf is this {req}'
+
+
 class OnlineTransport:
     '''Flat procedural interface suitable for use with offline bots.
     
@@ -165,26 +183,10 @@ def online_mainloop(host, port, name: str, bot: bi.Bot, on_comms_cb=lambda msg: 
         tr.send_gameplay_response(res)
 
 
-def offline_mainloop(name: str, bot: bi.Bot):
-    'Do not touch'
-    conn = ColonCodec(OfflineConnection())
-    handshake(conn, name)
-
-    while True:
-        req = jf.parse_any_request(conn.recv())
-
-        if isinstance(req, bi.SetupRequest):
-            conn.send(jf.format_setup_response(bot.setup(req)))
-        elif isinstance(req, bi.GameplayRequest):
-            conn.send(jf.format_gameplay_response(bot.gameplay(req)))
-        elif isinstance(req, bi.ScoreRequest):
-            break
-        else:
-            assert False, f'wtf is this {req}'
-
-
 def main():
-    logging.basicConfig(level=logging.INFO)
+    from utils import config_logging
+    config_logging()
+    
     log.setLevel(logging.DEBUG)
     from production.dumb_bots import FirstMoveBot
     bot = FirstMoveBot()

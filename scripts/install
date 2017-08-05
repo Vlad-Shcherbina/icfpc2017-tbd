@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# run tests to generate C++ bindings
+
+cd production
+$HOME/python_tbd/bin/python -m pytest

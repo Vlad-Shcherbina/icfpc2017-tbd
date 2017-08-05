@@ -1,0 +1,3 @@
+#!/bin/sh
+
+$HOME/python_tbd/bin/python production/punter.py
