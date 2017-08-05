@@ -52,7 +52,7 @@ class OfflineConnection:
 
 
     def write(self, data):
-        self.stdout.write(data)
+        self.stdout.buffer.write(data)
 
 
 class ColonCodec:
