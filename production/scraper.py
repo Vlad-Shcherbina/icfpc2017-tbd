@@ -114,8 +114,35 @@ def only_easy_eagers_p(g: Game):
 
 
 def main():
-    for game in games():
-        print(game)
+    import getopt
+    def usage():
+        print("Prints port number for a game")
+        print("Options:")
+        print("\t-s, --slots\t number of free slots in a game")
+        print("\t-e, --easy\t 'true' or 'false' for easy game (default) ")
+
+    try:
+        opts, _ = getopt.getopt(sys.argv[1:], 's:e', ['slots=', 'easy='])
+    except getopt.GetoptError:
+        usage()
+        sys.exit(2)
+    if not opts:
+        usage()
+        sys.exit(1)
+    easy: bool = True
+    slots: int = 0
+
+    for opt, arg in opts:
+        if opt in ('-s', '--slots'):
+            slots = int(arg)
+        elif opt in ('-e', '--easy'):
+            easy = bool(arg == 'true')
+        else:
+            usage()
+            sys.exit(2)
+    pred = only_easy_eagers_p if easy else (lambda x: not only_easy_eagers_p(x))
+    gs: list[Game] = [g for g in list(games()) if pred(g) and g.punters_max - g.punters_num == slots]
+    print(gs[0].port if gs else "None")
 
 if __name__ == "__main__":
     main()
