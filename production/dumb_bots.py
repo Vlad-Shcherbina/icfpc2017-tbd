@@ -55,6 +55,3 @@ class FirstMoveBot(Bot):
 
 
         return GameplayResponse(move=move, state=new_state)
-
-    def score(self, req: ScoreRequest):
-        pass

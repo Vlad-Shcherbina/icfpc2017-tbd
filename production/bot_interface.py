@@ -85,7 +85,3 @@ class Bot(metaclass=ABCMeta):
     @abstractmethod
     def gameplay(self, request: GameplayRequest) -> GameplayResponse:
         raise NotImplementedError()
-
-    @abstractmethod
-    def score(self, request: ScoreRequest) -> None:
-        raise NotImplementedError()
