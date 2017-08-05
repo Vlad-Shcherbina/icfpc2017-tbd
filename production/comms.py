@@ -1,6 +1,6 @@
 import logging; log = logging.getLogger(__name__)
 
-import json, socket, typing
+import sys, json, socket, typing
 from copy import deepcopy
 
 import production.scraper as scraper
@@ -28,6 +28,32 @@ class OnlineConnection:
     def write(self, data):
         self.socket.sendall(data)
     
+
+class RedirectToStderr:
+    def __init__(self, stderr):
+        self.stderr = stderr
+    
+    def write(self, data):
+        self.stderr.write(data)
+
+
+class OfflineConnection:
+    def __init__(self):
+        self.stdout = sys.stdout
+        sys.stdout = RedirectToStderr(sys.stderr)
+        # really paranoid people would also strdup stdout and replace 1st descriptor
+
+
+    def read(self):
+        data = sys.stdin.read(4096)
+        if not data:
+            raise CommsException('Server unexpectedly closed connection')
+        return data
+
+
+    def write(self, data):
+        self.stdout.write(data)
+
 
 class ColonCodec:
     'Handles n:json packet parsing and composing'
@@ -75,7 +101,7 @@ def handshake(conn, name):
 
 
 class OnlineTransport:
-    '''Flat procedural interface suitable for use with offline bots.abs
+    '''Flat procedural interface suitable for use with offline bots.
     
     There's no OfflineTransport btw'''
 
@@ -133,20 +159,34 @@ def online_mainloop(host, port, name: str, bot: bi.Bot):
         tr.send_gameplay_response(bot.gameplay(req))
 
 
+def offline_mainloop(name: str, bot: bi.Bot):
+    'Do not touch'
+    conn = ColonCodec(OfflineConnection())
+    handshake(conn, name)
+
+    while True:
+        req = jf.parse_any_request(conn.recv())
+
+        if isinstance(req, bi.SetupRequest):
+            conn.send(jf.format_setup_response(bot.setup(req)))
+        elif isinstance(req, bi.GameplayRequest):
+            conn.send(jf.format_gameplay_response(bot.gameplay(req)))
+        elif isinstance(req, bi.ScoreRequest):
+            break
+        else:
+            assert False, f'wtf is this {req}'
+
+
 def main():
     logging.basicConfig(level=logging.INFO)
     log.setLevel(logging.DEBUG)
     from production.dumb_bots import FirstMoveBot
     bot = FirstMoveBot()
 
-    # be nice to others
-    def only_eagers(g: scraper.Game):
-        return all(p == 'eager punter' for p in g.punters)
-
-    game = scraper.wait_for_game(predicate=only_eagers) 
+    game = scraper.wait_for_game(predicate=scraper.only_easy_eagers_p) 
     log.info(f'Joining {game}')
     scores = online_mainloop('punter.inf.ed.ac.uk', game.port, 'tbd tbd', bot)
-    log.info(f'Scores: {scores}')
+    log.info(f'Scores: {scores.score_by_punter}')
 
 
 if __name__ == '__main__':

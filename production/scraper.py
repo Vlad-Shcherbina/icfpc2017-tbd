@@ -57,7 +57,7 @@ def games():
                     extensions=extensions)
 
 
-def wait_for_game(*, predicate=lambda g: True, shuffle=True):
+def wait_for_game(*, predicate=lambda g: True, shuffle=True, extensions={}):
     while True:
         gs = list(games())
         if shuffle:
@@ -65,12 +65,24 @@ def wait_for_game(*, predicate=lambda g: True, shuffle=True):
         for g in gs:
             if not predicate(g):
                 continue
+            if any(extension not in extensions for extension in g.extensions):
+                continue
             log.info(g)
             if g.punters_max - g.punters_num != 1:
                 continue
             return g
         log.info('no imminent games, waiting...')
         time.sleep(3)
+
+
+# Use this to be nice to others
+def only_eagers_p(g: Game):
+    return all(p == 'eager punter' for p in g.punters)
+
+
+# Use this to be nice to others and your dumb bot
+def only_easy_eagers_p(g: Game):
+    return only_eagers_p(g) and g.map_name in ('sample.json', 'lambda.json', 'Sierpinski-triangle.json')
 
 
 def main():
