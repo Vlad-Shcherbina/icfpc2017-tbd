@@ -195,16 +195,11 @@ def online_mainloop(host, port, name: str, bot: bi.Bot, on_comms_cb=lambda msg: 
 def online_mainloop1(host, port, name: str, bots, on_comms_cb=lambda msg: msg):
     'Pitting several bots against each other'
 
-    def mkName():
-        from random import choice
-        from string import ascii_uppercase
-        return ''.join(choice(ascii_uppercase) for i in range(6))
-
     bots0 = []
     bots1 = {}
 
     for bot in bots:
-        tr = OnlineTransport(host, port, name + mkName(), on_comms_cb)
+        tr = OnlineTransport(host, port, name, on_comms_cb)
         bots0.append((tr, bot))
 
     for (tr, bot) in bots0:
@@ -214,8 +209,8 @@ def online_mainloop1(host, port, name: str, bots, on_comms_cb=lambda msg: msg):
         bots1[res.ready] = (tr, bot)
 
     while True:
+        # We assume that the dicts in python are sorted by key
         for i in bots1:
-            log.info(f'We think it\'s {i}th bot\'s turn')
             tr  = bots1[i][0]
             bot = bots1[i][1]
             req = tr.get_gameplay()
@@ -236,9 +231,11 @@ def main():
     bot1 = CppBot()
     bot2 = CppBot()
 
-    game = scraper.wait_for_game1(punters=3, predicate=scraper.only_easy_eagers_p)
+    bots = [bot1, bot]
+
+    game = scraper.wait_for_game1(punters=len(bots), predicate=scraper.only_given_port(9071))
     log.info(f'Joining {game}')
-    scores = online_mainloop1('punter.inf.ed.ac.uk', game.port, 'tbd tbd', [bot, bot1, bot2])
+    scores = online_mainloop1('punter.inf.ed.ac.uk', game.port, 'needy', bots)
     log.info(f'Scores: id={scores.state.get("my_id")} {scores.score_by_punter}')
 
 

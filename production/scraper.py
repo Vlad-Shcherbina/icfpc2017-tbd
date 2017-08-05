@@ -93,6 +93,13 @@ def wait_for_game1(*, punters=1, predicate=lambda g: True, shuffle=True, extensi
         log.info('no imminent games, waiting...')
         time.sleep(3)
 
+def only_given_port(x):
+    def ogp(g: Game):
+        return g.port == x
+    return ogp
+
+def only_others(g: Game):
+    return all(p != 'eager punter' for p in g.punters) and (len(g.punters) > 0)
 
 # Use this to be nice to others
 def only_eagers_p(g: Game):
