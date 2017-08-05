@@ -33,9 +33,12 @@ class FirstMoveBot(Bot):
     def gameplay(self, req: GameplayRequest) -> GameplayResponse:
         map = parse_map(req.state['map'])
 
+        new_state = copy.deepcopy(req.state)
+        new_state['all_past_moves'] += req.raw_moves
+
         rivers = set((u, w) for u, ws in map.g.items() for w in ws)
-        for move in req.state['all_past_moves']:
-            move = parse_move(copy.deepcopy(move))
+        for move in new_state['all_past_moves']:
+            move = parse_move(move)
             if isinstance(move, ClaimMove):
                 rivers.remove((move.source, move.target))
                 rivers.remove((move.target, move.source))
@@ -48,8 +51,6 @@ class FirstMoveBot(Bot):
         else:
             move = PassMove(punter=req.state['my_id'])
 
-        new_state = copy.deepcopy(req.state)
-        new_state['all_past_moves'] += req.raw_moves
 
         return GameplayResponse(move=move, state=new_state)
 

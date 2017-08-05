@@ -43,7 +43,6 @@ def main():
             log.info(f'my move: {msg.move}')
 
         if isinstance(msg, (GameplayRequest, ScoreRequest)):
-            log.info(f'state.all_past_moves: {msg.state["all_past_moves"]}')
             vis = visualization.Visualization(600, 600)
             vis.draw_background()
             map_ = json_format.parse_map(msg.state['map'])
@@ -61,8 +60,11 @@ def main():
 
         return msg
 
-    comms.online_mainloop(
+    scores = comms.online_mainloop(
         'punter.inf.ed.ac.uk', game.port, 'tbdbd', bot, on_comms_cb=cb)
+
+    log.info(f'my id: {scores.state["my_id"]}')
+    log.info(f'scores: {scores.score_by_punter}')
 
 
 if __name__ == '__main__':
