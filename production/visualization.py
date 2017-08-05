@@ -9,14 +9,15 @@ from collections import namedtuple
 from typing import Tuple
 from random import randrange
 
-river_color = (111, 111, 111)
-site_color = (255, 255, 255)
+river_color = (100, 100, 100)
+site_color = (200, 200, 200)
 mine_color = (255, 50, 50)
 back_color = (60, 60, 60)
 text_color = (255, 255, 255)
 
 mine_size = 4
-site_size = 2
+site_size = 1
+river_width = 1
 
 punter_colors = [(255, 245, 80),
                  (80, 255, 245),
@@ -26,23 +27,7 @@ punter_colors = [(255, 245, 80),
                  (125, 255, 105)]
 
 DEFAULT_CLRS = 6
-
-def set_punter_colors(n):
-    if n <= DEFAULT_CLRS: return
-    punter_colors[DEFAULT_CLRS:] = []
-    threshold = 100 * 3 / n
-
-    def colors_differ(clr1, clr2):
-        return sum(abs(clr1[i] - clr2[i]) for i in range(3)) > threshold
-
-    def randcolor(): return randrange(1, 6) * 20 + 150
-
-    for _ in range(n - DEFAULT_CLRS):
-        while True:
-            color = (randcolor(), randcolor(), randcolor())
-            if all(colors_differ(color, old) for old in punter_colors):
-                punter_colors.append(color)
-                break
+LEFT_MARGIN = 70  # for legend
 
 
 class Visualization:
@@ -102,13 +87,14 @@ class Visualization:
             self,
             p1: Tuple[float, float],
             p2: Tuple[float, float],
-            color=river_color):
+            color=river_color,
+            width=river_width):
         p1 = self.get_coord(p1)
         p2 = self.get_coord(p2)
 
         def draw_command(img):
             draw = ImageDraw.Draw(img)
-            draw.line((p1, p2), fill=color, width=3)
+            draw.line((p1, p2), fill=color, width=width)
             return img
         self.river_commands.append(draw_command)
 
@@ -121,21 +107,41 @@ class Visualization:
         self.fore_commands.append(draw_command)
 
 
+    def set_punters(self, n):
+        if n <= DEFAULT_CLRS: return
+        punter_colors[DEFAULT_CLRS:] = []
+        threshold = 100 * 3 / n
+
+        def colors_differ(clr1, clr2):
+            return sum(abs(clr1[i] - clr2[i]) for i in range(3)) > threshold
+
+        def randcolor(): return randrange(1, 6) * 30 + 100
+
+        for _ in range(n - DEFAULT_CLRS):
+            while True:
+                color = (randcolor(), randcolor(), randcolor())
+                if all(colors_differ(color, old) for old in punter_colors):
+                    punter_colors.append(color)
+                    break
+
+
     def draw_legend(self, punters=DEFAULT_CLRS, p: Tuple[float, float]=None):
         if not p:
             p = (30, self.height - 30 - punters * 15)
-        for i, punter in enumerate(punter_colors[:punters]):
-            self.draw_text(p, "Punter " + str(i), color=punter)
+        if len(punter_colors) <= punters: self.set_punters(punters + 1)
+        for i, p_color in enumerate(punter_colors[:punters]):
+            self.draw_text(p, "Punter " + str(i), color=p_color)
             p = (p[0], p[1] + 15)
 
 
     def draw_move(self, mv: Move, m: Map):
         if isinstance(mv, PassMove): return
         assert isinstance(mv, ClaimMove)
-        if len(punter_colors) <= mv.punter: set_punter_colors(punter + 1)
+        if len(punter_colors) <= mv.punter: self.set_punters(punter + 1)
         self.draw_edge(m.site_coords[mv.source],
                        m.site_coords[mv.target],
-                       punter_colors[mv.punter])
+                       punter_colors[mv.punter],
+                       width=2)
 
 
     def draw_map(self, m: Map):
@@ -157,10 +163,10 @@ class Visualization:
 
 
     def get_x(self, x: float) -> int:
-        return int(x)
+        return int(x) + LEFT_MARGIN
 
     def get_y(self, y: float) -> int:
-        return int(y)
+        return int(y) + LEFT_MARGIN
 
     def get_coord(self, p: Tuple[float, float]) -> Tuple[int, int]:
         return (self.get_x(p[0]), self.get_y(p[1]))
@@ -169,14 +175,19 @@ class Visualization:
     def adjust_to_map_coords(self, x_min, x_max, y_min, y_max):
         border_coeff = 0.05
         W, H = (x_max - x_min), (y_max - y_min)
-        self.width = int(self.height * W / H)  # set same ratio as given
+        self.width = int(self.height * W / H)
         canvas_width = self.width * (1 - 2 * border_coeff)
         canvas_height = self.height * (1 - 2 * border_coeff)
+        self.width += LEFT_MARGIN
+        
 
         def get_x(x):
-            return int((x - x_min) / W * canvas_width + self.width * border_coeff)
+            return int((x - x_min) / W * canvas_width 
+                       + self.width * border_coeff
+                       + LEFT_MARGIN)
         def get_y(y):
-            return int((y - y_min) / H * canvas_height + self.height * border_coeff)
+            return int((y - y_min) / H * canvas_height 
+                        + self.height * border_coeff)
 
         self.get_x = get_x
         self.get_y = get_y
@@ -214,7 +225,7 @@ def main():
     v.draw_map(m)
 
     # set punters
-    set_punter_colors(10)
+    v.set_punters(10)
     v.draw_legend(10)
 
     # make move

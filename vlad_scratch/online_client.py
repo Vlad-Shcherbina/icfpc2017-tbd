@@ -128,21 +128,16 @@ def main():
 
         con.send_move(resp)
 
-        vis = visualization.Visualization(300, 300)
+        vis = visualization.Visualization(600, 600)
         vis.draw_background()
         map_ = json_format.parse_map(old_state['map'])
         vis.draw_map(map_)
+
+        vis.draw_legend(old_state['punters'])
+
         for move in old_state['all_past_moves']:
             move = json_format.parse_move(move)
-            if isinstance(move, ClaimMove):
-                color = (
-                    move.punter % 2 * 255,
-                    move.punter // 2 % 2 * 255,
-                    move.punter // 4 % 2 * 255)
-                vis.draw_edge(
-                    map_.site_coords[move.source],
-                    map_.site_coords[move.target],
-                    color=color)
+            vis.draw_move(move, map_)
 
         im = vis.get_image()
         im.save(utils.project_root() / 'outputs' / f'{turn_number:04d}.png')
