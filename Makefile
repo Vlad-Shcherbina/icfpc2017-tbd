@@ -20,7 +20,7 @@ $(ARCHIVE): \
 # Python
 
 deploy/python_tbd.xz: python_tbd.xz | deploy/
-	cp $< $@
+	cp $^ $@
 
 python_tbd.xz:
 	echo "Compile yourself" && exit 1
@@ -29,13 +29,13 @@ python_tbd.xz:
 # production
 
 $(DEPLOYED_PRODUCTION_FILES): $(PRODUCTION_FILES) | deploy/ deploy/production
-	cp -rf production/* deploy/production/
+	cp -rf $^ deploy/production/
 
 
 # scripts and READMEs
 
 $(DEPLOYED_SCRIPT_FILES): $(SCRIPT_FILES) | deploy/
-	cp -rf production/* deploy
+	cp -rf $^ deploy
 
 
 # stuff
