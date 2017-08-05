@@ -215,7 +215,6 @@ def online_mainloop1(host, port, name: str, bots, on_comms_cb=lambda msg: msg):
             bot = bots1[i][1]
             req = tr.get_gameplay()
             if isinstance(req, bi.ScoreRequest):
-                # Todo: improve score reporting to report a score per bot
                 return req
             res = bot.gameplay(req)
             tr.send_gameplay_response(res)
@@ -233,7 +232,7 @@ def main():
 
     bots = [bot1, bot]
 
-    game = scraper.wait_for_game1(punters=len(bots), predicate=scraper.only_given_port(9071))
+    game = scraper.wait_for_game1(punters=len(bots), predicate=scraper.only_not_blacklisted(['kontur.ru']))
     log.info(f'Joining {game}')
     scores = online_mainloop1('punter.inf.ed.ac.uk', game.port, 'needy', bots)
     log.info(f'Scores: id={scores.state.get("my_id")} {scores.score_by_punter}')

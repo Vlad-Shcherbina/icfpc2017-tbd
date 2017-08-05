@@ -98,8 +98,10 @@ def only_given_port(x):
         return g.port == x
     return ogp
 
-def only_others(g: Game):
-    return all(p != 'eager punter' for p in g.punters) and (len(g.punters) > 0)
+def only_not_blacklisted(xs):
+    def onb(g: Game):
+        return all(p not in xs for p in g.punters) and (len(g.punters) > 0)
+    return onb
 
 # Use this to be nice to others
 def only_eagers_p(g: Game):
