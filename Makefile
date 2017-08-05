@@ -7,14 +7,12 @@ all: $(ARCHIVE)
 PRODUCTION_FILES := $(wildcard production/*)
 SCRIPT_FILES := $(wildcard scripts/*)
 
-DEPLOYED_PRODUCTION_FILES = $(addprefix deploy/, $(PRODUCTION_FILES))
-DEPLOYED_SCRIPT_FILES = $(addprefix deploy/, $(SCRIPT_FILES:scripts/%=%))
 
 $(ARCHIVE): \
 		deploy/tbd_python.tar.xz \
-		$(DEPLOYED_PRODUCTION_FILES) \
-		$(DEPLOYED_SCRIPT_FILES)
-	tar -C deploy -czf $@
+		deploy/make.production.item \
+		deploy/make.scripts.item
+	tar -C deploy -czf $@ *
 
 
 # Python
@@ -28,14 +26,14 @@ tbd_python.tar.xz:
 
 # production
 
-$(DEPLOYED_PRODUCTION_FILES): $(PRODUCTION_FILES) | deploy/ deploy/production/
-	cp -rf $^ deploy/production/
+deploy/make.production.item: $(PRODUCTION_FILES) | deploy/production/
+	cp -rf $^ deploy/production/ && touch $@
 
 
 # scripts and READMEs
 
-$(DEPLOYED_SCRIPT_FILES): $(SCRIPT_FILES) | deploy/
-	cp -rf $^ deploy
+deploy/make.scripts.item: $(SCRIPT_FILES) | deploy/
+	cp -rf $^ deploy && touch $@
 
 
 # stuff
