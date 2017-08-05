@@ -18,3 +18,17 @@ Root of this repository should be in `PYTHONPATH`, because we use absolute impor
   - create the file `<python installation or venv>/lib/python3.6/site-packages/tbd.pth` whose content is a single line `/path/to/icfpc2017-tbd`
   - configure your favorite IDE appropriately
   - use `python3 -m production.some_script` instead of `python3 production/some_script.py`
+
+## Building stuff
+
+To produce a tar ready for submission:
+
+0. docker rm tbd_all
+1. docker build . -t tbd_all
+2. docker create --name tbd_all tbd_all
+3. docker cp tbd_all:/root/icfpc2017-tbd/icfp-761516ab-2a60-4b4e-a8e8-486e75c4c850.tar.gz .
+
+OR one-liner:
+```text
+docker rm tbd_all; docker build . -t tbd_all && docker create --name tbd_all tbd_all && docker cp tbd_all:/root/icfpc2017-tbd/icfp-761516ab-2a60-4b4e-a8e8-486e75c4c850.tar.gz .
+```
