@@ -12,7 +12,7 @@ $(ARCHIVE): \
 		deploy/tbd_python.tar.xz \
 		deploy/make.production.item \
 		deploy/make.scripts.item
-	tar -C deploy -czf $@ *
+	tar -czf $@ -C deploy .
 
 
 # Python
