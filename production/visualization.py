@@ -8,6 +8,7 @@ from production.bot_interface import *
 from collections import namedtuple
 from typing import Tuple, List
 from random import randrange
+from production.json_format import parse_map, parse_move
 
 river_color = (100, 100, 100)
 site_color = (200, 200, 200)
@@ -200,6 +201,19 @@ class Visualization:
         self.get_y = get_y
 
 
+    def draw_state(self, state, height=None):
+        if height: self.height = height
+        self.draw_background()
+        m = parse_map(state['map'])
+        self.draw_map(m)
+        me = state['my_id']
+        legend = [f'[{i}]' for i in range(state['punters'])]
+        legend[me] += ' (me)'
+        self.draw_legend(legend)
+        for mv_raw in state['all_past_moves']:
+            mv = parse_move(mv_raw)
+            self.draw_move(mv, m, me=(me==mv.punter))
+
 
     def get_image(self) -> Image.Image:
         img = Image.new('RGBA', (self.width, self.height))
@@ -216,15 +230,24 @@ class Visualization:
 def main():
     import json
     from production import utils
-    from production.json_format import parse_map, parse_move
 
     # V for Visualization ^^
     v = Visualization(width=1000, height=1000)
-    v.draw_background()
-    p1, p2 = (10, 20), (400, 100)
-    v.draw_edge(p1, p2)
-    v.draw_point(p1)
-    v.draw_point(p2, color=mine_color, size=6)
+    # fast track: with single json-entry inside of state
+    d = utils.project_root() / 'julie_scratch' / 'allpastmoves_example.json'
+    with open(utils.project_root() / 'julie_scratch' / 'allpastmoves_example.json') as datafile:
+        state = json.load(datafile)
+    v.draw_state(state)
+    img = v.get_image()
+    img.save(utils.project_root() / 'outputs' / 'state_foo.png')
+
+
+    v = Visualization(width=1000, height=1000)
+    #v.draw_background()
+    #p1, p2 = (10, 20), (400, 100)
+    #v.draw_edge(p1, p2)
+    #v.draw_point(p1)
+    #v.draw_point(p2, color=mine_color, size=6)
 
     # draw map
     d = utils.project_root() / 'maps' / 'official_map_samples' / 'gothenburg-sparse.json'
