@@ -1,0 +1,3 @@
+#!/bin/sh
+
+cat - | tee input | $HOME/tbd_python/bin/python3.6 -u -m production.punter 2>&1 | tee output
