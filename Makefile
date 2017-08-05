@@ -8,10 +8,10 @@ PRODUCTION_FILES := $(wildcard production/*)
 SCRIPT_FILES := $(wildcard scripts/*)
 
 DEPLOYED_PRODUCTION_FILES = $(addprefix deploy/, $(PRODUCTION_FILES))
-DEPLOYED_SCRIPT_FILES = $(addprefix deploy/, $(SCRIPT_FILES:scripts/%=%)
+DEPLOYED_SCRIPT_FILES = $(addprefix deploy/, $(SCRIPT_FILES:scripts/%=%))
 
 $(ARCHIVE): \
-		deploy/python_tbd.xz \
+		deploy/tbd_python.tar.xz \
 		$(DEPLOYED_PRODUCTION_FILES) \
 		$(DEPLOYED_SCRIPT_FILES)
 	tar -C deploy -czf $@
@@ -19,16 +19,16 @@ $(ARCHIVE): \
 
 # Python
 
-deploy/python_tbd.xz: python_tbd.xz | deploy/
+deploy/tbd_python.tar.xz: tbd_python.tar.xz | deploy/
 	cp $^ $@
 
-python_tbd.xz:
+tbd_python.tar.xz:
 	echo "Compile yourself" && exit 1
 
 
 # production
 
-$(DEPLOYED_PRODUCTION_FILES): $(PRODUCTION_FILES) | deploy/ deploy/production
+$(DEPLOYED_PRODUCTION_FILES): $(PRODUCTION_FILES) | deploy/ deploy/production/
 	cp -rf $^ deploy/production/
 
 
