@@ -90,7 +90,7 @@ class Visualization:
     def get_x(self, x: float) -> int:
         return int(x)
 
-    def get_y(self, y: float):
+    def get_y(self, y: float) -> int:
         return int(y)
 
     def get_coord(self, p: Tuple[float, float]) -> Tuple[int, int]:
@@ -114,8 +114,7 @@ class Visualization:
 
 
 
-
-    def get_image(self, size=None) -> Image.Image:
+    def get_image(self) -> Image.Image:
         if size: 
             self.size = size
 
