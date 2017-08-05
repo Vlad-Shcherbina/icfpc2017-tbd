@@ -106,18 +106,20 @@ class OnlineTransport:
     There's no OfflineTransport btw'''
 
     
-    def __init__(self, host, port, name):
+    def __init__(self, host, port, name, on_comms_cb=lambda msg: msg):
         self.name = name
         self.conn = ColonCodec(OnlineConnection(host, port))
+        self.on_comms_cb = on_comms_cb
         handshake(self.conn, name)
     
     
     def get_setup(self) -> bi.SetupRequest:
         req = self.conn.recv()
-        return jf.parse_setup_request(req)
+        return self.on_comms_cb(jf.parse_setup_request(req))
 
     
     def send_setup_response(self, response: bi.SetupResponse):
+        response = self.on_comms_cb(response)
         self.state = deepcopy(response.state)
         response = response._replace(state=None)
         self.conn.send(jf.format_setup_response(response))
@@ -135,30 +137,32 @@ class OnlineTransport:
         req['state'] = self.state
         if 'stop' in req:
             log.warning('game ended')
-            return jf.parse_score_request(req)
+            return self.on_comms_cb(jf.parse_score_request(req))
         else:
-            return jf.parse_gameplay_request(req)
+            return self.on_comms_cb(jf.parse_gameplay_request(req))
+
 
     def send_gameplay_response(self, response: bi.GameplayResponse):
+        response = self.on_comms_cb(response)
         self.state = deepcopy(response.state)
         response = response._replace(state=None)
         self.conn.send(jf.format_gameplay_response(response))
 
 
-def online_mainloop(host, port, name: str, bot: bi.Bot, on_request_cb=lambda req: None):
+def online_mainloop(host, port, name: str, bot: bi.Bot, on_comms_cb=lambda msg: msg):
     'Copypaste and augment as you wish'
-    tr = OnlineTransport(host, port, name)
+    tr = OnlineTransport(host, port, name, on_comms_cb)
 
     req = tr.get_setup()
-    on_request_cb(req)
-    tr.send_setup_response(bot.setup(req))
+    res = bot.setup(req)
+    tr.send_setup_response(res)
     
     while True:
         req = tr.get_gameplay()
-        on_request_cb(req)
         if isinstance(req, bi.ScoreRequest):
             return req
-        tr.send_gameplay_response(bot.gameplay(req))
+        res = bot.gameplay(req)
+        tr.send_gameplay_response(res)
 
 
 def offline_mainloop(name: str, bot: bi.Bot):
