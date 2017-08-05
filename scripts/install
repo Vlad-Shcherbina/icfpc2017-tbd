@@ -1,6 +1,12 @@
 #!/bin/sh
 
-# run tests to generate C++ bindings
+set -x 
+set -euo pipefail
 
-cd production
-$HOME/python_tbd/bin/python -m pytest
+# TODO: unpack python
+
+# link src, to make orgs happy
+ln -s production src
+
+# run tests to generate C++ bindings
+cd production && $HOME/python_tbd/bin/python -m pytest
