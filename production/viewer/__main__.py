@@ -1,3 +1,7 @@
+# hack to placate the restarter
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+
 import io
 import os
 import json
