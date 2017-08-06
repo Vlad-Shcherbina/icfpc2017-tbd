@@ -126,8 +126,12 @@ def render(msg: Union[GameplayRequest, ScoreRequest], size=600):
         vis.draw_text((5, 15 * i + 5), f'p={p}', color=prob_palette(p))
     prob_im = vis.get_image()
 
-    return visualization.hstack(
-        base_im, visualization.vstack(prob_im, grad_im))
+    if vis.width < 2 * vis.height:
+        return visualization.hstack(
+            base_im, visualization.vstack(prob_im, grad_im))
+    else:
+        return visualization.vstack(
+            base_im, visualization.hstack(prob_im, grad_im))
 
 
 def prob_palette(p):
