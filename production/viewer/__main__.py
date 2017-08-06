@@ -192,7 +192,7 @@ def get_timestatistics(replay):
         avg = sum(timestamps[i*quarter : (i+1)*quarter]) / quarter
         res[2] += f': {avg:.3} '
 
-    res[3] = 'average for type:: '
+    res[3] = 'average by type:: '
     typed_times = { 'claim' : [], 'pass' : [], 'splurge' : [], 'option' : [] }
     # NB: options inside of sprulges are not counted.
     for r in replay:

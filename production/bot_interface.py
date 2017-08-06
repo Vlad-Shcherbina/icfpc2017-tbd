@@ -35,7 +35,12 @@ class SplurgeMove(NamedTuple):
         for source, target in zip(self.route, self.route[1:]):
             yield ClaimMove(punter=self.punter, source=source, target=target)
 
-Move = Union[ClaimMove, PassMove, SplurgeMove]
+class OptionMove(NamedTuple):
+    punter: int
+    source: int
+    target: int
+
+Move = Union[ClaimMove, PassMove, SplurgeMove, OptionMove]
 
 
 GameState = Any

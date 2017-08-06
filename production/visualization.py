@@ -6,6 +6,7 @@
 from collections import namedtuple, Counter
 from typing import Tuple, List
 from random import randrange
+from math import sqrt
 
 from PIL import Image, ImageDraw
 
@@ -110,6 +111,7 @@ class Visualization:
         self.river_commands.append(draw_command)
 
 
+
     def draw_text(self, p: Tuple[float, float], text: str, color=text_color):
         def draw_command(img):
             draw = ImageDraw.Draw(img)
@@ -151,12 +153,33 @@ class Visualization:
 
     def draw_move(self, mv: Move, m: Map, me=False):
         if isinstance(mv, PassMove): return
-        assert isinstance(mv, ClaimMove)
+        if isinstance(mv, ClaimMove): self.draw_claim(mv, m, me)
+        if isinstance(mv, OptionMove): self.draw_option(mv, m, me)
+
+    def draw_claim(self, mv: ClaimMove, m: Map, me=False):
+        assert isinstance(mv, ClaimMove)   # overkill?
         if len(self.punter_colors) <= mv.punter: self.set_punters(punter + 1)
         self.draw_edge(m.site_coords[mv.source],
                        m.site_coords[mv.target],
                        self.punter_colors[mv.punter] if not me else me_color,
                        width=claimed_width if not me else me_width)
+
+    def draw_option(self, mv: OptionMove, m: Map, me=False, my=False):
+        assert isinstance(mv, OptionMove)   # overkill?
+        p1 = m.site_coords[mv.source]
+        p2 = m.site_coords[mv.target]
+        self.draw_edge(p1, p2, color=color, width=claimed_width)
+
+        mid_p = ((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2)
+        length = self.height / 80
+        vx, vy = p2[0] - p1[0], p2[1] - p1[1]
+        L = sqrt(vx * vx + vy * vy)
+        s1 = (mid_p[0] + vy / L * length, mid_p[1] - vx / L * length)
+        s2 = (mid_p[0] - vy / L * length, mid_p[1] + vx / L * length)
+        
+        color = self.punter_colors[mv.punter] if not me else me_color
+        self.draw_edge(s1, s2, color=color, width = 2)
+
 
     def adjust_to_map(self, m: Map):
         self.adjust_to_map_coords(
@@ -290,7 +313,6 @@ class Visualization:
         return img
         
 
-
 def hstack(im1, im2):
     im = Image.new(
         'RGBA', (im1.size[0] + im2.size[0], max(im1.size[1], im2.size[1])))
@@ -317,20 +339,21 @@ def main():
     d = utils.project_root() / 'julie_scratch' / 'allpastmoves_example.json'
     with open(utils.project_root() / 'julie_scratch' / 'allpastmoves_example.json') as datafile:
         state = json.load(datafile)
+
     v.draw_state(state)
     img = v.get_image()
     img.save(utils.project_root() / 'outputs' / 'state_foo.png')
 
-
+    # by element
     v = Visualization(width=1000, height=1000)
-    #v.draw_background()
-    #p1, p2 = (10, 20), (400, 100)
-    #v.draw_edge(p1, p2)
-    #v.draw_point(p1)
-    #v.draw_point(p2, color=mine_color, size=6)
-
+    v.draw_background()
+    p1, p2 = (100, 10), (10, 100)
+    v.draw_edge(p1, p2)
+    v.draw_point(p1)
+    v.draw_point(p2, color=mine_color, size=6)
+    
     # draw map
-    d = utils.project_root() / 'maps' / 'official_map_samples' / 'gothenburg-sparse.json'
+    d = utils.project_root() / 'maps' / 'official_map_samples' / 'randomMedium.json'
     m = parse_map(json.loads(d.read_text()))
     v.draw_map(m)
 
@@ -339,10 +362,15 @@ def main():
     v.draw_legend([f'Punter {i}' for i in range(10)])
 
     # make move
-    mv = parse_move(json.loads('{"claim":{"punter":1,"source":7,"target":1}}'))
+    mv = parse_move(json.loads('{"claim":{"punter":1,"source":34,"target":56}}'))
     v.draw_move(mv, m)
-    mv = parse_move(json.loads('{"claim":{"punter":2,"source":15,"target":65}}'))
+    mv = parse_move(json.loads('{"claim":{"punter":2,"source":82,"target":74}}'))
     v.draw_move(mv, m, me=True)
+
+    
+    mv = parse_move(json.loads('{"option":{"punter":5,"source":82,"target":74}}'))
+    v.draw_option(mv, m, me=False, my=True)
+
 
     # save image
     img = v.get_image()
