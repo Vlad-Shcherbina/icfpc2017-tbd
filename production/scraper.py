@@ -58,7 +58,7 @@ def games():
                     extensions=extensions)
 
 
-def wait_for_game(*, predicate=lambda g: True, shuffle=True, extensions={}):
+def wait_for_game(*, patience=1, predicate=lambda g: True, shuffle=True, extensions={}):
     while True:
         gs = list(games())
         if shuffle:
@@ -69,7 +69,7 @@ def wait_for_game(*, predicate=lambda g: True, shuffle=True, extensions={}):
             if any(extension not in extensions for extension in g.extensions):
                 continue
             log.info(g)
-            if g.punters_max - g.punters_num != 1:
+            if g.punters_max - g.punters_num > patience:
                 continue
             return g
         log.info('no imminent games, waiting...')
