@@ -60,12 +60,19 @@ def render(msg: Union[GameplayRequest, ScoreRequest]):
         me=(move.punter==msg.state['my_id'])
         vis.draw_move(move, map_, me=me)
 
+
+    pack, unpack, board = cpp_bot.reconstruct_board(map_, moves)
+
     for source, target in msg.state['my_futures']:
+        color = (255, 0, 0)
+        if pack[target] in board.reachable_by_claimed(msg.state['my_id'], pack[source]):
+            color = (0, 255, 0)
+
         vis.draw_edge(
             map_.site_coords[source],
             map_.site_coords[target],
-            color=(255, 0, 0), width=1)
-        vis.draw_point(map_.site_coords[target], color=None, outline=(255, 0, 0), size=10)
+            color=color, width=1)
+        vis.draw_point(map_.site_coords[target], color=None, outline=color, size=10)
 
     return vis.get_image()
 
