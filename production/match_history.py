@@ -169,7 +169,7 @@ def get_statistics():
 
 
 def replay_length(replay: typing.List[dict]):
-    num_turns = len(replay) // 2
+    num_turns = len(replay) // 2 - 1
     return num_turns
 
 
@@ -183,7 +183,7 @@ def story_from_replay(replay: typing.List[dict], turn_number) -> Story:
     my_futures = {f['source']: f['target'] for f in replay[3].get('futures', ())}
 
     moves = []
-    for i in range(turn_number):
+    for i in range(turn_number + 1):
         msg = replay[4 + 2 * i]
         moves += map(
             json_format.parse_move,
@@ -196,12 +196,11 @@ def story_from_replay(replay: typing.List[dict], turn_number) -> Story:
         my_futures=my_futures,
         moves=moves)
 
-    if turn_number > 0:
-        msg = json_format.parse_any_request(replay[4 + 2 * (turn_number - 1)])
-        if isinstance(msg, ScoreRequest):
-            story = story._replace(score=msg.score_by_punter)
-        else:
-            assert isinstance(msg, GameplayRequest)
+    msg = json_format.parse_any_request(replay[4 + 2 * turn_number])
+    if isinstance(msg, ScoreRequest):
+        story = story._replace(score=msg.score_by_punter)
+    else:
+        assert isinstance(msg, GameplayRequest), type(msg)
 
     return story
 
