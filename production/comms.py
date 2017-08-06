@@ -235,7 +235,7 @@ def main():
     from production.dumb_bots import FirstMoveBot
     bot = FirstMoveBot()
 
-    game = scraper.wait_for_game(predicate=scraper.only_easy_eagers_p)
+    game = scraper.wait_for_game(predicate=scraper.only_easy_eagers_p, extensions={'futures'})
     log.info(f'Joining {game}')
     scores = online_mainloop('punter.inf.ed.ac.uk', game.port, 'tbd wtf', bot, game=game)
     log.info(f'Scores: id={scores.state.get("my_id")} {scores.score_by_punter}')
@@ -261,5 +261,4 @@ def main1():
 
 
 if __name__ == '__main__':
-    for _ in range(10):
-        main()
+    main()

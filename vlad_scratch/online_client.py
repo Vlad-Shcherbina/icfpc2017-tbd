@@ -190,7 +190,7 @@ def main():
         return msg
 
     scores = comms.online_mainloop(
-        'punter.inf.ed.ac.uk', game.port, 'tbdbd', bot, on_comms_cb=cb)
+        'punter.inf.ed.ac.uk', game.port, 'tbdbd', bot, on_comms_cb=cb, game=game)
 
     logger.info(f'my id: {scores.state["my_id"]}')
     logger.info(f'scores: {scores.score_by_punter}')

@@ -151,7 +151,7 @@ def submit_replay(botname: str, game: scraper.Game, replay: typing.Any):
     return submit_game(
             botname,
             game.map_name if game else '<unknown>',
-            ' '.join(setup_request.settings.raw_settings.values()), 
+            ' '.join(k for k, v in setup_request.settings.raw_settings.items() if v),
             ','.join(game.punters) if game else '', 
             setup_request.punters, 
             rank, 
