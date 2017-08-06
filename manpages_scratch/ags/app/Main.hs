@@ -16,11 +16,25 @@ import Database
 opts :: Options
 opts = Options 0 (W.setHost "0.0.0.0" W.defaultSettings)
 
+launchGame :: RunningGame -> IO ()
+launchGame g = do
+  putStrLn $ "Starting game: " ++ show g
+
+recreateGames :: IO ()
+recreateGames = do
+  games <- listValidGames
+  mapM_ launchGame games
+
 main :: IO ()
 main = do
+  recreateGames
   scottyOpts opts $ do
     get "/map/:type/key/:key" $ do
       t <- param "type"
       k <- param "key"
-      port <- liftIO $ portForGame t k
-      text $ T.pack $ show port
+      valid <- liftIO $ keyIsValid k
+      case valid of
+        False -> status unauthorized401
+        True -> do
+          port <- liftIO $ portForGame t k
+          text $ T.pack $ show port
