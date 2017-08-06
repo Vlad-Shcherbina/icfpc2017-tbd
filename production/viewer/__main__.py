@@ -20,6 +20,7 @@ template_loader = jinja2.FileSystemLoader(
     os.path.join(os.path.dirname(__file__), 'templates'))
 app.jinja_loader = template_loader
 
+app.jinja_env.undefined = jinja2.StrictUndefined
 
 TABLE_TEMPATE = '''
 {% extends 'base.html' %}
@@ -31,6 +32,7 @@ TABLE_TEMPATE = '''
   <td>{{ game.time }}</td>
   <td>{{ game.submitter }}</td>
   <td>{{ game.botname }}</td>
+  <td>{{ game.extensions }}</td>
   </tr>
 {% endfor %}
 </table>
@@ -97,7 +99,10 @@ def get_game_with_replay(id):
 def view_game(game_id):
     game = get_game_with_replay(game_id)
     replay = game.replay.get()
-    num_turns = (len(replay) - 2) // 2
+    num_turns = match_history.replay_length(replay)
+
+    match_history.story_from_replay(replay, num_turns - 1)  # to fail early
+
     return flask.render_template_string(GAME_TEMPATE, **locals())
 
 
@@ -108,28 +113,23 @@ def serve_pil_image(pil_img):
     img_io.seek(0)
     return flask.send_file(img_io, mimetype='image/png')
 
+
 @app.route('/<int:game_id>/<int:turn_number>')
 def view_turn(game_id, turn_number):
     game = get_game_with_replay(game_id)
     replay = game.replay.get()
-    req = json_format.parse_setup_request(replay[2])
-    map_ = req.map
 
-    moves = []
-    for i in range(turn_number):
-        msg = replay[4 + 2 * i]
-        moves += map(
-            json_format.parse_move,
-            (msg.get('move') or msg.get('stop'))['moves'])
+    story = match_history.story_from_replay(replay, turn_number)
 
     vis = visualization.Visualization(300, 300)
-    vis.draw_background()
-    vis.draw_map(map_)
-    for move in moves:
-        vis.draw_move(move, map_)
+    vis.draw_story(story)
     im = vis.get_image()
 
-    return serve_pil_image(im)
+    r = serve_pil_image(im)
+    r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    r.headers["Pragma"] = "no-cache"
+    r.headers["Expires"] = "0"
+    return r
 
 
 def main():

@@ -3,6 +3,7 @@ from datetime import datetime
 import psycopg2
 
 from production import scraper, json_format
+from production.bot_interface import *
 
 
 ''' db structure, for the record:
@@ -166,6 +167,43 @@ def get_statistics():
         cur.execute('select count(*), min(time), max(time) from icfpc2017_games')
         return cur.fetchone()
 
+
+def replay_length(replay: typing.List[dict]):
+    num_turns = len(replay) // 2
+    return num_turns
+
+
+def story_from_replay(replay: typing.List[dict], turn_number) -> Story:
+    """does not rely on the state"""
+    assert 0 <= turn_number <= replay_length(replay)
+
+    req = json_format.parse_setup_request(replay[2])
+
+    assert 'ready' in replay[3]
+    my_futures = {f['source']: f['target'] for f in replay[3].get('futures', ())}
+
+    moves = []
+    for i in range(turn_number):
+        msg = replay[4 + 2 * i]
+        moves += map(
+            json_format.parse_move,
+            (msg.get('move') or msg.get('stop'))['moves'])
+
+    story = Story(
+        punters=req.punters,
+        my_id=req.punter,
+        map=req.map,
+        my_futures=my_futures,
+        moves=moves)
+
+    if turn_number > 0:
+        msg = json_format.parse_any_request(replay[4 + 2 * (turn_number - 1)])
+        if isinstance(msg, ScoreRequest):
+            story = story._replace(score=msg.score_by_punter)
+        else:
+            assert isinstance(msg, GameplayRequest)
+
+    return story
 
 
 def main():
