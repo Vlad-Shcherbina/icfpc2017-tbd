@@ -75,6 +75,7 @@ press left/right
 <br>{{ timestats[0] }}
 <br>{{ timestats[1] }}
 <br>{{ timestats[2] }}
+<br>{{ timestats[3] }}
 
 <script>
 "use strict";
@@ -165,7 +166,7 @@ def view_turn(game_id, turn_number):
 
 
 def get_timestatistics(replay):
-    res = ['', '', '']
+    res = ['', '', '', '']
 
     timestamps = [r['debug_request_timer'] for r in replay 
                         if 'debug_request_timer' in r and not 'ready' in r]
@@ -181,16 +182,26 @@ def get_timestatistics(replay):
 
     i_min = timestamps.index(min(timestamps))
     i_max = timestamps.index(max(timestamps))
-    #timediffs = [timestamps[i+1] - timestamps[i] for i in range(len(timestamps)-1)]
-    #res[1] = ' '.join(('%.2f' % t) for t in timediffs)
 
     res[1] += f'min: {timestamps[i_min]:.3} at {i_min} | '
     res[1] += f'max: {timestamps[i_max]:.3} at {i_max}'
-    res[2] = 'average for quarters'
+
+    res[2] = 'average for quarters:'
     quarter = len(timestamps) // 4
     for i in range(4):
         avg = sum(timestamps[i*quarter : (i+1)*quarter]) / quarter
         res[2] += f': {avg:.3} '
+
+    res[3] = 'average for type:: '
+    typed_times = { 'claim' : [], 'pass' : [], 'splurge' : [], 'option' : [] }
+    # NB: options inside of sprulges are not counted.
+    for r in replay:
+        for move in typed_times:
+            if move in r: typed_times[move].append(r['debug_request_timer'])
+    for move in typed_times:
+        if not typed_times[move]: continue
+        res[3] += f'{move}: {sum(typed_times[move]):.3} | '
+    res[3] = res[3][:-2]
     return res
 
 
