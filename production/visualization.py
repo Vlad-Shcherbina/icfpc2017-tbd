@@ -63,8 +63,10 @@ class Visualization:
         self.back_commands.append(draw_command)
 
 
-    def draw_point(self, coord: Tuple[float, float], color=site_color, size=site_size):
+    def draw_point(self, coord: Tuple[float, float], color=site_color, size=site_size, outline=None):
         coord = self.get_coord(coord)
+        if outline is None:
+            outline = color
         def draw_command(img):
             draw = ImageDraw.Draw(img)
             draw.ellipse(
@@ -74,8 +76,8 @@ class Visualization:
                         coord[0] + size/2,
                         coord[1] + size/2
                     ),
-                    color,
-                    color
+                    fill=color,
+                    outline=outline
                 )
             return img
         self.site_commands.append(draw_command)

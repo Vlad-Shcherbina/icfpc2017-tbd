@@ -60,6 +60,13 @@ def render(msg: Union[GameplayRequest, ScoreRequest]):
         me=(move.punter==msg.state['my_id'])
         vis.draw_move(move, map_, me=me)
 
+    for source, target in msg.state['my_futures']:
+        vis.draw_edge(
+            map_.site_coords[source],
+            map_.site_coords[target],
+            color=(255, 0, 0), width=1)
+        vis.draw_point(map_.site_coords[target], color=None, outline=(255, 0, 0), size=10)
+
     return vis.get_image()
 
 
