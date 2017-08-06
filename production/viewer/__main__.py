@@ -82,7 +82,7 @@ document.onkeydown = function checkKey(e) {
         if (turn_number > 0) {
             turn_number--;
             im.src = '/{{ game.id }}/' + turn_number
-            window.location.hash = '' + turn_number
+            history.replaceState('', '', '#' + turn_number)
         }
     }
     if (e.keyCode == 39) {
@@ -90,7 +90,7 @@ document.onkeydown = function checkKey(e) {
         if (turn_number + 1 < {{ num_turns }}) {
             turn_number++;
             im.src = '/{{ game.id }}/' + turn_number
-            window.location.hash = '' + turn_number
+            history.replaceState('', '', '#' + turn_number)
         }
     }
 }
