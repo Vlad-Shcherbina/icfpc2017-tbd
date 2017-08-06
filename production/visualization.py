@@ -24,13 +24,6 @@ claimed_width = 2
 me_width = 3
 
 
-punter_colors = [(255, 205, 80),
-                 (80, 205, 245),
-                 (240, 80, 240),
-                 (240, 120, 110),
-                 (145, 155, 155),
-                 (125, 205, 105)]
-
 DEFAULT_CLRS = 6
 LEFT_MARGIN = 70  # for legend
 
@@ -41,6 +34,12 @@ class Visualization:
     Example:
     img = Visualization(800, 800).draw_state(somegamestate).get_image()
     """
+    punter_colors = [(255, 205, 80),
+                    (80, 205, 245),
+                    (240, 80, 240),
+                    (240, 120, 110),
+                    (145, 155, 155),
+                    (125, 205, 105)]
 
     def __init__(self, width=800, height=800):
         # while drawing map width will be reset.
@@ -115,9 +114,10 @@ class Visualization:
         self.fore_commands.append(draw_command)
 
 
-    def set_punters(self, n):
+    @classmethod
+    def set_punters(cls, n):
         if n <= DEFAULT_CLRS: return
-        punter_colors[DEFAULT_CLRS:] = []
+        cls.punter_colors[DEFAULT_CLRS:] = []
         threshold = 100 * 3 / n
 
         def colors_differ(clr1, clr2):
@@ -128,17 +128,17 @@ class Visualization:
         for _ in range(n - DEFAULT_CLRS):
             while True:
                 color = (randcolor(), randcolor(), randcolor())
-                if all(colors_differ(color, old) for old in punter_colors):
-                    punter_colors.append(color)
+                if all(colors_differ(color, old) for old in cls.punter_colors):
+                    cls.punter_colors.append(color)
                     break
 
 
     def draw_legend(self, legend: List[str], p: Tuple[float, float]=None):
         if not p:
             p = (30, self.height - 30 - len(legend) * 15)
-        if len(punter_colors) <= len(legend): self.set_punters(len(legend) + 1)
-        assert len(legend) <= len(punter_colors)
-        for p_text, p_color in zip(legend, punter_colors):
+        if len(self.punter_colors) <= len(legend): self.set_punters(len(legend) + 1)
+        assert len(legend) <= len(self.punter_colors)
+        for p_text, p_color in zip(legend, self.punter_colors):
             if '(me)' in p_text: 
                 p_color = me_color
             self.draw_text(p, p_text, color=p_color)
@@ -148,10 +148,10 @@ class Visualization:
     def draw_move(self, mv: Move, m: Map, me=False):
         if isinstance(mv, PassMove): return
         assert isinstance(mv, ClaimMove)
-        if len(punter_colors) <= mv.punter: self.set_punters(punter + 1)
+        if len(self.punter_colors) <= mv.punter: self.set_punters(punter + 1)
         self.draw_edge(m.site_coords[mv.source],
                        m.site_coords[mv.target],
-                       punter_colors[mv.punter] if not me else me_color,
+                       self.punter_colors[mv.punter] if not me else me_color,
                        width=claimed_width if not me else me_width)
 
 
@@ -209,10 +209,13 @@ class Visualization:
         self.draw_background()
         m = parse_map(state['map'])
         self.draw_map(m)
+
+        self.set_punters(state['punters'])
         me = state['my_id']
         legend = [f'[{i}]' for i in range(state['punters'])]
         legend[me] += ' (me)'
         self.draw_legend(legend)
+
         for mv_raw in state['all_past_moves']:
             mv = parse_move(mv_raw)
             self.draw_move(mv, m, me=(me==mv.punter))
@@ -258,6 +261,7 @@ def main():
     v.draw_map(m)
 
     # set punters
+    v.set_punters(10)
     v.draw_legend([f'Punter {i}' for i in range(10)])
 
     # make move
