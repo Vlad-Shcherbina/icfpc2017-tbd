@@ -34,12 +34,21 @@ def render(msg: Union[GameplayRequest, ScoreRequest]):
         for k, v in msg.score_by_punter.items():
             legend[k] += f' score={v}'
 
+    moves = list(map(json_format.parse_move, msg.state['all_past_moves']))
+    moves += msg.moves
+
     pass_cnt = collections.Counter()
-    # Don't count pass moves in the first turn
-    # (they send placeholder pass moves for each player).
-    for move in msg.state['all_past_moves'][msg.state['punters']:]:
-        if 'pass' in move:
-            pass_cnt[move['pass']['punter']] += 1
+    for i, move in enumerate(moves):
+        # Don't count pass moves in the first turn
+        # (they send placeholder pass moves for each player).
+        if i < msg.state['punters']:
+            continue
+        # Also, weirdly, they don't send the very last moves
+        # in the score request, and replace them with passes instead.
+        if isinstance(msg, ScoreRequest) and i >= len(moves) - msg.state['punters']:
+            continue
+        if isinstance(move, PassMove):
+            pass_cnt[move.punter] += 1
     for i in range(len(legend)):
         if pass_cnt[i]:
             legend[i] += f' passed {pass_cnt[i]} times'
@@ -47,8 +56,7 @@ def render(msg: Union[GameplayRequest, ScoreRequest]):
     legend[msg.state['my_id']] += ' (me)'
     vis.draw_legend(legend)
 
-    for move in msg.state['all_past_moves']:
-        move = json_format.parse_move(move)
+    for move in moves:
         me=(move.punter==msg.state['my_id'])
         vis.draw_move(move, map_, me=me)
 
