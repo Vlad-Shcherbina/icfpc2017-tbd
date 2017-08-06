@@ -191,7 +191,7 @@ class Visualization:
 
     def adjust_to_map_coords(self, x_min, x_max, y_min, y_max):
         border_coeff = 0.05
-        W, H = (x_max - x_min), (y_max - y_min)
+        W, H = (x_max - x_min + 1e-6), (y_max - y_min + 1e-6)
         self.width = int(self.height * W / H)
         canvas_width = self.width * (1 - 2 * border_coeff)
         canvas_height = self.height * (1 - 2 * border_coeff)
