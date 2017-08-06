@@ -10,7 +10,6 @@ import json
 import time
 import socket
 from typing import Union
-from math import log
 
 from production import dumb_bots
 from production import cpp_bot
@@ -19,7 +18,6 @@ from production.cpp import glue
 from production import json_format
 from production.bot_interface import *
 from production import scraper
-from production import visualization
 from production import utils
 from production import comms
 
@@ -39,77 +37,6 @@ def story_from_msg(msg: Union[GameplayRequest, ScoreRequest]) -> Story:
         story = story._replace(score=msg.score_by_punter)
 
     return story
-
-def render(story: Story, size=600):
-    vis = visualization.Visualization(size, size)
-    vis.draw_story(story)
-    base_im = vis.get_image()
-
-    vis = visualization.Visualization(size // 2, size // 2)
-    vis.draw_background()
-    vis.adjust_to_map(story.map)
-
-    board = glue.reconstruct_board(story)
-
-    pi = glue.compute_prob_info(story, board, story.my_id)
-
-    a = min(0, min(pi.cut_prob_grad.values()))
-    b = max(0, max(pi.cut_prob_grad.values()))
-
-    vis.draw_text((15, 15), f'white: {-a}')
-    vis.draw_text((15, 30), f'black: {-b}')
-
-    for u, vs in story.map.g.items():
-        for v in vs:
-            if (u, v) not in pi.cut_prob_grad:
-                continue
-            t = (pi.cut_prob_grad[u, v] - a) / (b - a + 1e-6)
-            c = int(255 * (1 - t))
-            vis.draw_edge(
-            story.map.site_coords[u],
-            story.map.site_coords[v],
-            color=(c, c, c), width=3)
-
-
-    grad_im = vis.get_image()
-
-    vis = visualization.Visualization(size // 2, size // 2)
-    vis.draw_background()
-    vis.draw_map(story.map)
-    for site in story.map.g:
-        p = max(reach_prob[site] for reach_prob in pi.reach_prob.values())
-        vis.draw_point(
-            story.map.site_coords[site],
-            color=prob_palette(p), size=6)
-
-    for i, p in enumerate([1, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001]):
-        vis.draw_text((5, 15 * i + 5), f'p={p}', color=prob_palette(p))
-    prob_im = vis.get_image()
-
-    if vis.width < 2 * vis.height:
-        return visualization.hstack(
-            base_im, visualization.vstack(prob_im, grad_im))
-    else:
-        return visualization.vstack(
-            base_im, visualization.hstack(prob_im, grad_im))
-
-
-def prob_palette(p):
-    assert 0 <= p <= 1
-
-    def hz(a, b, x):
-        return (log(x) - log(a)) / (log(b) - log(a))
-
-    if p > 0.1:
-        t = hz(0.1, 1.0, p)
-        return (255, 255, int(255 * t))
-    if p > 0.01:
-        t = hz(0.01, 0.1, p)
-        return (255, int(255 * t), 0)
-    if p > 0.001:
-        t = hz(0.001, 0.01, p)
-        return (int(255 * t), 0, 0)
-    return (0, 0, 0)
 
 
 def main():
@@ -142,7 +69,7 @@ def main():
         if isinstance(msg, (GameplayRequest, ScoreRequest)):
             logger.info(f'server reports moves: {msg.moves}')
 
-            im = render(story_from_msg(msg))
+            im = cpp_bot.render_prob_field(story_from_msg(msg))
             im.save(utils.project_root() / 'outputs' / f'{turn_number:04d}.png')
 
             turn_number += 1
