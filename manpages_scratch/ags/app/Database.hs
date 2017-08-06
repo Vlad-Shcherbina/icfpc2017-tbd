@@ -16,8 +16,9 @@ import Control.Monad as CM
 
 import System.Random
 
-type GameType = T.Text
+type MapName = T.Text
 type Key = T.Text
+type PuntersQty = Int
 
 path = "./data/"
 keys = path ++ "keys/"
@@ -26,15 +27,17 @@ maps = path ++ "maps/"
 data RunningGame = RunningGame {
     creator :: Key
   , port :: Int
+  , mapName :: String
+  , puntersQty :: Int
 } deriving (Show, Generic)
 
 instance FromJSON RunningGame
 instance ToJSON RunningGame
 
-createGame :: GameType -> Key -> IO (Maybe RunningGame)
-createGame _ key = do
+createGame :: MapName -> PuntersQty -> Key -> IO (Maybe RunningGame)
+createGame mapName puntersQty key = do
   port <- randomRIO (20000, 42000)
-  let game = RunningGame key port
+  let game = RunningGame key port (T.unpack mapName) puntersQty
   let dataPath = maps ++ (show port)
   exists <- doesFileExist dataPath
   case exists of
