@@ -23,12 +23,36 @@ class CppBot(Bot):
     """
 
     def setup(self, req: SetupRequest) -> SetupResponse:
+        story = Story(
+            punters=req.punters,
+            my_id=req.punter,
+            map=req.map,
+            my_futures={},
+            moves=[])
+
         futures = {}
         if req.settings.futures:
-            not_mines = list(set(req.map.g) - set(req.map.mines))
-            if not_mines:
-                for mine in req.map.mines:
-                    futures[mine] = random.choice(not_mines)
+            board = glue.reconstruct_board(story)
+            pack = board.pack
+            unpack = board.unpack
+
+            #cut_prob = 1 - 1 / story.punters
+            cut_prob = 0.4  # optimistic  TODO
+            pi = glue.compute_prob_info(cut_prob, board, story.my_id)
+
+            dist = board.dist
+            for mine in story.map.mines:
+                payoff = {}
+                for site in story.map.g:
+                    d = dist[pack[mine]][pack[site]]
+                    if d < 0:
+                        continue
+                    p = pi.reach_prob[mine][site]
+                    q = d * d * d * (p - (1 - p))
+                    if q > 0:
+                        payoff[site] = q
+                if payoff:
+                    futures[mine] = max(payoff, key=payoff.get)
 
         state = dict(
             punters=req.punters,
