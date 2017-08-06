@@ -1,13 +1,15 @@
 import copy
 import random
 import logging
+from typing import Dict
 
 from production.bot_interface import *
 from production.json_format import parse_map, parse_move
 from production.cpp import stuff as cpp
 
 
-def reconstruct_board(map: Map, moves: List[Move]):
+def reconstruct_board(
+        map: Map, moves: List[Move], my_id: int, my_futures: Dict[int, int]):
     # Pack site IDs to contiguous range.
     pack = {}
     unpack = []
@@ -75,7 +77,8 @@ class CppBot(Bot):
                 rivers.remove((move.source, move.target))
                 rivers.remove((move.target, move.source))
 
-        pack, unpack, board = reconstruct_board(map, moves)
+        pack, unpack, board = reconstruct_board(
+            map, moves, req.state['my_id'], dict(req.state['my_futures']))
         predicted_score = {}
         for punter in range(req.state['punters']):
             predicted_score[punter] = board.base_score(punter)

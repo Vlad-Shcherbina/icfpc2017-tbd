@@ -43,6 +43,11 @@ struct Board {
             dist[m] = all_dists_from(adj, m);
     }
 
+    void set_futures(int owner, const map<int, int> &futures) {
+        assert(futures_by_player.count(owner) == 0);
+        futures_by_player[owner] = futures;
+    }
+
     void claim_river(int owner, int u, int v) {
         pair<int, int> k(min(u, v), max(u, v));
         assert(claimed_by.count(k) == 0);
@@ -87,6 +92,7 @@ struct Board {
 
     vector<int> mines;
     vector<vector<int>> adj;
+    map<int, map<int, int>> futures_by_player;
     map<pair<int, int>, int> claimed_by;
     vector<vector<int>> dist;  // dist[u][v] is only computed if u is a mine
 };
@@ -311,6 +317,7 @@ PYBIND11_PLUGIN(stuff) {
     py::class_<Board>(m, "Board")
         .def(py::init<const vector<vector<int>>&, const vector<int>&>())
         .def(py::init<const Board&>())
+        .def("set_futures", &Board::set_futures)
         .def("claim_river", &Board::claim_river)
         .def("reachable_by_claimed", &Board::reachable_by_claimed)
         .def("base_score", &Board::base_score)

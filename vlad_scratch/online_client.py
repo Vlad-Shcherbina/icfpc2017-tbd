@@ -14,6 +14,7 @@ from typing import Union
 
 from production import dumb_bots
 from production import cpp_bot
+from production.cpp import stuff as cpp
 from production import json_format
 from production.bot_interface import *
 from production import scraper
@@ -60,8 +61,8 @@ def render(msg: Union[GameplayRequest, ScoreRequest]):
         me=(move.punter==msg.state['my_id'])
         vis.draw_move(move, map_, me=me)
 
-
-    pack, unpack, board = cpp_bot.reconstruct_board(map_, moves)
+    pack, unpack, board = cpp_bot.reconstruct_board(
+        map_, moves, msg.state['my_id'], dict(msg.state['my_futures']))
 
     for source, target in msg.state['my_futures']:
         color = (255, 0, 0)
@@ -74,7 +75,42 @@ def render(msg: Union[GameplayRequest, ScoreRequest]):
             color=color, width=1)
         vis.draw_point(map_.site_coords[target], color=None, outline=color, size=10)
 
-    return vis.get_image()
+    base_im = vis.get_image()
+
+    vis = visualization.Visualization(600, 600)
+    vis.draw_background()
+    vis.adjust_to_map(map_)
+
+    cut_prob_grad = {}
+    for mine in map_.mines:
+        cut_prob = 1.0 - 1.0 / msg.state['punters']
+        rp = cpp.ReachProb(board, msg.state['my_id'], pack[mine], cut_prob)
+        for k, v in rp.get_cut_prob_grad().items():
+            cut_prob_grad.setdefault(k, 0.0)
+            cut_prob_grad[k] += v
+
+    a = min(0, min(cut_prob_grad.values()))
+    b = max(0, max(cut_prob_grad.values()))
+
+    vis.draw_text((15, 15), f'white: {-a}')
+    vis.draw_text((15, 30), f'black: {-b}')
+
+    for u, vs in map_.g.items():
+        for v in vs:
+            uv = pack[u], pack[v]
+            if uv not in cut_prob_grad:
+                continue
+            t = (cut_prob_grad[uv] - a) / (b - a + 1e-6)
+            c = int(255 * (1 - t))
+            vis.draw_edge(
+            map_.site_coords[u],
+            map_.site_coords[v],
+            color=(c, c, c), width=3)
+
+
+    grad_im = vis.get_image()
+
+    return visualization.hstack(base_im, grad_im)
 
 
 def main():

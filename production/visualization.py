@@ -154,14 +154,16 @@ class Visualization:
                        self.punter_colors[mv.punter] if not me else me_color,
                        width=claimed_width if not me else me_width)
 
-
-    def draw_map(self, m: Map):
+    def adjust_to_map(self, m: Map):
         self.adjust_to_map_coords(
                 min(p[0] for p in m.site_coords.values()),
                 max(p[0] for p in m.site_coords.values()),
                 min(p[1] for p in m.site_coords.values()),
                 max(p[1] for p in m.site_coords.values())
                 )
+
+    def draw_map(self, m: Map):
+        self.adjust_to_map(m)
 
         for source in m.g:
             for target in m.g[source]:
@@ -231,6 +233,22 @@ class Visualization:
                 img = draw_command(img)
         return img
         
+
+
+def hstack(im1, im2):
+    im = Image.new(
+        'RGBA', (im1.size[0] + im2.size[0], max(im1.size[1], im2.size[1])))
+    im.paste(im1, (0, 0) + im1.size)
+    im.paste(im2, (im1.size[0], 0, im1.size[0] + im2.size[0], im2.size[1]))
+    return im
+
+
+def vstack(im1, im2):
+    im = Image.new(
+        'RGBA', (max(im1.size[0], im2.size[0]), im1.size[1] + im2.size[1]))
+    im.paste(im1, (0, 0) + im1.size)
+    im.paste(im2, (0, im1.size[1], im2.size[0],  im1.size[1] + im2.size[1]))
+    return im
 
 
 def main():
