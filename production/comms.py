@@ -228,7 +228,6 @@ def online_mainloop1(host, port, name: str, bots, on_comms_cb=lambda msg: msg):
             res = bot.gameplay(req)
             tr.send_gameplay_response(res)
 
-    match_history.submit_replay(name, game, tr.conn.capturelog)
 
 def main():
     from production.utils import config_logging
@@ -244,7 +243,7 @@ def main():
                #and scraper.only_hard_maps)
     game = scraper.wait_for_game(predicate=predicate, extensions={'futures'})
     log.info(f'Joining {game}')
-    scores = online_mainloop('punter.inf.ed.ac.uk', game.port, 'tbd c', bot, game=game)
+    scores = online_mainloop('punter.inf.ed.ac.uk', game.port, 'cbd', bot, game=game)
     log.info(f'Scores: id={scores.state.get("my_id")} {scores.score_by_punter}')
 
 

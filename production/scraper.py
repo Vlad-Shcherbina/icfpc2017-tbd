@@ -76,7 +76,7 @@ def wait_for_game(*, patience=1, predicate=lambda g: True, shuffle=True, extensi
         time.sleep(random.random() * 6)
 
 
-def wait_for_game1(*, punters=1, predicate=lambda g: True, shuffle=True, extensions={}):
+def wait_for_game1(*, punters=1, patience=0, predicate=lambda g: True, shuffle=True, extensions={}):
     while True:
         gs = list(games())
         if shuffle:
@@ -87,11 +87,13 @@ def wait_for_game1(*, punters=1, predicate=lambda g: True, shuffle=True, extensi
             if any(extension not in extensions for extension in g.extensions):
                 continue
             log.info(g)
-            if g.punters_max - g.punters_num != punters:
+            if (g.punters_max - g.punters_num > patience 
+                             or g.punters_max - g.punters_num < punters):
                 continue
             return g
         log.warning('no imminent games, waiting...')
         time.sleep(3)
+
 
 def only_given_port(x):
     def ogp(g: Game):
