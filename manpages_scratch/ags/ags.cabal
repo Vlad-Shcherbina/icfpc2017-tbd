@@ -32,6 +32,10 @@ executable ags-exe
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , ags
+                     , scotty
+                     , http-types
+                     , warp
+                     , text
   default-language:    Haskell2010
 
 test-suite ags-test
