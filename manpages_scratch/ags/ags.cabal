@@ -39,6 +39,7 @@ executable ags-exe
                      , http-types
                      , warp
                      , text
+                     , random
                      , directory
   default-language:    Haskell2010
 

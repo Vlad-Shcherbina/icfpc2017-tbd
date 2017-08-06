@@ -29,12 +29,16 @@ main :: IO ()
 main = do
   recreateGames
   scottyOpts opts $ do
-    get "/map/:type/key/:key" $ do
+    get "/key/:key/map/:type" $ do
       t <- param "type"
       k <- param "key"
       valid <- liftIO $ keyIsValid k
       case valid of
         False -> status unauthorized401
         True -> do
-          port <- liftIO $ portForGame t k
-          text $ T.pack $ show port
+          game <- liftIO $ createGame t k
+          case game of
+            Just g -> do
+              liftIO $ launchGame g
+              text $ T.pack $ show $ port g
+            Nothing -> status serviceUnavailable503

@@ -10,8 +10,11 @@ import GHC.Generics
 import System.Directory
 import qualified Data.Text.Lazy as T
 import qualified Data.ByteString.Lazy as BSL
+import qualified Data.ByteString.Lazy.Char8 as BSLC
 import qualified Control.Monad.Fail as Fail
 import Control.Monad as CM
+
+import System.Random
 
 type GameType = T.Text
 type Key = T.Text
@@ -28,8 +31,17 @@ data RunningGame = RunningGame {
 instance FromJSON RunningGame
 instance ToJSON RunningGame
 
-portForGame :: GameType -> Key -> IO Int
-portForGame _ _ = return 4444
+createGame :: GameType -> Key -> IO (Maybe RunningGame)
+createGame _ key = do
+  port <- randomRIO (20000, 42000)
+  let game = RunningGame key port
+  let dataPath = maps ++ (show port)
+  exists <- doesFileExist dataPath
+  case exists of
+    True -> return Nothing
+    False -> do
+      BSL.writeFile dataPath $ encode game
+      return $ Just game
 
 loadGame :: FilePath -> IO RunningGame
 loadGame f = do
@@ -46,5 +58,4 @@ listValidGames = do
 
 keyIsValid :: Key -> IO Bool
 keyIsValid key = do
-  list <- listDirectory keys
-  return $ key `elem` (fmap T.pack list)
+  doesFileExist (keys ++ (T.unpack key))
