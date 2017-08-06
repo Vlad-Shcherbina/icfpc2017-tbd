@@ -126,6 +126,8 @@ def main():
                         sum(d * n for d, n in degree_count.items())
                         / sum(degree_count.values()))
               )
+        logger.info('average for mine: %.1f' 
+               % (sum(len(datagraph['sites'][m]) for m in data['mines']) / len(data['mines'])))
 
         line1 = '\n['
         line2 = '['

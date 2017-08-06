@@ -130,7 +130,7 @@ def main():
         format='%(levelname).1s %(module)10.10s:%(lineno)-4d %(message)s')
 
     game = scraper.wait_for_game(
-        predicate=scraper.only_easy_eagers_p,
+        predicate=scraper.only_hard_eagers_p,
         #predicate=lambda g: not scraper.only_eagers_p(g) and g.map_name != 'sample.json',
         extensions={'futures'})
     bot = cpp_bot.CppBot()

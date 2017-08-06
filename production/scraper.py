@@ -108,10 +108,21 @@ def only_not_blacklisted(xs):
 def only_eagers_p(g: Game):
     return all(p == 'eager punter' for p in g.punters)
 
-
 # Use this to be nice to others and your dumb bot
 def only_easy_eagers_p(g: Game):
-    return only_eagers_p(g) and g.map_name in ('sample.json', 'lambda.json', 'Sierpinski-triangle.json')
+    return only_eagers_p(g) and only_easy_maps(g)
+
+def only_hard_eagers_p(g: Game):
+    return only_eagers_p(g) and only_hard_maps(g)
+
+def only_easy_maps(g: Game):
+    return g.map_name in ('sample.json', 'lambda.json', 'Sierpinski-triangle.json')
+
+def only_hard_maps(g: Game):
+    return g.map_name not in ('sample.json', 'lambda.json', 'Sierpinski-triangle.json')    
+
+def diverse_players(g:Game):
+    return sum(p == 'eager punter' for p in g.punters) < len(g.punters) / 2
 
 
 def main():

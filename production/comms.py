@@ -227,6 +227,8 @@ def online_mainloop1(host, port, name: str, bots, on_comms_cb=lambda msg: msg):
             res = bot.gameplay(req)
             tr.send_gameplay_response(res)
 
+    match_history.submit_replay(name, game, tr.conn.capturelog)
+
 def main():
     from production.utils import config_logging
     config_logging()
@@ -237,9 +239,12 @@ def main():
     from production.cpp_bot import CppBot
     bot = CppBot()
 
-    game = scraper.wait_for_game(predicate=scraper.only_easy_eagers_p, extensions={'futures'})
+    predicate=lambda x: (scraper.only_not_blacklisted(['kontur.ru'])(x) 
+               and scraper.diverse_players(x))
+               #and scraper.only_hard_maps)
+    game = scraper.wait_for_game(predicate=predicate, extensions={'futures'})
     log.info(f'Joining {game}')
-    scores = online_mainloop('punter.inf.ed.ac.uk', game.port, 'tbd wtf', bot, game=game)
+    scores = online_mainloop('punter.inf.ed.ac.uk', game.port, 'tbd c', c_bot, game=game)
     log.info(f'Scores: id={scores.state.get("my_id")} {scores.score_by_punter}')
 
 
@@ -254,9 +259,12 @@ def main1():
     bot1 = CppBot()
     bot2 = CppBot()
 
-    bots = [bot1, bot]
+    bots = [bot1, bot2]
 
-    game = scraper.wait_for_game1(punters=len(bots), predicate=scraper.only_not_blacklisted(['kontur.ru']))
+    predicate=lambda x: (scraper.only_not_blacklisted(['kontur.ru'])(x) 
+               and scraper.only_hard_maps)
+    game = scraper.wait_for_game1(punters=len(bots), 
+        predicate=predicate)
     log.info(f'Joining {game}')
     scores = online_mainloop1('punter.inf.ed.ac.uk', game.port, 'needy', bots)
     log.info(f'Scores: id={scores.state.get("my_id")} {scores.score_by_punter}')
