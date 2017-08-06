@@ -13,7 +13,7 @@ from production.json_format import parse_map, parse_move
 river_color = (100, 100, 100)
 site_color = (200, 200, 200)
 mine_color = (255, 255, 255)
-back_color = (60, 60, 60)
+back_color = (0, 0, 60)
 text_color = (255, 255, 255)
 me_color = (0, 255, 0)
 
