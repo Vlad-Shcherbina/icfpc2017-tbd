@@ -9,7 +9,6 @@ import logging; logger = logging.getLogger(__name__)
 import json
 import time
 import socket
-import collections
 from typing import Union
 from math import log
 
@@ -25,45 +24,23 @@ from production import comms
 
 
 def render(msg: Union[GameplayRequest, ScoreRequest], size=600):
-    vis = visualization.Visualization(size, size)
-    vis.draw_background()
     map_ = json_format.parse_map(msg.state['map'])
-    vis.draw_map(map_)
-
-    legend = [f'[{i}]' for i in range(msg.state['punters'])]
-
-    if isinstance(msg, ScoreRequest):
-        for k, v in msg.score_by_punter.items():
-            legend[k] += f' score={v}'
-
     moves = list(map(json_format.parse_move, msg.state['all_past_moves']))
     moves += msg.moves
 
-    pass_cnt = collections.Counter()
-    for i, move in enumerate(moves):
-        # Don't count pass moves in the first turn
-        # (they send placeholder pass moves for each player).
-        if i < msg.state['punters']:
-            continue
-        # Also, weirdly, they don't send the very last moves
-        # in the score request, and replace them with passes instead.
-        if isinstance(msg, ScoreRequest) and i >= len(moves) - msg.state['punters']:
-            continue
-        if isinstance(move, PassMove):
-            pass_cnt[move.punter] += 1
-    for i in range(len(legend)):
-        if pass_cnt[i]:
-            legend[i] += f' passed {pass_cnt[i]} times'
+    story = Story(
+        punters=msg.state['punters'],
+        my_id=msg.state['my_id'],
+        map=map_,
+        my_futures=dict(msg.state['my_futures']),
+        moves = moves)
+    if isinstance(msg, ScoreRequest):
+        story = story._replace(score=msg.score_by_punter)
 
-    legend[msg.state['my_id']] += ' (me)'
-    vis.draw_legend(legend)
+    vis = visualization.Visualization(size, size)
+    vis.draw_story(story)
 
-    for move in moves:
-        me=(move.punter==msg.state['my_id'])
-        vis.draw_move(move, map_, me=me)
-
-    pack, unpack, board = cpp_bot.reconstruct_board(
-        map_, moves, msg.state['my_id'], dict(msg.state['my_futures']))
+    pack, unpack, board = cpp_bot.reconstruct_board(story)
 
     for source, target in msg.state['my_futures']:
         color = (255, 0, 0)

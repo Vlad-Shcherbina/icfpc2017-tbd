@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import Any, NamedTuple, Callable, Set, Dict, Tuple, Union, List
+from typing import Any, NamedTuple, Callable, Set, Dict, Tuple, Union, List, Optional
 
 
 Graph = Dict[int, Set[int]]
@@ -85,3 +85,13 @@ class Bot(metaclass=ABCMeta):
     @abstractmethod
     def gameplay(self, request: GameplayRequest) -> GameplayResponse:
         raise NotImplementedError()
+
+
+class Story(NamedTuple):
+    """Everything that's needed to reconstruct the state of the game."""
+    punters: int
+    my_id: int
+    map: Map
+    my_futures: Dict[int, int]
+    moves: List[Move]
+    score: Optional[Dict[int, int]] = None  # score as reported by the server

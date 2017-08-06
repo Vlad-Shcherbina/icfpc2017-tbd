@@ -3,12 +3,15 @@
 # source:
 # https://github.com/Vlad-Shcherbina/icfpc2016-tbd/blob/master/production/render.py
 
-from PIL import Image, ImageDraw
-from production.bot_interface import *
-from collections import namedtuple
+from collections import namedtuple, Counter
 from typing import Tuple, List
 from random import randrange
+
+from PIL import Image, ImageDraw
+
+from production.bot_interface import *
 from production.json_format import parse_map, parse_move
+
 
 river_color = (100, 100, 100)
 site_color = (200, 200, 200)
@@ -222,6 +225,39 @@ class Visualization:
             mv = parse_move(mv_raw)
             self.draw_move(mv, m, me=(me==mv.punter))
 
+    def draw_story(self, story: Story):
+        self.draw_background()
+        self.draw_map(story.map)
+
+        legend = [f'[{i}]' for i in range(story.punters)]
+
+        if story.score:
+            for k, v in story.score.items():
+                legend[k] += f' score={v}'
+
+        pass_cnt = Counter()
+        for i, move in enumerate(story.moves):
+            # Don't count pass moves in the first turn
+            # (they send placeholder pass moves for each player).
+            if i < story.punters:
+                continue
+            # Also, weirdly, they don't send the very last moves
+            # in the score request, and replace them with passes instead.
+            if story.score and i >= len(story.moves) - story.punters:
+                continue
+            if isinstance(move, PassMove):
+                pass_cnt[move.punter] += 1
+        for i in range(len(legend)):
+            if pass_cnt[i]:
+                legend[i] += f' passed {pass_cnt[i]} times'
+
+        legend[story.my_id] += ' (me)'
+        self.draw_legend(legend)
+
+        for move in story.moves:
+            self.draw_move(move, story.map, me=move.punter==story.my_id)
+
+        # TODO: futures
 
     def get_image(self) -> Image.Image:
         img = Image.new('RGBA', (self.width, self.height))

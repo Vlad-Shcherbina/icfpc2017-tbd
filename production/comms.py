@@ -234,6 +234,8 @@ def main():
     log.setLevel(logging.DEBUG)
     from production.dumb_bots import FirstMoveBot
     bot = FirstMoveBot()
+    from production.cpp_bot import CppBot
+    bot = CppBot()
 
     game = scraper.wait_for_game(predicate=scraper.only_easy_eagers_p, extensions={'futures'})
     log.info(f'Joining {game}')

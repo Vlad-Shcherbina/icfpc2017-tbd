@@ -8,27 +8,27 @@ from production.json_format import parse_map, parse_move
 from production.cpp import stuff as cpp
 
 
-def reconstruct_board(
-        map: Map, moves: List[Move], my_id: int, my_futures: Dict[int, int]):
+def reconstruct_board(story: Story):
     # Pack site IDs to contiguous range.
     pack = {}
     unpack = []
-    for s in map.g:
+    for s in story.map.g:
         pack[s] = len(unpack)
         unpack.append(s)
 
-    adj = [[] for _ in map.g]
-    for u, ws in map.g.items():
+    adj = [[] for _ in story.map.g]
+    for u, ws in story.map.g.items():
         for w in ws:
             adj[pack[u]].append(pack[w])
 
-    mines = [pack[m] for m in map.mines]
+    mines = [pack[m] for m in story.map.mines]
 
     board = cpp.Board(adj, mines)
 
-    board.set_futures(my_id, {pack[k]: pack[v] for k, v in my_futures.items()})
+    board.set_futures(
+        story.my_id, {pack[k]: pack[v] for k, v in story.my_futures.items()})
 
-    for move in moves:
+    for move in story.moves:
         if isinstance(move, ClaimMove):
             board.claim_river(
                 move.punter, pack[move.source], pack[move.target])
@@ -73,14 +73,21 @@ class CppBot(Bot):
 
         moves = [parse_move(m) for m in new_state['all_past_moves']]
 
+        story = Story(
+            punters=new_state['punters'],
+            my_id=new_state['my_id'],
+            map=map,
+            my_futures=dict(new_state['my_futures']),
+            moves=moves)
+
         rivers = set((u, w) for u, ws in map.g.items() for w in ws)
         for move in moves:
             if isinstance(move, ClaimMove):
                 rivers.remove((move.source, move.target))
                 rivers.remove((move.target, move.source))
 
-        pack, unpack, board = reconstruct_board(
-            map, moves, req.state['my_id'], dict(req.state['my_futures']))
+        pack, unpack, board = reconstruct_board(story)
+
         predicted_score = {}
         for punter in range(req.state['punters']):
             predicted_score[punter] = board.base_score(punter)
