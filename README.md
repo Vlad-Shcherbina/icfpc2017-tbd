@@ -28,7 +28,7 @@ To produce a tar ready for submission:
 2. docker create --name tbd_all tbd_all
 3. docker cp tbd_all:/root/icfpc2017-tbd/icfp-761516ab-2a60-4b4e-a8e8-486e75c4c850.tar.gz .
 
-OR one-liner:
+Testing with lamduct:
 ```text
-docker rm tbd_all; docker build . -t tbd_all && docker create --name tbd_all tbd_all && docker cp tbd_all:/root/icfpc2017-tbd/icfp-761516ab-2a60-4b4e-a8e8-486e75c4c850.tar.gz .
+docker run -it tbd_all lamduct --log-level=3 --game-port=`~/tbd_python/bin/python3.6 -m production.scraper --slots=1 --random` --client-instance-logfile=/dev/stderr ./punter
 ```
