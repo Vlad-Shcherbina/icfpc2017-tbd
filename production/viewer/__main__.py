@@ -7,6 +7,7 @@ import os
 import json
 import functools
 import webbrowser
+#from time import time    # @@@@
 
 import flask
 import jinja2
@@ -64,11 +65,14 @@ GAME_TEMPATE = '''
 {{ game }}
 <br>
 {{ num_turns }} turns
-<br>
+<br><br>
 press left/right
 <br>
 <img id="im"
      src="zzz"></img>
+<br><br>Timestats
+<br>{{ timestats[0] }}
+<br>{{ timestats[1] }}
 
 <script>
 "use strict";
@@ -112,6 +116,7 @@ def view_game(game_id):
     game = get_game_with_replay(game_id)
     replay = game.replay.get()
     num_turns = match_history.replay_length(replay)
+    timestats = get_timestatistics(replay)
 
     match_history.story_from_replay(replay, num_turns - 1)  # to fail early
 
@@ -142,6 +147,27 @@ def view_turn(game_id, turn_number):
     r.headers["Pragma"] = "no-cache"
     r.headers["Expires"] = "0"
     return r
+
+
+def get_timestatistics(replay):
+    #ts = time()  # @@@@
+    res = ['', '']
+    timestamps = [r.get('debug_request_timer', None)
+                          for r in replay if 'claim' in r]
+    if any(t is None for t in timestamps):
+        assert all(t is None for t in timestamps), 'missing timestamps'
+        res[0] = '...no timestamps in replay.'
+        return res
+
+    i_min = timestamps.index(min(timestamps))
+    i_max = timestamps.index(max(timestamps))
+    timediffs = [timestamps[i+1] - timestamps[i] for i in range(len(timestamps)-1)]
+
+    res[0] += f'min {timestamps[i_min]:.2} at {i_min} | '
+    res[0] += f'max {timestamps[i_max]:.2} at {i_max}'
+    #res[1] = ' '.join(('%.2f' % t) for t in timestamps)
+    #print ('time to get statistics', time() - ts)
+    return res
 
 
 def main():
