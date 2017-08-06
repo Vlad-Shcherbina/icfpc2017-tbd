@@ -7,7 +7,6 @@ import os
 import json
 import functools
 import webbrowser
-#from time import time    # @@@@
 
 import flask
 import jinja2
@@ -150,7 +149,6 @@ def view_turn(game_id, turn_number):
 
 
 def get_timestatistics(replay):
-    #ts = time()  # @@@@
     res = ['', '']
     timestamps = [r.get('debug_request_timer', None)
                           for r in replay if 'claim' in r]
@@ -161,12 +159,16 @@ def get_timestatistics(replay):
 
     i_min = timestamps.index(min(timestamps))
     i_max = timestamps.index(max(timestamps))
-    timediffs = [timestamps[i+1] - timestamps[i] for i in range(len(timestamps)-1)]
+    #timediffs = [timestamps[i+1] - timestamps[i] for i in range(len(timestamps)-1)]
+    #res[1] = ' '.join(('%.2f' % t) for t in timediffs)
 
-    res[0] += f'min {timestamps[i_min]:.2} at {i_min} | '
-    res[0] += f'max {timestamps[i_max]:.2} at {i_max}'
-    #res[1] = ' '.join(('%.2f' % t) for t in timestamps)
-    #print ('time to get statistics', time() - ts)
+    res[0] += f'min {timestamps[i_min]:.3} at {i_min} | '
+    res[0] += f'max {timestamps[i_max]:.3} at {i_max}'
+    res[1] = 'average for quarters'
+    quarter = len(timestamps) // 4
+    for i in range(4):
+        avg = sum(timestamps[i*quarter : (i+1)*quarter]) / quarter
+        res[1] += f': {avg:.3} '
     return res
 
 
