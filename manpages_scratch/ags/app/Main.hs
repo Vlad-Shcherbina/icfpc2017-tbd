@@ -29,7 +29,7 @@ main :: IO ()
 main = do
   recreateGames
   scottyOpts opts $ do
-    get "/key/:key/map/:type" $ do
+    get "/key/:key/map/:type/create" $ do
       t <- param "type"
       k <- param "key"
       valid <- liftIO $ keyIsValid k
