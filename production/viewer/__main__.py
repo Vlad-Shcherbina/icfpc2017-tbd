@@ -27,7 +27,7 @@ TABLE_TEMPATE = '''
 <table>
 {% for game in games %}
   <tr>
-  <td><a href="{{ url_for('view_game', game_id=game.id) }}">view</a></td>
+  <td><a href="{{ url_for('view_game', game_id=game.id) }}#0">view</a></td>
   <td>{{ game.time }}</td>
   <td>{{ game.submitter }}</td>
   <td>{{ game.botname }}</td>
@@ -54,27 +54,35 @@ GAME_TEMPATE = '''
 press left/right
 <br>
 <img id="im"
-     src="/{{ game.id }}/0"></img>
+     src="zzz"></img>
 
 <script>
+"use strict";
+
+let turn_number = 0
+window.onhashchange = function() {
+    turn_number = parseInt(window.location.hash.substring(1))
+    im.src = '/{{ game.id }}/' + turn_number
+}
 let im = document.getElementById('im')
-let turn_number = 0;
+im.src = '/{{ game.id }}/' + turn_number
 document.onkeydown = function checkKey(e) {
     if (e.keyCode == 37) {
         console.log('left')
         if (turn_number > 0) {
             turn_number--;
             im.src = '/{{ game.id }}/' + turn_number
+            window.location.hash = '' + turn_number
         }
     }
-    else if (e.keyCode == 39) {
+    if (e.keyCode == 39) {
         console.log('right')
         if (turn_number + 1 < {{ num_turns }}) {
             turn_number++;
             im.src = '/{{ game.id }}/' + turn_number
+            window.location.hash = '' + turn_number
         }
     }
-
 }
 </script>
 {% endblock %}
@@ -89,9 +97,8 @@ def get_game_with_replay(id):
 def view_game(game_id):
     game = get_game_with_replay(game_id)
     replay = game.replay.get()
-    num_turns = (len(replay) - 4) // 2
+    num_turns = (len(replay) - 2) // 2
     return flask.render_template_string(GAME_TEMPATE, **locals())
-
 
 
 # https://stackoverflow.com/a/10170635/6335232
