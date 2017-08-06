@@ -100,6 +100,13 @@ def parse_move(d) -> Move:
         punter = p.pop('punter')
         if REPORT_UNKNOWN_FIELDS: assert not p, p
         return PassMove(punter=punter)
+    elif 'splurge' in d:
+        p = d.pop('splurge')
+        if REPORT_UNKNOWN_FIELDS: assert not d, d
+        punter = p.pop('punter')
+        route = p.pop('route')
+        if REPORT_UNKNOWN_FIELDS: assert not p, p
+        return SplurgeMove(punter=punter, route=route)
     else:
         assert False, d
 

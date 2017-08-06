@@ -27,7 +27,15 @@ class ClaimMove(NamedTuple):
 class PassMove(NamedTuple):
     punter: int
 
-Move = Union[ClaimMove, PassMove]
+class SplurgeMove(NamedTuple):
+    punter: int
+    route: List[int]
+
+    def unpack(self):
+        for source, target in zip(self.route, self.route[1:]):
+            yield ClaimMove(punter=self.punter, source=source, target=target)
+
+Move = Union[ClaimMove, PassMove, SplurgeMove]
 
 
 GameState = Any
