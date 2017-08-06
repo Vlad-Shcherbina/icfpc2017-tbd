@@ -114,13 +114,13 @@ class Capturer:
         if self.request_timer is not None:
             req['debug_request_timer'] = time.perf_counter() - self.request_timer
             self.request_timer = None
-        self.capturelog.append(req)
+        self.capturelog.append(deepcopy(req))
         self.codec.send(req)
 
 
     def recv(self):
         res = self.codec.recv()
-        self.capturelog.append(res)
+        self.capturelog.append(deepcopy(res))
         self.request_timer = time.perf_counter()
         return res
 

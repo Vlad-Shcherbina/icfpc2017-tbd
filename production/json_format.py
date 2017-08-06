@@ -123,7 +123,7 @@ def format_move(m: Move):
 def parse_gameplay_request(d) -> GameplayRequest:
     d = copy.deepcopy(d)
     m = d.pop('move')
-    state = d.pop('state')
+    state = d.pop('state', None)
     if REPORT_UNKNOWN_FIELDS: assert not d, d
     moves = m.pop('moves')
     if REPORT_UNKNOWN_FIELDS: assert not m, m
@@ -142,7 +142,7 @@ def format_gameplay_response(r: GameplayResponse):
 def parse_score_request(d) -> ScoreRequest:
     d = copy.deepcopy(d)
     s = d.pop('stop')
-    state = d.pop('state')
+    state = d.pop('state', None)
     if REPORT_UNKNOWN_FIELDS: assert not d, d
     moves = s.pop('moves')
     scores = s.pop('scores')

@@ -104,8 +104,8 @@ document.onkeydown = function checkKey(e) {
 
 @functools.lru_cache()
 def get_game_with_replay(id):
-    game, = match_history.get_games(where=f'id = {id}', with_replays=True)
-    return game
+    return match_history.get_game(id)
+
 
 @app.route('/<int:game_id>')
 def view_game(game_id):

@@ -99,10 +99,9 @@ def _game_from_row(row, with_replay):
 def get_game(id):
     _init_globals()
     with conn.cursor() as cur:
-        params = []
         query = 'select ' + ', '.join(GameRecord._fields)
         query += ' from icfpc2017_games where id = %s'
-        cur.execute(query, params)
+        cur.execute(query, (id,))
         return _game_from_row(cur.fetchone(), True)
 
 
@@ -242,7 +241,9 @@ def main():
 
     games = get_games(last=5, with_replays=True, my=True, where='rank > 1')
     print(games)
-    for i, msg in enumerate(games[0].replay._replay):
+
+    game = get_game(457)
+    for i, msg in enumerate(game.replay.get()):
         print()
         print(i, msg)
 
