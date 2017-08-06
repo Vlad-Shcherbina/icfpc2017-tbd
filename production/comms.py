@@ -6,6 +6,7 @@ from copy import deepcopy
 import production.scraper as scraper
 from production import bot_interface as bi
 from production import json_format as jf
+from production import match_history
 
 
 class CommsException(Exception):
@@ -44,7 +45,7 @@ class OfflineConnection:
     def __init__(self):
         self.stdout = sys.stdout
         sys.stdout = RedirectToStderr(sys.stderr)
-        # really paranoid people would also strdup stdout and replace 1st descriptor
+        # really paranoid people would also dup2 stdout elsewhere and replace 1st descriptor
 
 
     def read(self):
@@ -71,9 +72,11 @@ class ColonCodec:
     def __init__(self, connection):
         self.connection = connection
         self.buf = bytearray()
+        self.capturelog = []
     
 
     def send(self, req):
+        self.capturelog.append(req)
         s = json.dumps(req).encode()
         s = b'%d:%b' % (len(s), s)
         log.debug(f'send({s})')
@@ -101,6 +104,7 @@ class ColonCodec:
         res = json.loads(buf[colon_pos + 1 : msg_end])
         del buf[:msg_end]
         log.debug(f'recv({res})')
+        self.capturelog.append(res)
         return res
 
 
@@ -177,7 +181,7 @@ class OnlineTransport:
         self.conn.send(jf.format_gameplay_response(response))
 
 
-def online_mainloop(host, port, name: str, bot: bi.Bot, on_comms_cb=lambda msg: msg):
+def online_mainloop(host, port, name: str, bot: bi.Bot, on_comms_cb=lambda msg: msg, game=None):
     'Copypaste and augment as you wish'
     tr = OnlineTransport(host, port, name, on_comms_cb)
 
@@ -188,9 +192,13 @@ def online_mainloop(host, port, name: str, bot: bi.Bot, on_comms_cb=lambda msg: 
     while True:
         req = tr.get_gameplay()
         if isinstance(req, bi.ScoreRequest):
-            return req
+            break
         res = bot.gameplay(req)
         tr.send_gameplay_response(res)
+    
+    match_history.submit_replay(name, game, tr.conn.capturelog)
+    return req
+
 
 def online_mainloop1(host, port, name: str, bots, on_comms_cb=lambda msg: msg):
     'Pitting several bots against each other'
@@ -220,7 +228,21 @@ def online_mainloop1(host, port, name: str, bots, on_comms_cb=lambda msg: msg):
             tr.send_gameplay_response(res)
 
 def main():
-    from utils import config_logging
+    from production.utils import config_logging
+    config_logging()
+    
+    log.setLevel(logging.DEBUG)
+    from production.dumb_bots import FirstMoveBot
+    bot = FirstMoveBot()
+
+    game = scraper.wait_for_game(predicate=scraper.only_easy_eagers_p)
+    log.info(f'Joining {game}')
+    scores = online_mainloop('punter.inf.ed.ac.uk', game.port, 'tbd wtf', bot, game=game)
+    log.info(f'Scores: id={scores.state.get("my_id")} {scores.score_by_punter}')
+
+
+def main1():
+    from production.utils import config_logging
     config_logging()
     
     log.setLevel(logging.DEBUG)
@@ -239,4 +261,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    for _ in range(10):
+        main()
