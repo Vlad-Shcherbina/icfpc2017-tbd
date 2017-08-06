@@ -25,7 +25,7 @@ def __parse_status(status):
         l = re.split("[\(/\)]", status)
         return (int(l[1]), int(l[2]))
     else:
-        sys.error('Unknown status: ' + status)
+        assert False, status
 
 
 def games():
