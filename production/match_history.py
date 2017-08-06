@@ -183,7 +183,9 @@ def main():
 
     games = get_games(last=5, with_replays=True, my=True, where='rank > 1')
     print(games)
-    print(games[0].replay._replay)
+    for i, msg in enumerate(games[0].replay._replay):
+        print()
+        print(i, msg)
 
 
 if __name__ == '__main__':

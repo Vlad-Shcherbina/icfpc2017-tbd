@@ -5,3 +5,5 @@ pybind11
 beautifulsoup4
 pillow
 psycopg2
+flask
+jinja2
