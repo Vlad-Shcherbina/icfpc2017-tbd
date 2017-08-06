@@ -301,6 +301,9 @@ struct ReachProb {
         // debug(p_grad);
 
         this->cut_prob_grad = cut_prob_grad;
+
+        for (int i = 0; i < board.adj.size(); i++)
+            reach_prob.push_back(p[dsu.find(i)]);
     }
 
     map<pair<int, int>, double> get_cut_prob_grad() const {
@@ -315,6 +318,7 @@ struct ReachProb {
     }
 
     map<pair<int, int>, double> cut_prob_grad;
+    vector<double> reach_prob;
 };
 
 
@@ -335,6 +339,7 @@ PYBIND11_PLUGIN(stuff) {
     py::class_<ReachProb>(m, "ReachProb")
         .def(py::init<const Board&, int, int, double>())
         .def("get_cut_prob_grad", &ReachProb::get_cut_prob_grad)
+        .def_readonly("reach_prob", &ReachProb::reach_prob)
     ;
 
     return m.ptr();

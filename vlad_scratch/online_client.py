@@ -4,13 +4,14 @@ try:
 except ImportError:
     pass
 
-import logging; log = logging.getLogger(__name__)
+import logging; logger = logging.getLogger(__name__)
 
 import json
 import time
 import socket
 import collections
 from typing import Union
+from math import log
 
 from production import dumb_bots
 from production import cpp_bot
@@ -23,8 +24,8 @@ from production import utils
 from production import comms
 
 
-def render(msg: Union[GameplayRequest, ScoreRequest]):
-    vis = visualization.Visualization(600, 600)
+def render(msg: Union[GameplayRequest, ScoreRequest], size=600):
+    vis = visualization.Visualization(size, size)
     vis.draw_background()
     map_ = json_format.parse_map(msg.state['map'])
     vis.draw_map(map_)
@@ -77,14 +78,16 @@ def render(msg: Union[GameplayRequest, ScoreRequest]):
 
     base_im = vis.get_image()
 
-    vis = visualization.Visualization(600, 600)
+    vis = visualization.Visualization(size // 2, size // 2)
     vis.draw_background()
     vis.adjust_to_map(map_)
 
     cut_prob_grad = {}
+    reach_probs = []
     for mine in map_.mines:
         cut_prob = 1.0 - 1.0 / msg.state['punters']
         rp = cpp.ReachProb(board, msg.state['my_id'], pack[mine], cut_prob)
+        reach_probs.append(rp.reach_prob)
         for k, v in rp.get_cut_prob_grad().items():
             cut_prob_grad.setdefault(k, 0.0)
             cut_prob_grad[k] += v
@@ -110,7 +113,39 @@ def render(msg: Union[GameplayRequest, ScoreRequest]):
 
     grad_im = vis.get_image()
 
-    return visualization.hstack(base_im, grad_im)
+    vis = visualization.Visualization(size // 2, size // 2)
+    vis.draw_background()
+    vis.draw_map(map_)
+    for site in map_.g:
+        p = max(reach_prob[pack[site]] for reach_prob in reach_probs)
+        vis.draw_point(
+            map_.site_coords[site],
+            color=prob_palette(p), size=6)
+
+    for i, p in enumerate([1, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001]):
+        vis.draw_text((5, 15 * i + 5), f'p={p}', color=prob_palette(p))
+    prob_im = vis.get_image()
+
+    return visualization.hstack(
+        base_im, visualization.vstack(prob_im, grad_im))
+
+
+def prob_palette(p):
+    assert 0 <= p <= 1
+
+    def hz(a, b, x):
+        return (log(x) - log(a)) / (log(b) - log(a))
+
+    if p > 0.1:
+        t = hz(0.1, 1.0, p)
+        return (255, 255, int(255 * t))
+    if p > 0.01:
+        t = hz(0.01, 0.1, p)
+        return (255, int(255 * t), 0)
+    if p > 0.001:
+        t = hz(0.001, 0.01, p)
+        return (int(255 * t), 0, 0)
+    return (0, 0, 0)
 
 
 def main():
@@ -136,12 +171,12 @@ def main():
         nonlocal turn_number
 
         if isinstance(msg, SetupResponse):
-            log.info(f'my futures: {msg.futures}')
+            logger.info(f'my futures: {msg.futures}')
         if isinstance(msg, GameplayResponse):
-            log.info(f'my move: {msg.move}')
+            logger.info(f'my move: {msg.move}')
 
         if isinstance(msg, (GameplayRequest, ScoreRequest)):
-            log.info(f'server reports moves: {msg.moves}')
+            logger.info(f'server reports moves: {msg.moves}')
 
             im = render(msg)
             im.save(utils.project_root() / 'outputs' / f'{turn_number:04d}.png')
@@ -153,8 +188,8 @@ def main():
     scores = comms.online_mainloop(
         'punter.inf.ed.ac.uk', game.port, 'tbdbd', bot, on_comms_cb=cb)
 
-    log.info(f'my id: {scores.state["my_id"]}')
-    log.info(f'scores: {scores.score_by_punter}')
+    logger.info(f'my id: {scores.state["my_id"]}')
+    logger.info(f'scores: {scores.score_by_punter}')
 
 
 if __name__ == '__main__':
