@@ -1,3 +1,6 @@
+import logging
+log = logging.getLogger(__name__)
+
 import typing, json
 from datetime import datetime
 import psycopg2
@@ -61,6 +64,7 @@ def _init_globals():
         import getpass
         submitter = getpass.getuser()
     if conn is None:
+        log.info('Connecting to replay database')
         conn = psycopg2.connect(
             dbname='exampledb',
             host='35.187.84.11',
@@ -76,7 +80,31 @@ def _fetch_replay(id: str):
     with conn.cursor() as cur:
         cur.execute('select replay from icfpc2017_games where id=%s', (id,))
         return _db_replay_to_json(cur.fetchone()[0])
-    
+
+
+def _game_from_row(row, with_replay):
+    d = dict(zip(GameRecord._fields, row))
+    d['extensions'] = d['extensions'].split()
+    d['player_names'] = d['player_names'].split(',')
+    d['scores'] = [int(s) for s in d['scores'].split()]
+
+    rp = _ReplayProxy(d['id'])
+    if with_replay:
+        rp._replay = _db_replay_to_json(d['replay'])
+    d['replay'] = rp
+
+    return GameRecord(**d)
+
+
+def get_game(id):
+    _init_globals()
+    with conn.cursor() as cur:
+        params = []
+        query = 'select ' + ', '.join(GameRecord._fields)
+        query += ' from icfpc2017_games where id = %s'
+        cur.execute(query, params)
+        return _game_from_row(cur.fetchone(), True)
+
 
 def get_games(last=1000, with_replays=False, my=False, where=None):
     '''
@@ -84,7 +112,7 @@ def get_games(last=1000, with_replays=False, my=False, where=None):
     with_replays=True: prefetch actual replay values
     my=True: select only replays for match_history.owner
     where="'futures' in extensions": free-form sql filters.
-    
+
     Latest replays are returned first'''
     _init_globals()
     with conn.cursor() as cur:
@@ -103,23 +131,15 @@ def get_games(last=1000, with_replays=False, my=False, where=None):
         cur.execute(query, params)
         res = []
         for row in cur.fetchall():
-            d = dict(zip(GameRecord._fields, row))
-            d['extensions'] = d['extensions'].split()
-            d['player_names'] = d['player_names'].split(',')
-            d['scores'] = [int(s) for s in d['scores'].split()]
-            
-            rp = _ReplayProxy(d['id'])
-            if with_replays:
-                rp._replay = _db_replay_to_json(d['replay'])
-            d['replay'] = rp
+            res.append(_game_from_row(row, with_replays))
 
-            res.append(GameRecord(**d))
         return res
 
 
 def submit_game(botname, mapname, extensions, player_names, num_players, rank, scores, timeouts, replay):
     '''returns id, for future reference.'''
     _init_globals()
+    log.info('Submitting replay')
     with conn:
         with conn.cursor() as cur:
             cur.execute('''insert into icfpc2017_games
@@ -127,7 +147,9 @@ def submit_game(botname, mapname, extensions, player_names, num_players, rank, s
                 (     %s,        %s,      %s,         %s,           %s,          %s,    %s,    %s,       %s,     %s)
                 returning id
             ''', (botname, submitter, mapname, extensions, player_names, num_players, rank, scores, timeouts, json.dumps(replay).encode()))
-            return cur.fetchone()[0]
+            id, = cur.fetchone()
+            log.info(f'Replay id={id}')
+            return id
 
 
 def submit_replay(botname: str, game: scraper.Game, replay: typing.Any):
@@ -139,7 +161,7 @@ def submit_replay(botname: str, game: scraper.Game, replay: typing.Any):
             break
     else:
         assert False, f'No setup request in replay: {replay}'
-    
+
     setup_request = json_format.parse_setup_request(it)
 
     # Last element of a replay should be a score response
@@ -153,11 +175,11 @@ def submit_replay(botname: str, game: scraper.Game, replay: typing.Any):
             botname,
             game.map_name if game else '<unknown>',
             ' '.join(k for k, v in setup_request.settings.raw_settings.items() if v),
-            ','.join(game.punters) if game else '', 
-            setup_request.punters, 
-            rank, 
-            ' '.join(str(s) for s in scores), 
-            timeouts, 
+            ','.join(game.punters) if game else '',
+            setup_request.punters,
+            rank,
+            ' '.join(str(s) for s in scores),
+            timeouts,
             replay)
 
 
@@ -207,8 +229,8 @@ def story_from_replay(replay: typing.List[dict], turn_number) -> Story:
 
 def main():
     realistic_replay = [
-        {'punter': 3, 'punters': 4, 'map': {'sites': [], 'rivers': [], 'mines': []}, 'state': {}}, 
-        {'state': {}}, 
+        {'punter': 3, 'punters': 4, 'map': {'sites': [], 'rivers': [], 'mines': []}, 'state': {}},
+        {'state': {}},
         {'stop': {'moves': [], 'scores': [{'punter': 0, 'score': 29}, {'punter': 1, 'score': 31}, {'punter': 2, 'score': 25}, {'punter': 3, 'score': 1}]}, 'state': {}},
     ]
 
@@ -226,5 +248,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()    
-                
+    main()
+

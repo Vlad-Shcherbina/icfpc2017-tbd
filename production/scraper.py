@@ -69,7 +69,7 @@ def wait_for_game(*, patience=1, predicate=lambda g: True, shuffle=True, extensi
             if any(extension not in extensions for extension in g.extensions):
                 continue
             log.info(g)
-            if g.punters_max - g.punters_num > patience:
+            if not (0 < g.punters_max - g.punters_num <= patience):
                 continue
             return g
         log.warning('no imminent games, waiting...')

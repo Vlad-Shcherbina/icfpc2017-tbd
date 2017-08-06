@@ -1,7 +1,7 @@
 import logging; log = logging.getLogger(__name__)
 import os
 
-import sys, json, socket, typing
+import sys, json, socket, typing, time
 from copy import deepcopy
 
 import production.scraper as scraper
@@ -29,12 +29,12 @@ class OnlineConnection:
 
     def write(self, data):
         self.socket.sendall(data)
-    
+
 
 class RedirectToStderr:
     def __init__(self, stderr):
         self.stderr = stderr
-    
+
     def write(self, data):
         self.stderr.write(data.decode())
 
@@ -67,7 +67,7 @@ class ColonCodec:
         self.connection = connection
         self.buf = bytearray()
         self.capturelog = []
-    
+
 
     def send(self, req):
         self.capturelog.append(req)
@@ -75,7 +75,7 @@ class ColonCodec:
         s = b'%d:%b' % (len(s), s)
         log.debug(f'send({s})')
         self.connection.write(s)
-    
+
 
     def recv(self):
         buf = self.buf
@@ -94,11 +94,34 @@ class ColonCodec:
         msg_end = colon_pos + 1 + msg_len
         while len(buf) < msg_end:
             buf.extend(self.connection.read())
-        
+
         res = json.loads(buf[colon_pos + 1 : msg_end])
         del buf[:msg_end]
         log.debug(f'recv({res})')
         self.capturelog.append(res)
+        return res
+
+
+class Capturer:
+    'captures messages before passing them to codec'
+    def __init__(self, codec):
+        self.codec = codec
+        self.capturelog = []
+        self.request_timer = None
+
+
+    def send(self, req):
+        if self.request_timer is not None:
+            req['debug_request_timer'] = time.perf_counter() - self.request_timer
+            self.request_timer = None
+        self.capturelog.append(req)
+        self.codec.send(req)
+
+
+    def recv(self):
+        res = self.codec.recv()
+        self.capturelog.append(res)
+        self.request_timer = time.perf_counter()
         return res
 
 
@@ -128,29 +151,29 @@ def offline_mainloop(name: str, bot: bi.Bot):
 
 class OnlineTransport:
     '''Flat procedural interface suitable for use with offline bots.
-    
+
     There's no OfflineTransport btw'''
 
-    
+
     def __init__(self, host, port, name, on_comms_cb=lambda msg: msg):
         self.name = name
-        self.conn = ColonCodec(OnlineConnection(host, port))
+        self.conn = Capturer(ColonCodec(OnlineConnection(host, port)))
         self.on_comms_cb = on_comms_cb
         handshake(self.conn, name)
-    
-    
+
+
     def get_setup(self) -> bi.SetupRequest:
         req = self.conn.recv()
         return self.on_comms_cb(jf.parse_setup_request(req))
 
-    
+
     def send_setup_response(self, response: bi.SetupResponse):
         response = self.on_comms_cb(response)
         self.state = deepcopy(response.state)
         response = response._replace(state=None)
         self.conn.send(jf.format_setup_response(response))
 
-    
+
     def get_gameplay(self) -> typing.Union[bi.GameplayRequest, bi.ScoreRequest]:
         while True:
             req = self.conn.recv()
@@ -159,7 +182,7 @@ class OnlineTransport:
                 log.warning('OMG timeout:', timeout)
             else:
                 break
-        
+
         req['state'] = self.state
         if 'stop' in req:
             log.warning('game ended')
@@ -183,14 +206,14 @@ def online_mainloop(host, port, name: str, bot: bi.Bot, on_comms_cb=lambda msg: 
     log.warning('game started')
     res = bot.setup(req)
     tr.send_setup_response(res)
-    
+
     while True:
         req = tr.get_gameplay()
         if isinstance(req, bi.ScoreRequest):
             break
         res = bot.gameplay(req)
         tr.send_gameplay_response(res)
-    
+
     match_history.submit_replay(name, game, tr.conn.capturelog)
     return req
 
@@ -224,18 +247,15 @@ def online_mainloop1(host, port, name: str, bots, on_comms_cb=lambda msg: msg):
 
 
 def main():
+    '''Please don't change predicates or bots, this is a smoke test'''
     from production.utils import config_logging
     config_logging()
-    
+
     log.setLevel(logging.DEBUG)
     from production.dumb_bots import FirstMoveBot
     bot = FirstMoveBot()
-    from production.cpp_bot import CppBot
-    bot = CppBot()
 
-    predicate=lambda x: (scraper.soft_blacklisted(['kontur.ru'])(x))
-               #and scraper.only_hard_maps)
-    game = scraper.wait_for_game(predicate=predicate, extensions={'futures'})
+    game = scraper.wait_for_game(predicate=scraper.only_easy_eagers_p, extensions={'futures'})
     log.info(f'Joining {game}')
     scores = online_mainloop('punter.inf.ed.ac.uk', game.port, 'cbd', bot, game=game)
     log.info(f'Scores: id={scores.state.get("my_id")} {scores.score_by_punter}')
@@ -244,7 +264,7 @@ def main():
 def main1():
     from production.utils import config_logging
     config_logging()
-    
+
     log.setLevel(logging.DEBUG)
     from production.dumb_bots import FirstMoveBot
     bot = FirstMoveBot()
@@ -254,9 +274,9 @@ def main1():
 
     bots = [bot1, bot2]
 
-    predicate=lambda x: (scraper.only_not_blacklisted(['kontur.ru'])(x) 
+    predicate=lambda x: (scraper.only_not_blacklisted(['kontur.ru'])(x)
                and scraper.only_hard_maps)
-    game = scraper.wait_for_game1(punters=len(bots), 
+    game = scraper.wait_for_game1(punters=len(bots),
         predicate=predicate)
     log.info(f'Joining {game}')
     scores = online_mainloop1('punter.inf.ed.ac.uk', game.port, 'needy', bots)
