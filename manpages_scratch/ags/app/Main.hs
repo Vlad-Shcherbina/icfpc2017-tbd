@@ -10,9 +10,7 @@ import qualified Network.Wai.Handler.Warp as W
 
 import qualified Data.Text.Lazy as T
 import Punter.TCPTransport
-
-import Lib
-import Database
+import Punter.Database
 
 opts :: Options
 opts = Options 0 (W.setHost "0.0.0.0" W.defaultSettings)

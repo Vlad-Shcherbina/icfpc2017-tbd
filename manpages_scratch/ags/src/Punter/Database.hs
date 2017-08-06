@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Database
+module Punter.Database
 where
 
 import Data.Aeson
@@ -11,7 +11,6 @@ import System.Directory
 import qualified Data.Text.Lazy as T
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.ByteString.Lazy.Char8 as BSLC
-import qualified Control.Monad.Fail as Fail
 import Control.Monad as CM
 
 import System.Random
@@ -51,7 +50,7 @@ loadGame f = do
   c <- BSL.readFile $ maps ++ f
   case decode c of
     Just o -> return o
-    Nothing -> Fail.fail $ "Could not decode game data"
+    Nothing -> error "Could not decode game data"
 
 listValidGames :: IO [RunningGame]
 listValidGames = do
