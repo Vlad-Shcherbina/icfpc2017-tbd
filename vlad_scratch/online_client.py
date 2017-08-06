@@ -10,6 +10,7 @@ import json
 import time
 import socket
 import collections
+from typing import Union
 
 from production import dumb_bots
 from production import cpp_bot
@@ -19,6 +20,39 @@ from production import scraper
 from production import visualization
 from production import utils
 from production import comms
+
+
+def render(msg: Union[GameplayRequest, ScoreRequest]):
+    vis = visualization.Visualization(600, 600)
+    vis.draw_background()
+    map_ = json_format.parse_map(msg.state['map'])
+    vis.draw_map(map_)
+
+    legend = [f'[{i}]' for i in range(msg.state['punters'])]
+
+    if isinstance(msg, ScoreRequest):
+        for k, v in msg.score_by_punter.items():
+            legend[k] += f' score={v}'
+
+    pass_cnt = collections.Counter()
+    # Don't count pass moves in the first turn
+    # (they send placeholder pass moves for each player).
+    for move in msg.state['all_past_moves'][msg.state['punters']:]:
+        if 'pass' in move:
+            pass_cnt[move['pass']['punter']] += 1
+    for i in range(len(legend)):
+        if pass_cnt[i]:
+            legend[i] += f' passed {pass_cnt[i]} times'
+
+    legend[msg.state['my_id']] += ' (me)'
+    vis.draw_legend(legend)
+
+    for move in msg.state['all_past_moves']:
+        move = json_format.parse_move(move)
+        me=(move.punter==msg.state['my_id'])
+        vis.draw_move(move, map_, me=me)
+
+    return vis.get_image()
 
 
 def main():
@@ -51,36 +85,7 @@ def main():
         if isinstance(msg, (GameplayRequest, ScoreRequest)):
             log.info(f'server reports moves: {msg.moves}')
 
-            vis = visualization.Visualization(600, 600)
-            vis.draw_background()
-            map_ = json_format.parse_map(msg.state['map'])
-            vis.draw_map(map_)
-
-            legend = [f'[{i}]' for i in range(msg.state['punters'])]
-
-            if isinstance(msg, ScoreRequest):
-                for k, v in msg.score_by_punter.items():
-                    legend[k] += f' score={v}'
-
-            pass_cnt = collections.Counter()
-            # Don't count pass moves in the first turn
-            # (they send placeholder pass moves for each player).
-            for move in msg.state['all_past_moves'][msg.state['punters']:]:
-                if 'pass' in move:
-                    pass_cnt[move['pass']['punter']] += 1
-            for i in range(len(legend)):
-                if pass_cnt[i]:
-                    legend[i] += f' passed {pass_cnt[i]} times'
-
-            legend[msg.state['my_id']] += ' (me)'
-            vis.draw_legend(legend)
-
-            for move in msg.state['all_past_moves']:
-                move = json_format.parse_move(move)
-                me=(move.punter==msg.state['my_id'])
-                vis.draw_move(move, map_, me=me)
-
-            im = vis.get_image()
+            im = render(msg)
             im.save(utils.project_root() / 'outputs' / f'{turn_number:04d}.png')
 
             turn_number += 1
