@@ -123,7 +123,8 @@ public:
         int x_root = find(x);
         int y_root = find(y);
 
-        assert(x_root != y_root);
+        if (x_root == y_root)
+            return;
 
         if (rank.at(x_root) < rank.at(y_root)) {
             up.at(x_root) = y_root;
@@ -340,6 +341,7 @@ PYBIND11_PLUGIN(stuff) {
         .def("reachable_by_claimed", &Board::reachable_by_claimed)
         .def("base_score", &Board::base_score)
         .def_readonly("mines", &Board::mines)
+        .def_readonly("dist", &Board::dist)
         .def_readwrite("pack", &Board::pack)
         .def_readwrite("unpack", &Board::unpack)
     ;
