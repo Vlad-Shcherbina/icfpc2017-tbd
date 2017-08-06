@@ -41,14 +41,15 @@ class ProbInfo(NamedTuple):
     # howewer, this thing is sparse and some zero edges are not included
 
 
-def compute_prob_info(story: Story, board: stuff.Board, my_id: int) -> ProbInfo:
+def compute_prob_info(cut_prob: float, board: stuff.Board, my_id: int) -> ProbInfo:
     pack = board.pack
     unpack = board.unpack
 
     reach_prob = {}
     cut_prob_grad = {}
-    for mine in story.map.mines:
-        cut_prob = 1.0 - 1.0 / story.punters
+    for mine in board.mines:
+        mine = unpack[mine]
+        cut_prob = cut_prob
         rp = stuff.ReachProb(board, my_id, pack[mine], cut_prob)
         reach_prob[mine] = {unpack[k]: v for k, v in enumerate(rp.reach_prob)}
         for (u, v), grad in rp.get_cut_prob_grad().items():

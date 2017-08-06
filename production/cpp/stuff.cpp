@@ -339,6 +339,7 @@ PYBIND11_PLUGIN(stuff) {
         .def("claim_river", &Board::claim_river)
         .def("reachable_by_claimed", &Board::reachable_by_claimed)
         .def("base_score", &Board::base_score)
+        .def_readonly("mines", &Board::mines)
         .def_readwrite("pack", &Board::pack)
         .def_readwrite("unpack", &Board::unpack)
     ;

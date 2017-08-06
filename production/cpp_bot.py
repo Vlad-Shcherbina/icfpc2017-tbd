@@ -70,7 +70,8 @@ class CppBot(Bot):
             predicted_score[punter] = board.base_score(punter)
         logging.info(f'my id: {story.my_id}, predicted score: {predicted_score}')
 
-        pi = glue.compute_prob_info(story, board, story.my_id)
+        cut_prob = 1 - 1 / story.punters
+        pi = glue.compute_prob_info(cut_prob, board, story.my_id)
         #logging.info(f'*********** {cut_prob_grad}')
 
         if pi.cut_prob_grad:
@@ -97,7 +98,8 @@ def render_prob_field(story: Story, size=600):
 
     board = glue.reconstruct_board(story)
 
-    pi = glue.compute_prob_info(story, board, story.my_id)
+    cut_prob = 1 - 1 / story.punters
+    pi = glue.compute_prob_info(cut_prob, board, story.my_id)
 
     a = min(0, min(pi.cut_prob_grad.values()))
     b = max(0, max(pi.cut_prob_grad.values()))
