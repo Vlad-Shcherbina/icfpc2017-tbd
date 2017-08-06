@@ -86,13 +86,16 @@ window.onhashchange = function() {
 }
 let im = document.getElementById('im')
 im.src = '/{{ game.id }}/' + turn_number + '?mode={{ mode }}'
-document.onkeydown = function checkKey(e) {
+
+document.addEventListener("keydown", function(e) {
+    console.log(e)
     if (e.keyCode == 37) {
         console.log('left')
         if (turn_number > 0) {
             turn_number--;
             im.src = '/{{ game.id }}/' + turn_number + '?mode={{ mode }}'
             history.replaceState('', '', '#' + turn_number)
+            e.preventDefault()
         }
     }
     if (e.keyCode == 39) {
@@ -101,9 +104,10 @@ document.onkeydown = function checkKey(e) {
             turn_number++;
             im.src = '/{{ game.id }}/' + turn_number + '?mode={{ mode }}'
             history.replaceState('', '', '#' + turn_number)
+            e.preventDefault()
         }
     }
-}
+}, false)
 </script>
 {% endblock %}
 '''
