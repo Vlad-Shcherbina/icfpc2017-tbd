@@ -35,6 +35,10 @@ def test_stuff():
     board.claim_river(42, 3, 2)
     assert sorted(board.reachable_by_claimed(42, 1)) == [1, 2, 3]
 
+    board.pack = {1: 2}
+    assert isinstance(board.pack, dict)
+    assert board.pack == {1: 2}
+
 
 def test_reach_prob():
     board = cpp.Board(make_adj(), [0, 1, 2, 3, 4])

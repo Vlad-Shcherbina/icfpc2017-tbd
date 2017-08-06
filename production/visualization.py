@@ -258,7 +258,9 @@ class Visualization:
         for move in story.moves:
             self.draw_move(move, story.map, me=move.punter==story.my_id)
 
-        pack, unpack, board = glue.reconstruct_board(story)
+        board = glue.reconstruct_board(story)
+        pack = board.pack
+        unpack = board.unpack
 
         for source, target in story.my_futures.items():
             color = (255, 0, 0)

@@ -59,7 +59,9 @@ class CppBot(Bot):
                 rivers.remove((move.source, move.target))
                 rivers.remove((move.target, move.source))
 
-        pack, unpack, board = glue.reconstruct_board(story)
+        board = glue.reconstruct_board(story)
+        pack = board.pack
+        unpack = board.unpack
 
         predicted_score = {}
         for punter in range(req.state['punters']):

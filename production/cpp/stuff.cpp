@@ -95,6 +95,11 @@ struct Board {
     map<int, map<int, int>> futures_by_player;
     map<pair<int, int>, int> claimed_by;
     vector<vector<int>> dist;  // dist[u][v] is only computed if u is a mine
+
+    // Should not be used in the C++ code,
+    // but it's convenient to drag them along Board objects in Python.
+    map<int, int> pack;
+    vector<int> unpack;
 };
 
 
@@ -334,6 +339,8 @@ PYBIND11_PLUGIN(stuff) {
         .def("claim_river", &Board::claim_river)
         .def("reachable_by_claimed", &Board::reachable_by_claimed)
         .def("base_score", &Board::base_score)
+        .def_readwrite("pack", &Board::pack)
+        .def_readwrite("unpack", &Board::unpack)
     ;
 
     py::class_<ReachProb>(m, "ReachProb")

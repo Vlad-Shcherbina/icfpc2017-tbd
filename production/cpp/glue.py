@@ -27,4 +27,6 @@ def reconstruct_board(story: Story):
             board.claim_river(
                 move.punter, pack[move.source], pack[move.target])
 
-    return pack, unpack, board
+    board.pack = pack
+    board.unpack = unpack
+    return board
