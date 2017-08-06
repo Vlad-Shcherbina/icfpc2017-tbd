@@ -15,6 +15,7 @@ from math import log
 from production import dumb_bots
 from production import cpp_bot
 from production.cpp import stuff as cpp
+from production.cpp import glue
 from production import json_format
 from production.bot_interface import *
 from production import scraper
@@ -39,25 +40,13 @@ def render(msg: Union[GameplayRequest, ScoreRequest], size=600):
 
     vis = visualization.Visualization(size, size)
     vis.draw_story(story)
-
-    pack, unpack, board = cpp_bot.reconstruct_board(story)
-
-    for source, target in msg.state['my_futures']:
-        color = (255, 0, 0)
-        if pack[target] in board.reachable_by_claimed(msg.state['my_id'], pack[source]):
-            color = (0, 255, 0)
-
-        vis.draw_edge(
-            map_.site_coords[source],
-            map_.site_coords[target],
-            color=color, width=1)
-        vis.draw_point(map_.site_coords[target], color=None, outline=color, size=10)
-
     base_im = vis.get_image()
 
     vis = visualization.Visualization(size // 2, size // 2)
     vis.draw_background()
     vis.adjust_to_map(map_)
+
+    pack, unpack, board = glue.reconstruct_board(story)
 
     cut_prob_grad = {}
     reach_probs = []

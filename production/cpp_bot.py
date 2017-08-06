@@ -6,34 +6,7 @@ from typing import Dict
 from production.bot_interface import *
 from production.json_format import parse_map, parse_move
 from production.cpp import stuff as cpp
-
-
-def reconstruct_board(story: Story):
-    # Pack site IDs to contiguous range.
-    pack = {}
-    unpack = []
-    for s in story.map.g:
-        pack[s] = len(unpack)
-        unpack.append(s)
-
-    adj = [[] for _ in story.map.g]
-    for u, ws in story.map.g.items():
-        for w in ws:
-            adj[pack[u]].append(pack[w])
-
-    mines = [pack[m] for m in story.map.mines]
-
-    board = cpp.Board(adj, mines)
-
-    board.set_futures(
-        story.my_id, {pack[k]: pack[v] for k, v in story.my_futures.items()})
-
-    for move in story.moves:
-        if isinstance(move, ClaimMove):
-            board.claim_river(
-                move.punter, pack[move.source], pack[move.target])
-
-    return pack, unpack, board
+from production.cpp import glue
 
 
 class CppBot(Bot):
@@ -86,7 +59,7 @@ class CppBot(Bot):
                 rivers.remove((move.source, move.target))
                 rivers.remove((move.target, move.source))
 
-        pack, unpack, board = reconstruct_board(story)
+        pack, unpack, board = glue.reconstruct_board(story)
 
         predicted_score = {}
         for punter in range(req.state['punters']):

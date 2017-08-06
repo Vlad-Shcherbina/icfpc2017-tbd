@@ -11,6 +11,7 @@ from PIL import Image, ImageDraw
 
 from production.bot_interface import *
 from production.json_format import parse_map, parse_move
+from production.cpp import glue
 
 
 river_color = (100, 100, 100)
@@ -257,7 +258,20 @@ class Visualization:
         for move in story.moves:
             self.draw_move(move, story.map, me=move.punter==story.my_id)
 
-        # TODO: futures
+        pack, unpack, board = glue.reconstruct_board(story)
+
+        for source, target in story.my_futures.items():
+            color = (255, 0, 0)
+            if pack[target] in board.reachable_by_claimed(story.my_id, pack[source]):
+                color = (0, 255, 0)
+
+            self.draw_edge(
+                story.map.site_coords[source],
+                story.map.site_coords[target],
+                color=color, width=1)
+            self.draw_point(
+                story.map.site_coords[target],
+                color=None, outline=color, size=10)
 
     def get_image(self) -> Image.Image:
         img = Image.new('RGBA', (self.width, self.height))
