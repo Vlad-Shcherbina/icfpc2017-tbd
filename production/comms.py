@@ -1,4 +1,5 @@
 import logging; log = logging.getLogger(__name__)
+import os
 
 import sys, json, socket, typing
 from copy import deepcopy
@@ -45,25 +46,18 @@ class OfflineConnection:
     def __init__(self):
         self.stdout = sys.stdout
         sys.stdout = RedirectToStderr(sys.stderr)
+        self.stdin = os.fdopen(sys.stdin.fileno(), 'rb', buffering=0)
         # really paranoid people would also dup2 stdout elsewhere and replace 1st descriptor
 
-
     def read(self):
-        import time
-        while True:
-            data = sys.stdin.read(4096).encode()
-            if data: break
-            time.sleep(0.01) # Something really weird happens with our stdin when run under lamduct
-        log.debug(f'read({data})')
+        data = self.stdin.read(4096)
         if not data:
             raise CommsException('Server unexpectedly closed connection')
         return data
 
-
     def write(self, data):
-        log.debug(f'write({data})')
-        self.stdout.write(data.decode())
-        self.stdout.flush()
+        self.stdout.buffer.write(data)
+        self.stdout.buffer.flush()
 
 
 class ColonCodec:

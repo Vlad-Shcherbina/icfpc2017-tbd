@@ -146,34 +146,39 @@ def diverse_players(g:Game):
 
 def main():
     import getopt
+    import random
     def usage():
         print("Prints port number for a game")
         print("Options:")
         print("\t-s, --slots\t number of free slots in a game")
-        print("\t-e, --easy\t 'true' or 'false' for easy game (default) ")
+        print("\t-r, --random\t pick random port, not the first one")
 
     try:
-        opts, _ = getopt.getopt(sys.argv[1:], 's:e', ['slots=', 'easy='])
+        opts, _ = getopt.getopt(sys.argv[1:], 's:r', ['slots=', "random"])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
     if not opts:
         usage()
         sys.exit(1)
-    easy: bool = True
     slots: int = 0
+    is_random: bool = False
 
     for opt, arg in opts:
         if opt in ('-s', '--slots'):
             slots = int(arg)
-        elif opt in ('-e', '--easy'):
-            easy = bool(arg == 'true')
+        elif opt in ('-r', "--random"):
+            is_random = True
         else:
             usage()
             sys.exit(2)
-    pred = only_easy_eagers_p if easy else (lambda x: not only_easy_eagers_p(x))
-    gs: list[Game] = [g for g in list(games()) if pred(g) and g.punters_max - g.punters_num == slots]
-    print(gs[0].port if gs else "None")
+    gs: list[Game] = [g for g in list(games()) if only_easy_eagers_p(g) and g.punters_max - g.punters_num == slots]
+    if gs:
+        g = random.choice(gs) if is_random else gs[0]
+        print(g.port)
+    else:
+        print("None")
+        sys.exit(4)
 
 if __name__ == "__main__":
     main()

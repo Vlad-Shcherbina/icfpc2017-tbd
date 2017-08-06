@@ -21,13 +21,6 @@ RUN cd Python-3.6.2 && \
     cd .. && \
     rm -rf Python-3.6.2
 
-RUN apt-get install opam -y && \
-    opam init && \
-    opam switch 4.04.0 && \
-    opam config env
-
-RUN opam pin -y add lambda-duct https://github.com/icfpcontest2017/lambda-duct.git
-
 COPY requirements.txt requirements.txt
 
 RUN /root/tbd_python/bin/pip3.6 install -r requirements.txt
@@ -71,9 +64,6 @@ RUN tar xf icfp-761516ab-2a60-4b4e-a8e8-486e75c4c850.tar.gz
 
 RUN ./install
 
-#RUN /root/.opam/4.04.0/bin/lamduct \
-#    --log-level=3 \
-#    --game-port=`~/tbd_python/bin/python3.6 -m production.scraper --slots=1` \
-#    --client-instance-logfile=instance.log \
-#    ./punter
+ADD http://icfpcontest2017.github.io/static/lamduct /usr/local/bin/lamduct
 
+RUN chmod +x /usr/local/bin/lamduct
