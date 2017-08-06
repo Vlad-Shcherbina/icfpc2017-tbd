@@ -14,6 +14,7 @@ import jinja2
 from production import match_history
 from production import visualization
 from production import json_format
+from production import cpp_bot
 
 PORT = 5000
 
@@ -37,7 +38,8 @@ tr:hover {
 <table>
 {% for game in games %}
   <tr>
-  <td><a href="{{ url_for('view_game', game_id=game.id) }}#0">view</a></td>
+  <td><a href="{{ url_for('view_game', game_id=game.id) }}?mode=vis#0">vis</a>
+      <a href="{{ url_for('view_game', game_id=game.id) }}?mode=grad#0">grad</a></td>
   <td>{{ game.time }}</td>
   <td>{{ game.submitter }}</td>
   <td>{{ game.botname }}</td>
@@ -80,16 +82,16 @@ press left/right
 let turn_number = 0
 window.onhashchange = function() {
     turn_number = parseInt(window.location.hash.substring(1))
-    im.src = '/{{ game.id }}/' + turn_number
+    im.src = '/{{ game.id }}/' + turn_number + '?mode={{ mode }}'
 }
 let im = document.getElementById('im')
-im.src = '/{{ game.id }}/' + turn_number
+im.src = '/{{ game.id }}/' + turn_number + '?mode={{ mode }}'
 document.onkeydown = function checkKey(e) {
     if (e.keyCode == 37) {
         console.log('left')
         if (turn_number > 0) {
             turn_number--;
-            im.src = '/{{ game.id }}/' + turn_number
+            im.src = '/{{ game.id }}/' + turn_number + '?mode={{ mode }}'
             history.replaceState('', '', '#' + turn_number)
         }
     }
@@ -97,7 +99,7 @@ document.onkeydown = function checkKey(e) {
         console.log('right')
         if (turn_number + 1 < {{ num_turns }}) {
             turn_number++;
-            im.src = '/{{ game.id }}/' + turn_number
+            im.src = '/{{ game.id }}/' + turn_number + '?mode={{ mode }}'
             history.replaceState('', '', '#' + turn_number)
         }
     }
@@ -113,6 +115,8 @@ def get_game_with_replay(id):
 
 @app.route('/<int:game_id>')
 def view_game(game_id):
+    mode = flask.request.args['mode']
+
     game = get_game_with_replay(game_id)
     replay = game.replay.get()
     num_turns = match_history.replay_length(replay)
@@ -133,14 +137,21 @@ def serve_pil_image(pil_img):
 
 @app.route('/<int:game_id>/<int:turn_number>')
 def view_turn(game_id, turn_number):
+    mode = flask.request.args['mode']
+
     game = get_game_with_replay(game_id)
     replay = game.replay.get()
 
     story = match_history.story_from_replay(replay, turn_number)
 
-    vis = visualization.Visualization(300, 300)
-    vis.draw_story(story)
-    im = vis.get_image()
+    if mode == 'vis':
+        vis = visualization.Visualization(600, 600)
+        vis.draw_story(story)
+        im = vis.get_image()
+    elif mode == 'grad':
+        im = cpp_bot.render_prob_field(story)
+    else:
+        assert False, mode
 
     r = serve_pil_image(im)
     r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
