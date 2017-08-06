@@ -254,6 +254,15 @@ struct ReachProb {
         for (int i = 0; i < reward.size(); i++)
             reward[i] = board.dist[mine][i] * board.dist[mine][i];
 
+        if (board.futures_by_player.count(owner)) {
+            const auto &futures = board.futures_by_player.at(owner);
+            if (futures.count(mine)) {
+                int target = futures.at(mine);
+                int d = board.dist[mine][target];
+                reward[target] += 2 * d * d * d;
+            }
+        }
+
         // debug(reward);
 
         vector<double> p_grad(board.adj.size());

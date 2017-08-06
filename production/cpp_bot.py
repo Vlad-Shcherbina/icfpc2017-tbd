@@ -26,6 +26,8 @@ def reconstruct_board(
 
     board = cpp.Board(adj, mines)
 
+    board.set_futures(my_id, {pack[k]: pack[v] for k, v in my_futures.items()})
+
     for move in moves:
         if isinstance(move, ClaimMove):
             board.claim_river(

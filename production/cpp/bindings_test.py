@@ -38,10 +38,11 @@ def test_stuff():
 
 def test_reach_prob():
     board = cpp.Board(make_adj(), [0, 1, 2, 3, 4])
+    board.set_futures(42, {0: 3})
     board.claim_river(42, 0, 1)
     #board.claim_river(43, 1, 2)
 
-    rp = cpp.ReachProb(board, 42, 2, 0.8)
+    rp = cpp.ReachProb(board, 42, 0, 0.8)
 
     print(rp.get_cut_prob_grad())
 
