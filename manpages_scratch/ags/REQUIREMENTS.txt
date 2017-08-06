@@ -1,0 +1,56 @@
+
+
+
+      1. Implement the game logic | @manpages
+      2. Make the socket acceptor and forkIO plumbing |
+      3. Simple web-server with possibility of extension with (2, ... , scoreboard) | @pi
+      4. Communicate API keys to the participants, try to convince Unagi-gade teams to use our server
+
+
+
+            ====
+
+
+                       apikey1
+
+                         .
+           team1         .
+                  <----  .
+             .
+             .
+             .
+
+
+             ====
+
+
+             auth web-server
+
+        --> apikey <> map / map_size
+                                      ------> check if lobby exists
+                                              | -         |+
+                                              v           v
+                                              spawn       join
+        <-- port
+
+
+             ====
+
+             directory structure
+
+             data/
+               maps/
+                 {small,medium,big}/
+                   $mapName/
+                     $mapName.json
+                     bestScores.json
+                     logs/
+                       $timestamp.json (figure out replay format: @pi)
+               apiKeys.json
+
+             ====
+
+             requirements to extract as much info as pssible
+
+             1. log all the games
+             2. on/off: connect to all the games with our bot (maybe)
