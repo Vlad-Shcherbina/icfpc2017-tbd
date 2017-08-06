@@ -1,8 +1,10 @@
+from typing import NamedTuple
+
 from production.cpp import stuff
 from production.bot_interface import *
 
 
-def reconstruct_board(story: Story):
+def reconstruct_board(story: Story) -> stuff.Board:
     # Pack site IDs to contiguous range.
     pack = {}
     unpack = []
@@ -30,3 +32,31 @@ def reconstruct_board(story: Story):
     board.pack = pack
     board.unpack = unpack
     return board
+
+
+class ProbInfo(NamedTuple):
+    reach_prob: Dict[int, Dict[int, float]]  # mine -> site -> prob
+    cut_prob_grad: Dict[Tuple[int, int], float]
+    # both (u, v) and (v, u) are included
+    # howewer, this thing is sparse and some zero edges are not included
+
+
+def compute_prob_info(story: Story, board: stuff.Board, my_id: int) -> ProbInfo:
+    pack = board.pack
+    unpack = board.unpack
+
+    reach_prob = {}
+    cut_prob_grad = {}
+    for mine in story.map.mines:
+        cut_prob = 1.0 - 1.0 / story.punters
+        rp = stuff.ReachProb(board, my_id, pack[mine], cut_prob)
+        reach_prob[mine] = {unpack[k]: v for k, v in enumerate(rp.reach_prob)}
+        for (u, v), grad in rp.get_cut_prob_grad().items():
+            k = unpack[u], unpack[v]
+            cut_prob_grad.setdefault(k, 0.0)
+            cut_prob_grad[k] += grad
+
+    t = {k[::-1]: v for k, v in cut_prob_grad.items()}
+    cut_prob_grad.update(t)
+
+    return ProbInfo(reach_prob=reach_prob, cut_prob_grad=cut_prob_grad)

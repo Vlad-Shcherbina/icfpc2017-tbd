@@ -47,31 +47,20 @@ def render(msg: Union[GameplayRequest, ScoreRequest], size=600):
     vis.adjust_to_map(map_)
 
     board = glue.reconstruct_board(story)
-    pack = board.pack
-    unpack = board.unpack
 
-    cut_prob_grad = {}
-    reach_probs = []
-    for mine in map_.mines:
-        cut_prob = 1.0 - 1.0 / msg.state['punters']
-        rp = cpp.ReachProb(board, msg.state['my_id'], pack[mine], cut_prob)
-        reach_probs.append(rp.reach_prob)
-        for k, v in rp.get_cut_prob_grad().items():
-            cut_prob_grad.setdefault(k, 0.0)
-            cut_prob_grad[k] += v
+    pi = glue.compute_prob_info(story, board, story.my_id)
 
-    a = min(0, min(cut_prob_grad.values()))
-    b = max(0, max(cut_prob_grad.values()))
+    a = min(0, min(pi.cut_prob_grad.values()))
+    b = max(0, max(pi.cut_prob_grad.values()))
 
     vis.draw_text((15, 15), f'white: {-a}')
     vis.draw_text((15, 30), f'black: {-b}')
 
     for u, vs in map_.g.items():
         for v in vs:
-            uv = pack[u], pack[v]
-            if uv not in cut_prob_grad:
+            if (u, v) not in pi.cut_prob_grad:
                 continue
-            t = (cut_prob_grad[uv] - a) / (b - a + 1e-6)
+            t = (pi.cut_prob_grad[u, v] - a) / (b - a + 1e-6)
             c = int(255 * (1 - t))
             vis.draw_edge(
             map_.site_coords[u],
@@ -85,7 +74,7 @@ def render(msg: Union[GameplayRequest, ScoreRequest], size=600):
     vis.draw_background()
     vis.draw_map(map_)
     for site in map_.g:
-        p = max(reach_prob[pack[site]] for reach_prob in reach_probs)
+        p = max(reach_prob[site] for reach_prob in pi.reach_prob.values())
         vis.draw_point(
             map_.site_coords[site],
             color=prob_palette(p), size=6)

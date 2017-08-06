@@ -68,20 +68,12 @@ class CppBot(Bot):
             predicted_score[punter] = board.base_score(punter)
         logging.info(f'my id: {story.my_id}, predicted score: {predicted_score}')
 
-        cut_prob_grad = {}
-        for mine in map.mines:
-            cut_prob = 1.0 - 1.0 / req.state['punters']
-            rp = cpp.ReachProb(board, req.state['my_id'], pack[mine], cut_prob)
-            for k, v in rp.get_cut_prob_grad().items():
-                cut_prob_grad.setdefault(k, 0.0)
-                cut_prob_grad[k] += v
+        pi = glue.compute_prob_info(story, board, story.my_id)
         #logging.info(f'*********** {cut_prob_grad}')
 
-        if cut_prob_grad:
-            source, target = min(cut_prob_grad, key=cut_prob_grad.get)
+        if pi.cut_prob_grad:
+            source, target = min(pi.cut_prob_grad, key=pi.cut_prob_grad.get)
             #logging.info(f'*** {source}, {target}')
-            source = unpack[source]
-            target = unpack[target]
             move = ClaimMove(
                 punter=req.state['my_id'],
                 source=source, target=target)
