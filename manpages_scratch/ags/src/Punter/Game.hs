@@ -28,30 +28,60 @@ data Future = Future { source :: Integer
 
 data Settings = Settings { s_futures :: Bool }
     deriving (Generic, Show)
+
+data Handshake = Handshake { me :: Text }
+    deriving (Generic, FromJSON, ToJSON, Show)
+data HandshakeAck = HandshakeAck { you :: Text }
+    deriving (Generic, FromJSON, ToJSON, Show)
+
+data SetupReq = SetupReq { u_punter   :: Integer
+                         , u_punters  :: Integer
+                         , u_map      :: Map
+                         , u_settings :: Settings }
+    deriving (Generic, Show)
+
+data SetupRes = SetupRes { a_ready   :: Integer
+                         , a_futures :: Maybe [Future] }
+    deriving (Generic, Show)
+
+data MoveReq = MoveInfo { move :: Moves }
+             | ScoreInfo
+    deriving (Generic, FromJSON, ToJSON, Show)
+data Moves = Moves { moves :: [Move] }
+    deriving (Generic, FromJSON, ToJSON, Show)
+data Move = Pass { m_pass :: PassingPunter }
+          | Claim { m_claim :: ClaimingPunter }
+    deriving (Generic, FromJSON, ToJSON, Show)
+
+newtype MoveRes = MoveRes Move
+    deriving (Generic, FromJSON, ToJSON, Show)
+
+-- Boring boilerplate
+
+data PassingPunter = PassingPunter { p_punter :: Integer }
+    deriving (Generic, Show)
+data ClaimingPunter = ClaimingPunter { c_punter :: Integer
+                                     , c_source :: Integer
+                                     , c_target :: Integer }
+    deriving (Generic, Show)
+
+instance FromJSON ClaimingPunter where
+    parseJSON = genericParseJSON opts
+instance FromJSON PassingPunter where
+    parseJSON = genericParseJSON opts
+instance ToJSON ClaimingPunter where
+    toJSON = genericToJSON opts
+instance ToJSON PassingPunter where
+    toJSON = genericToJSON opts
+instance FromJSON SetupRes where
+    parseJSON = genericParseJSON opts
+instance ToJSON SetupRes where
+    toJSON = genericToJSON opts
 instance FromJSON Settings where
     parseJSON = genericParseJSON opts
 instance ToJSON Settings where
     toJSON = genericToJSON opts
-
-data HandshakeReq = HandshakeReq { me :: Text }
-    deriving (Generic, FromJSON, ToJSON, Show)
-data HandshakeRes = HandshakeRes { you :: Text }
-    deriving (Generic, FromJSON, ToJSON, Show)
-
-data Setup = Setup { u_punter   :: Integer
-                   , u_punters  :: Integer
-                   , u_map      :: Map
-                   , u_settings :: Settings }
-    deriving (Generic, Show)
-instance FromJSON Setup where
+instance FromJSON SetupReq where
     parseJSON = genericParseJSON opts
-instance ToJSON Setup where
-    toJSON = genericToJSON opts
-
-data SetupAck = SetupAck { a_ready   :: Integer
-                         , a_futures :: Maybe [Future] }
-    deriving (Generic, Show)
-instance FromJSON SetupAck where
-    parseJSON = genericParseJSON opts
-instance ToJSON SetupAck where
+instance ToJSON SetupReq where
     toJSON = genericToJSON opts
