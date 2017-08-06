@@ -189,7 +189,12 @@ def get_statistics():
         return cur.fetchone()
 
 
+def remove_timeouts(replay):
+    return [msg for msg in replay if 'timeout' not in msg]
+
+
 def replay_length(replay: typing.List[dict]):
+    replay = remove_timeouts(replay)
     num_turns = len(replay) // 2 - 1
     return num_turns
 
@@ -197,6 +202,8 @@ def replay_length(replay: typing.List[dict]):
 def story_from_replay(replay: typing.List[dict], turn_number) -> Story:
     """does not rely on the state"""
     assert 0 <= turn_number <= replay_length(replay)
+
+    replay = remove_timeouts(replay)
 
     req = json_format.parse_setup_request(replay[2])
 
