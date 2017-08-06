@@ -52,8 +52,8 @@ def games():
                 yield Game(
                     punters_num=status[0],
                     punters_max=status[1],
-                    port=int(tds[3].string),
-                    map_name=tds[4].string,
+                    port=int(tds[4].string),
+                    map_name=tds[5].string,
                     punters=punters,
                     extensions=extensions)
 
