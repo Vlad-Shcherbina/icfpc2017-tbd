@@ -230,11 +230,19 @@ class Visualization:
         self.draw_background()
         self.draw_map(story.map)
 
+        board = glue.reconstruct_board(story)
+        pack = board.pack
+        unpack = board.unpack
+
         legend = [f'[{i}]' for i in range(story.punters)]
 
         if story.score:
             for k, v in story.score.items():
                 legend[k] += f' score={v}'
+        else:
+            predicted_score = {}
+            for punter in range(story.punters):
+                legend[punter] += f' ~{board.base_score(punter)}'
 
         pass_cnt = Counter()
         for i, move in enumerate(story.moves):
@@ -257,10 +265,6 @@ class Visualization:
 
         for move in story.moves:
             self.draw_move(move, story.map, me=move.punter==story.my_id)
-
-        board = glue.reconstruct_board(story)
-        pack = board.pack
-        unpack = board.unpack
 
         for source, target in story.my_futures.items():
             color = (255, 0, 0)
