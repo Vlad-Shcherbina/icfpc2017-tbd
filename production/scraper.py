@@ -100,7 +100,8 @@ def only_given_port(x):
 
 def only_not_blacklisted(xs):
     def onb(g: Game):
-        return all(p not in xs for p in g.punters) and (len(g.punters) > 0)
+        # blackmail 'someone_LDK' along with 'someone'
+        return all(name not in p for name in xs for p in g.punters) and (len(g.punters) > 0)
     return onb
 
 # Use this to be nice to others
