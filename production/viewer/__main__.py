@@ -200,7 +200,8 @@ def get_timestatistics(replay):
             if move in r: typed_times[move].append(r['debug_request_timer'])
     for move in typed_times:
         if not typed_times[move]: continue
-        res[3] += f'{move}: {sum(typed_times[move]):.3} | '
+        res[3] += f'{move}: {sum(typed_times[move])/len(typed_times[move]):.3} '
+        res[3] += f'({len(typed_times[move])} moves) | '
     res[3] = res[3][:-2]
     return res
 
