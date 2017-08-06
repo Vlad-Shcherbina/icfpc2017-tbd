@@ -11,17 +11,17 @@ import           GHC.Generics
 data Map = Map { sites  :: [Site]
                , rivers :: [River]
                , mines  :: [Mine] }
-    deriving (Generic, ToJSON, FromJSON, Show)
+    deriving (Generic, ToJSON, FromJSON, Show, Eq)
 
 data Site = Site { id :: Integer }
-    deriving (Generic, ToJSON, FromJSON, Show)
+    deriving (Generic, ToJSON, FromJSON, Show, Eq)
 
 data River = River { source :: Integer
                    , target :: Integer }
-    deriving (Generic, ToJSON, FromJSON, Show)
+    deriving (Generic, ToJSON, FromJSON, Show, Eq)
 
 newtype Mine = Mine Integer
-    deriving (Generic, ToJSON, FromJSON, Show)
+    deriving (Generic, ToJSON, FromJSON, Show, Eq)
 
 exampleMap :: BS.ByteString
 exampleMap = BS.concat
