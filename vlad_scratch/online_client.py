@@ -24,7 +24,7 @@ from production import utils
 from production import comms
 
 
-def render(msg: Union[GameplayRequest, ScoreRequest], size=600):
+def story_from_msg(msg: Union[GameplayRequest, ScoreRequest]) -> Story:
     map_ = json_format.parse_map(msg.state['map'])
     moves = list(map(json_format.parse_move, msg.state['all_past_moves']))
     moves += msg.moves
@@ -38,13 +38,16 @@ def render(msg: Union[GameplayRequest, ScoreRequest], size=600):
     if isinstance(msg, ScoreRequest):
         story = story._replace(score=msg.score_by_punter)
 
+    return story
+
+def render(story: Story, size=600):
     vis = visualization.Visualization(size, size)
     vis.draw_story(story)
     base_im = vis.get_image()
 
     vis = visualization.Visualization(size // 2, size // 2)
     vis.draw_background()
-    vis.adjust_to_map(map_)
+    vis.adjust_to_map(story.map)
 
     board = glue.reconstruct_board(story)
 
@@ -56,15 +59,15 @@ def render(msg: Union[GameplayRequest, ScoreRequest], size=600):
     vis.draw_text((15, 15), f'white: {-a}')
     vis.draw_text((15, 30), f'black: {-b}')
 
-    for u, vs in map_.g.items():
+    for u, vs in story.map.g.items():
         for v in vs:
             if (u, v) not in pi.cut_prob_grad:
                 continue
             t = (pi.cut_prob_grad[u, v] - a) / (b - a + 1e-6)
             c = int(255 * (1 - t))
             vis.draw_edge(
-            map_.site_coords[u],
-            map_.site_coords[v],
+            story.map.site_coords[u],
+            story.map.site_coords[v],
             color=(c, c, c), width=3)
 
 
@@ -72,11 +75,11 @@ def render(msg: Union[GameplayRequest, ScoreRequest], size=600):
 
     vis = visualization.Visualization(size // 2, size // 2)
     vis.draw_background()
-    vis.draw_map(map_)
-    for site in map_.g:
+    vis.draw_map(story.map)
+    for site in story.map.g:
         p = max(reach_prob[site] for reach_prob in pi.reach_prob.values())
         vis.draw_point(
-            map_.site_coords[site],
+            story.map.site_coords[site],
             color=prob_palette(p), size=6)
 
     for i, p in enumerate([1, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001]):
@@ -139,7 +142,7 @@ def main():
         if isinstance(msg, (GameplayRequest, ScoreRequest)):
             logger.info(f'server reports moves: {msg.moves}')
 
-            im = render(msg)
+            im = render(story_from_msg(msg))
             im.save(utils.project_root() / 'outputs' / f'{turn_number:04d}.png')
 
             turn_number += 1
