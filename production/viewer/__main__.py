@@ -25,6 +25,11 @@ app.jinja_env.undefined = jinja2.StrictUndefined
 TABLE_TEMPATE = '''
 {% extends 'base.html' %}
 {% block body %}
+<style>
+tr:hover {
+  background-color: #eee;
+}
+</style>
 <table>
 {% for game in games %}
   <tr>
@@ -33,6 +38,9 @@ TABLE_TEMPATE = '''
   <td>{{ game.submitter }}</td>
   <td>{{ game.botname }}</td>
   <td>{{ game.extensions }}</td>
+  <td>{{ game.mapname }}</td>
+  <td style="white-space: nowrap"><b>{{ game.rank + 1}} of {{ game.num_players}}</b></td>
+  <td>{{ game.player_names }}</td>
   </tr>
 {% endfor %}
 </table>
