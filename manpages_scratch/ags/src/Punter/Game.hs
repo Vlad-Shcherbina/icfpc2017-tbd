@@ -13,7 +13,9 @@ import           GHC.Generics
 import           Punter.Aeson
 import           Punter.Map
 
-data Punter = Punter { name     :: Text
+data Punter = Punter { id       :: Integer
+                     , name     :: Text
+                     , claimed  :: [River]
                      , futures  :: [Future]
                      , splurges :: Integer }
     deriving Show
@@ -21,8 +23,10 @@ data Punter = Punter { name     :: Text
 data Game = Game { players :: M.Map Integer Punter
                  , turns   :: Integer
                  , turn    :: Integer
+                 , mines   :: [Mine]
+                 , sites   :: [Site]
                  , free    :: [River]
-                 , claimed :: [(River, Integer)] }
+                 , moves   :: [Move] }
     deriving Show
 
 data Future = Future { f_source :: Integer
@@ -73,15 +77,19 @@ data ClaimingPunter = ClaimingPunter { c_punter :: Integer
     deriving (Generic, Show)
 data SplurgingPunter = SplurgingPunter { s_punter :: Integer
                                        , s_route  :: [Integer] }
+    deriving (Generic, Show)
 
 newtype MoveRes = MoveRes Move
     deriving (Generic, Show)
+
+--
 
 concat <$> mapM (deriveJSON opts) [ ''Handshake, ''HandshakeAck
                                   , ''Settings
                                   , ''Future
                                   , ''SetupReq, ''SetupRes
                                   , ''PassingPunter, ''ClaimingPunter
+                                  , ''SplurgingPunter
                                   , ''Move
                                   , ''Score
                                   , ''Scores
