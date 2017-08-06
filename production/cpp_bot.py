@@ -1,4 +1,5 @@
 import copy
+import random
 import logging
 
 from production.bot_interface import *
@@ -37,19 +38,28 @@ class CppBot(Bot):
     {'punters': 142,
      'my_id': 42,
      'settings': <in their format>
+     'my_futures': [[1, 2], [10, 20], ...]
      'map': <in their format>
      'all_past_moves': <list of moves in their format>}
     """
 
     def setup(self, req: SetupRequest) -> SetupResponse:
+        futures = {}
+        if req.settings.futures:
+            not_mines = list(set(req.map.g) - set(req.map.mines))
+            if not_mines:
+                for mine in req.map.mines:
+                    futures[mine] = random.choice(not_mines)
+
         state = dict(
             punters=req.punters,
             my_id=req.punter,
             settings=req.settings.raw_settings,
+            my_futures=[[k, v] for k, v in futures.items()],
             map=req.map.raw_map,
             all_past_moves=[])
-        # TODO: futures
-        return SetupResponse(ready=req.punter, state=state, futures={})
+
+        return SetupResponse(ready=req.punter, state=state, futures=futures)
 
     def gameplay(self, req: GameplayRequest) -> GameplayResponse:
         map = parse_map(req.state['map'])

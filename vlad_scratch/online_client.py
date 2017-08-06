@@ -43,6 +43,8 @@ def main():
     def cb(msg):
         nonlocal turn_number
 
+        if isinstance(msg, SetupResponse):
+            log.info(f'my futures: {msg.futures}')
         if isinstance(msg, GameplayResponse):
             log.info(f'my move: {msg.move}')
 
