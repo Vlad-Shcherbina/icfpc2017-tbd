@@ -104,6 +104,23 @@ def only_not_blacklisted(xs):
         return all(name not in p for name in xs for p in g.punters) and (len(g.punters) > 0)
     return onb
 
+def soft_blacklisted(xs, N=None, allowed_blacklisted=1):
+    '''Return true if there is no more than allowed number for each name in
+    blacklist and no less than N other not 'eager_punter' players.
+
+    With allowed_blacklisted = 0 can serve as blacklist + diverse players.
+    '''
+    def sb(g: Game):
+        for name in xs:
+            if sum(1 for p in g.punters if name in p) > allowed_blacklisted: 
+                return False
+        count = 0
+        ext_xs = xs + ['eager punter']
+        for p in g.punters:
+            if not any((name in p) for name in ext_xs): count += 1
+        return count >= N if N is not None else count >= len(g.punters) / 2
+    return sb
+
 # Use this to be nice to others
 def only_eagers_p(g: Game):
     return all(p == 'eager punter' for p in g.punters)

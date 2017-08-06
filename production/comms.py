@@ -239,12 +239,11 @@ def main():
     from production.cpp_bot import CppBot
     bot = CppBot()
 
-    predicate=lambda x: (scraper.only_not_blacklisted(['kontur.ru'])(x) 
-               and scraper.diverse_players(x))
+    predicate=lambda x: (scraper.soft_blacklisted(['kontur.ru'])(x))
                #and scraper.only_hard_maps)
     game = scraper.wait_for_game(predicate=predicate, extensions={'futures'})
     log.info(f'Joining {game}')
-    scores = online_mainloop('punter.inf.ed.ac.uk', game.port, 'tbd c', c_bot, game=game)
+    scores = online_mainloop('punter.inf.ed.ac.uk', game.port, 'tbd c', bot, game=game)
     log.info(f'Scores: id={scores.state.get("my_id")} {scores.score_by_punter}')
 
 
