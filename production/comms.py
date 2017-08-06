@@ -186,6 +186,7 @@ def online_mainloop(host, port, name: str, bot: bi.Bot, on_comms_cb=lambda msg: 
     tr = OnlineTransport(host, port, name, on_comms_cb)
 
     req = tr.get_setup()
+    log.warning('game started')
     res = bot.setup(req)
     tr.send_setup_response(res)
     

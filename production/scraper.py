@@ -19,7 +19,7 @@ class Game(typing.NamedTuple):
 
 
 def __parse_status(status):
-    if 'Game in progress' in status or 'Offline' in status:
+    if 'Game in progress' in status or 'Offline' in status or 'Game finished' in status:
         return None
     elif 'Waiting for punters' in status:
         l = re.split("[\(/\)]", status)
@@ -72,8 +72,8 @@ def wait_for_game(*, patience=1, predicate=lambda g: True, shuffle=True, extensi
             if g.punters_max - g.punters_num > patience:
                 continue
             return g
-        log.info('no imminent games, waiting...')
-        time.sleep(3)
+        log.warning('no imminent games, waiting...')
+        time.sleep(random.random() * 6)
 
 
 def wait_for_game1(*, punters=1, predicate=lambda g: True, shuffle=True, extensions={}):
@@ -90,7 +90,7 @@ def wait_for_game1(*, punters=1, predicate=lambda g: True, shuffle=True, extensi
             if g.punters_max - g.punters_num != punters:
                 continue
             return g
-        log.info('no imminent games, waiting...')
+        log.warning('no imminent games, waiting...')
         time.sleep(3)
 
 def only_given_port(x):

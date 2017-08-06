@@ -64,7 +64,7 @@ class CppBot(Bot):
         predicted_score = {}
         for punter in range(req.state['punters']):
             predicted_score[punter] = board.base_score(punter)
-        logging.info(f'predicted score: {predicted_score}')
+        logging.info(f'my id: {story.my_id}, predicted score: {predicted_score}')
 
         cut_prob_grad = {}
         for mine in map.mines:
