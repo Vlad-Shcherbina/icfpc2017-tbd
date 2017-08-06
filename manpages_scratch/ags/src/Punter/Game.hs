@@ -20,14 +20,26 @@ data Punter = Punter { id       :: Integer
                      , splurges :: Integer }
     deriving (Show, Eq)
 
-data Game = Game { players :: M.Map Integer Punter
-                 , turns   :: Integer
-                 , turn    :: Integer
-                 , mines   :: [Mine]
-                 , sites   :: [Site]
-                 , free    :: [River]
-                 , moves   :: [Move] }
+data Game = Game { g_players :: M.Map Integer Punter
+                 , g_slots   :: Integer
+                 , g_turns   :: Integer
+                 , g_turn    :: Integer
+                 , g_mines   :: [Mine]
+                 , g_sites   :: [Site]
+                 , g_free    :: [River]
+                 , g_moves   :: [Move] }
     deriving (Show, Eq)
+
+mkGame :: Integer -> Map -> Game
+mkGame playerCount (Map{sites, rivers, mines}) =
+    Game { g_players = M.empty
+         , g_slots   = playerCount
+         , g_turns   = 0
+         , g_turn    = 0
+         , g_mines   = mines
+         , g_sites   = sites
+         , g_free    = rivers
+         , g_moves   = [] }
 
 data Future = Future { f_source :: Integer
                      , f_target :: Integer }
