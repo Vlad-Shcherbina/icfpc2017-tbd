@@ -155,6 +155,8 @@ def view_turn(game_id, turn_number):
         im = vis.get_image()
     elif mode == 'grad':
         im = cpp_bot.render_prob_field(story)
+    elif mode == 'grad_individual':
+        im = cpp_bot.render_prob_field(story, individual_mine_probs=True)
     else:
         assert False, mode
 

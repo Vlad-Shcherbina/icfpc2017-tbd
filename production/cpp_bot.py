@@ -115,7 +115,7 @@ class CppBot(Bot):
         return GameplayResponse(move=move, state=state)
 
 
-def render_prob_field(story: Story, size=600):
+def render_prob_field(story: Story, size=600, individual_mine_probs=False):
     vis = visualization.Visualization(size, size)
     vis.draw_story(story)
     base_im = vis.get_image()
@@ -148,21 +148,21 @@ def render_prob_field(story: Story, size=600):
             story.map.site_coords[v],
             color=(c, c, c), width=3)
 
-
     grad_im = vis.get_image()
 
-    vis = visualization.Visualization(size // 2, size // 2)
-    vis.draw_background()
-    vis.draw_map(story.map)
-    for site in story.map.g:
-        p = max(reach_prob[site] for reach_prob in pi.reach_prob.values())
-        vis.draw_point(
-            story.map.site_coords[site],
-            color=prob_palette(p), size=6)
 
-    for i, p in enumerate([1, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001]):
-        vis.draw_text((5, 15 * i + 5), f'p={p}', color=prob_palette(p))
-    prob_im = vis.get_image()
+    if individual_mine_probs:
+        prob_im = visualization.Visualization(1, 1).get_image()
+        for reach_prob in pi.reach_prob.values():
+            prob_im = visualization.hstack(
+                prob_im,
+                render_one_prob_field(story, reach_prob, size // 2))
+    else:
+        max_probs = {}
+        for site in story.map.g:
+            max_probs[site] = max(
+                reach_prob[site] for reach_prob in pi.reach_prob.values())
+        prob_im = render_one_prob_field(story, max_probs, size // 2)
 
     if vis.width < 2 * vis.height:
         return visualization.hstack(
@@ -170,6 +170,19 @@ def render_prob_field(story: Story, size=600):
     else:
         return visualization.vstack(
             base_im, visualization.hstack(prob_im, grad_im))
+
+def render_one_prob_field(story, probs, size):
+    vis = visualization.Visualization(size, size)
+    vis.draw_background()
+    vis.draw_map(story.map)
+    for site in story.map.g:
+        vis.draw_point(
+            story.map.site_coords[site],
+            color=prob_palette(probs[site]), size=6)
+
+    for i, p in enumerate([1, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001]):
+        vis.draw_text((5, 15 * i + 5), f'p={p}', color=prob_palette(p))
+    return vis.get_image()
 
 
 def prob_palette(p):
