@@ -1,7 +1,8 @@
 import logging; log = logging.getLogger(__name__)
 import production
 from production.comms import online_mainloop
-from production import scraper
+from production import scraper, json_format
+json_format.REPORT_UNKNOWN_FIELDS = True
 
 import time
 import distutils.core
@@ -29,7 +30,7 @@ def main():
 
     game = scraper.wait_for_game(predicate=scraper.only_easy_eagers_p, extensions={'futures', 'splurges', 'options'})
     log.info(f'Joining {game}')
-    scores = online_mainloop('punter.inf.ed.ac.uk', game.port, 'cbd', bot, game=game)
+    scores = online_mainloop('punter.inf.ed.ac.uk', game.port, 'tbd testbot', bot, game=game)
     log.info(f'Scores: id={scores.state.get("my_id")} {scores.score_by_punter}')
 
 if __name__ == '__main__':

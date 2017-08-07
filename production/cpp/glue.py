@@ -15,7 +15,7 @@ def state_from_setup_req(req, futures={}):
             all_past_moves=[])
 
 
-def story_from_state(state):
+def story_from_state(state) -> Story:
     return Story(
             punters=state['punters'],
             my_id=state['my_id'],

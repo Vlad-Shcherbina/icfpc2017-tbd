@@ -57,6 +57,8 @@ GameState = Any
 
 class Settings(NamedTuple):
     futures: bool
+    splurges: bool
+    options: bool
     raw_settings: dict
 
 

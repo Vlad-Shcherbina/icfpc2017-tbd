@@ -58,8 +58,10 @@ def parse_settings(d) -> Settings:
     raw_settings = copy.deepcopy(d)
     d = copy.deepcopy(d)
     futures = d.pop('futures', False)
+    splurges = d.pop('splurges', False)
+    options = d.pop('options', False)
     if REPORT_UNKNOWN_FIELDS: assert not d, d
-    return Settings(futures=futures, raw_settings=raw_settings)
+    return Settings(futures=futures, splurges=splurges, options=options, raw_settings=raw_settings)
 
 
 def parse_setup_request(d) -> SetupRequest:
@@ -125,6 +127,8 @@ def format_move(m: Move):
             claim=dict(punter=m.punter, source=m.source, target=m.target))
     elif isinstance(m, PassMove):
         return {'pass': dict(punter=m.punter)}
+    elif isinstance(m, SplurgeMove):
+        return {'splurge': dict(punter=m.punter, route=m.route)}
     else:
         assert False, m
 
