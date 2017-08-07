@@ -71,13 +71,19 @@ class CppBot(Bot):
         new_state['all_past_moves'] += req.raw_moves
 
         moves = [parse_move(m) for m in new_state['all_past_moves']]
+        unpackedmoves = []
+        for move in moves:
+            if isinstance(move, SplurgeMove): 
+                unpackedmoves += [mv for mv in move.unpack()]
+            else:
+                unpackedmoves.append(move)
 
         story = Story(
             punters=new_state['punters'],
             my_id=new_state['my_id'],
             map=map,
             my_futures=dict(new_state['my_futures']),
-            moves=moves)
+            moves=unpackedmoves)
 
         board = glue.reconstruct_board(story)
         pack = board.pack

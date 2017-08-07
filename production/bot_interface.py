@@ -24,6 +24,8 @@ class ClaimMove(NamedTuple):
     source: int
     target: int
 
+    def unpack(self): return self
+
 class PassMove(NamedTuple):
     punter: int
 
@@ -106,5 +108,5 @@ class Story(NamedTuple):
     my_id: int
     map: Map
     my_futures: Dict[int, int]
-    moves: List[Move]
+    moves: List[Move]               # no SplurgeMoves: unpacked before adding
     score: Optional[Dict[int, int]] = None  # score as reported by the server

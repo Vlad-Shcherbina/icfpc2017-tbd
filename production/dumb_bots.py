@@ -41,9 +41,10 @@ class FirstMoveBot(Bot):
         rivers = set((u, w) for u, ws in map.g.items() for w in ws)
         for move in new_state['all_past_moves']:
             move = parse_move(move)
-            if isinstance(move, ClaimMove):
-                rivers.remove((move.source, move.target))
-                rivers.remove((move.target, move.source))
+            if isinstance(move, ClaimMove) or isinstance(move, SplurgeMove):
+                for mv in move.unpack():
+                    rivers.remove((mv.source, mv.target))
+                    rivers.remove((mv.target, mv.source))
 
         if rivers:
             source, target = min(rivers)

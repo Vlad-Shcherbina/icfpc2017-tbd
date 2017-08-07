@@ -111,7 +111,6 @@ class Visualization:
         self.river_commands.append(draw_command)
 
 
-
     def draw_text(self, p: Tuple[float, float], text: str, color=text_color):
         def draw_command(img):
             draw = ImageDraw.Draw(img)
@@ -153,8 +152,10 @@ class Visualization:
 
     def draw_move(self, mv: Move, m: Map, me=False):
         if isinstance(mv, PassMove): return
-        if isinstance(mv, ClaimMove): self.draw_claim(mv, m, me)
-        if isinstance(mv, OptionMove): self.draw_option(mv, m, me)
+        elif isinstance(mv, ClaimMove): self.draw_claim(mv, m, me)
+        elif isinstance(mv, OptionMove): self.draw_option(mv, m, me)
+        elif isinstance(mv, SplurgeMove):
+            for u in mv.unpack(): self.draw_claim(mv, m, me)
 
     def draw_claim(self, mv: ClaimMove, m: Map, me=False):
         assert isinstance(mv, ClaimMove)   # overkill?
@@ -164,11 +165,10 @@ class Visualization:
                        self.punter_colors[mv.punter] if not me else me_color,
                        width=claimed_width if not me else me_width)
 
-    def draw_option(self, mv: OptionMove, m: Map, me=False, my=False):
+    def draw_option(self, mv: OptionMove, m: Map, me=False):
         assert isinstance(mv, OptionMove)   # overkill?
         p1 = m.site_coords[mv.source]
         p2 = m.site_coords[mv.target]
-        self.draw_edge(p1, p2, color=color, width=claimed_width)
 
         mid_p = ((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2)
         length = self.height / 80
@@ -367,10 +367,11 @@ def main():
     mv = parse_move(json.loads('{"claim":{"punter":2,"source":82,"target":74}}'))
     v.draw_move(mv, m, me=True)
 
-    
     mv = parse_move(json.loads('{"option":{"punter":5,"source":82,"target":74}}'))
-    v.draw_option(mv, m, me=False, my=True)
+    v.draw_move(mv, m, me=False)
 
+    mv = parse_move(json.loads('{"pass":{"punter":0}}'))
+    v.draw_move(mv, m)
 
     # save image
     img = v.get_image()
