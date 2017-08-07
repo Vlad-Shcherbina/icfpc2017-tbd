@@ -1,4 +1,5 @@
 import copy
+from random import random, randrange
 
 from production.bot_interface import *
 from production.json_format import parse_map, parse_move, parse_settings
@@ -31,7 +32,7 @@ class FirstMoveBot(Bot):
         last_move = state.get('debug_last_move')
         if last_move:
             [move] = [move for move in req.raw_moves if parse_move(move).punter == story.my_id]
-            assert last_move in move
+            #assert last_move in move
 
         move = None
         if settings.splurges:
@@ -50,18 +51,22 @@ class FirstMoveBot(Bot):
                 move = PassMove(punter=story.my_id)
                 state['debug_last_move'] = 'pass'
 
+        p_option = 0.2
         if move is None:
-            # Try to claim
+            # Try to claim or option
             rivers = []
             for u, adj in enumerate(board.adj):
                 for v in adj:
-                    if board.claimed_by(u, v) < 0:
-                        rivers.append((board.unpack[u], board.unpack[v]))
-
+                    rivers.append((board.unpack[u], board.unpack[v]))
             if rivers:
-                source, target = min(rivers)
-                move = ClaimMove(punter=story.my_id, source=source, target=target)
-                state['debug_last_move'] = 'claim'
+                for _ in range(10):
+                    source, target = rivers[randrange(len(rivers))]
+                    if board.claimed_by(u, v) < 0:
+                        move = ClaimMove(punter=story.my_id, source=source, target=target)
+                        state['debug_last_move'] = 'claim'
+                    elif random() < p_option:
+                        move = OptionMove(punter=story.my_id, source=source, target=target)
+                        state['debug_last_move'] = 'option'
 
         if move is None:
             move = PassMove(punter=story.my_id)

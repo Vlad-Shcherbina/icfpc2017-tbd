@@ -255,7 +255,10 @@ def main():
     from production.dumb_bots import FirstMoveBot
     bot = FirstMoveBot()
 
-    game = scraper.wait_for_game(predicate=scraper.only_easy_eagers_p, extensions={'futures'})
+#    game = scraper.wait_for_game(predicate=scraper.only_easy_eagers_p, 
+#                                 extensions={'futures', 'options'},
+#                                 patience=300)
+    game = scraper.wait_for_game(extensions={'futures', 'splurges', 'options'}, patience=1)
     log.info(f'Joining {game}')
     scores = online_mainloop('punter.inf.ed.ac.uk', game.port, 'cbd', bot, game=game)
     log.info(f'Scores: id={scores.state.get("my_id")} {scores.score_by_punter}')

@@ -125,6 +125,9 @@ def format_move(m: Move):
     if isinstance(m, ClaimMove):
         return dict(
             claim=dict(punter=m.punter, source=m.source, target=m.target))
+    elif isinstance(m, OptionMove):
+        return dict(
+            option=dict(punter=m.punter, source=m.source, target=m.target))
     elif isinstance(m, PassMove):
         return {'pass': dict(punter=m.punter)}
     elif isinstance(m, SplurgeMove):
