@@ -39,6 +39,8 @@ class CppBot(Bot):
 
             #cut_prob = 1 - 1 / story.punters
             cut_prob = 0.4  # optimistic  TODO
+            cut_prob = {
+                (u, v): cut_prob for u, vs in req.map.g.items() for v in vs}
             pi = glue.compute_prob_info(cut_prob, board, story.my_id)
 
             dist = board.dist
@@ -73,6 +75,8 @@ class CppBot(Bot):
         logging.info(f'my id: {story.my_id}, predicted score: {predicted_score}')
 
         cut_prob = 1 - 1 / story.punters
+        cut_prob = {
+            (u, v): cut_prob for u, vs in story.map.g.items() for v in vs}
         pi = glue.compute_prob_info(cut_prob, board, story.my_id)
         #logging.info(f'*********** {cut_prob_grad}')
 
@@ -101,6 +105,8 @@ def render_prob_field(story: Story, size=600):
     board = glue.reconstruct_board(story)
 
     cut_prob = 1 - 1 / story.punters
+    cut_prob = {
+        (u, v): cut_prob for u, vs in story.map.g.items() for v in vs}
     pi = glue.compute_prob_info(cut_prob, board, story.my_id)
 
     a = min(0, min(pi.cut_prob_grad.values()))

@@ -199,7 +199,8 @@ vector<double> residual_products(const vector<double> &xs) {
 
 
 struct ReachProb {
-    ReachProb(const Board &board, int owner, int mine, double cut_prob) {
+    ReachProb(const Board &board, int owner, int mine,
+              const map<pair<int, int>, double> &cut_prob) {
         DSU dsu((int)board.adj.size());
         for (auto kv : board.claimed_by_map) {
             if (kv.second == owner) {
@@ -265,7 +266,7 @@ struct ReachProb {
                 double f = 1.0;
                 for (auto uv : incoming_edges) {
                     assert(p[dsu.find(uv.first)] != -42.0);
-                    f *= 1 - p[dsu.find(uv.first)] * (1 - cut_prob);
+                    f *= 1 - p[dsu.find(uv.first)] * (1 - cut_prob.at(uv));
                 }
                 p[cluster] = 1 - f;
             }
@@ -308,14 +309,15 @@ struct ReachProb {
 
             vector<double> xs;
             for (auto uv : incoming_edges) {
-                xs.push_back(1 - p[dsu.find(uv.first)] * (1 - cut_prob));
+                xs.push_back(
+                    1 - p[dsu.find(uv.first)] * (1 - cut_prob.at(uv)));
             }
             vector<double> rxs = residual_products(xs);
 
             int i = 0;
             for (auto uv : incoming_edges) {
                 cut_prob_grad[uv] -= p[dsu.find(uv.first)] * rxs[i] * p_grad[cluster];
-                p_grad[dsu.find(uv.first)] += (1 - cut_prob) * rxs[i] * p_grad[cluster];
+                p_grad[dsu.find(uv.first)] += (1 - cut_prob.at(uv)) * rxs[i] * p_grad[cluster];
                 i++;
             }
         }
@@ -368,7 +370,7 @@ PYBIND11_PLUGIN(stuff) {
     ;
 
     py::class_<ReachProb>(m, "ReachProb")
-        .def(py::init<const Board&, int, int, double>())
+        .def(py::init<const Board&, int, int, const map<pair<int, int>, double>&>())
         .def("get_cut_prob_grad", &ReachProb::get_cut_prob_grad)
         .def_readonly("reach_prob", &ReachProb::reach_prob)
     ;

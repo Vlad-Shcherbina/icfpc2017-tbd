@@ -46,7 +46,18 @@ def test_reach_prob():
     board.claim_river(42, 0, 1)
     #board.claim_river(43, 1, 2)
 
-    rp = cpp.ReachProb(board, 42, 0, 0.8)
+    cut_prob = {
+        (0, 1): 0.8,
+        (1, 0): 0.8,
+        (1, 2): 0.8,
+        (2, 1): 0.8,
+        (1, 3): 0.8,
+        (3, 1): 0.8,
+        (2, 3): 0.8,
+        (3, 2): 0.8,
+    }
+
+    rp = cpp.ReachProb(board, 42, 0, cut_prob)
 
     print(rp.get_cut_prob_grad())
     print(rp.reach_prob)

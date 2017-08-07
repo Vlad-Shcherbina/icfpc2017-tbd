@@ -1,4 +1,4 @@
-from typing import NamedTuple
+from typing import NamedTuple, Dict, Tuple
 
 from production.cpp import stuff
 from production.bot_interface import *
@@ -69,15 +69,19 @@ class ProbInfo(NamedTuple):
     # howewer, this thing is sparse and some zero edges are not included
 
 
-def compute_prob_info(cut_prob: float, board: stuff.Board, my_id: int) -> ProbInfo:
+def compute_prob_info(
+        cut_prob: Dict[Tuple[int, int], float],
+        board: stuff.Board,
+        my_id: int) -> ProbInfo:
     pack = board.pack
     unpack = board.unpack
+
+    cut_prob = {(pack[u], pack[v]): p for (u, v), p in cut_prob.items()}
 
     reach_prob = {}
     cut_prob_grad = {}
     for mine in board.mines:
         mine = unpack[mine]
-        cut_prob = cut_prob
         rp = stuff.ReachProb(board, my_id, pack[mine], cut_prob)
         reach_prob[mine] = {unpack[k]: v for k, v in enumerate(rp.reach_prob)}
         for (u, v), grad in rp.get_cut_prob_grad().items():
