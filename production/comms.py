@@ -44,10 +44,11 @@ class RedirectToStderr:
 
 class OfflineConnection:
     def __init__(self):
-        self.stdout = sys.stdout
-        sys.stdout = RedirectToStderr(sys.stderr)
+        # low-level duplicate the original stdout and open it
+        self.stdout = os.fdopen(os.dup(1), mode='wb', buffering=0)
+        # TOTALLY redirect stdout to stderr
+        os.dup2(2, 1)
         self.stdin = os.fdopen(sys.stdin.fileno(), 'rb', buffering=0)
-        # really paranoid people would also dup2 stdout elsewhere and replace 1st descriptor
 
     def read(self):
         data = self.stdin.read(4096)

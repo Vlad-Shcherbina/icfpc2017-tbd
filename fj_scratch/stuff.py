@@ -1,5 +1,5 @@
 import logging; log = logging.getLogger(__name__)
-import json
+import json, sys, os
 import production
 from production.comms import online_mainloop, online_mainloop_pseudoasync
 from production import scraper, json_format, visualization, utils
@@ -25,11 +25,13 @@ def main():
     config_logging()
     log.setLevel(logging.DEBUG)
 
-    v = visualization.Visualization(800, 800)
-    d = utils.project_root() / 'maps' / 'official_map_samples' / 'lambda.json'
-    m = json_format.parse_map(json.loads(d.read_text()))
-    v.draw_map(m)
-    v.get_image().save('zzz.png')
+    # low-level duplicate the original stdout and open it
+    self_stdout = os.fdopen(os.dup(1), mode='wb', buffering=0)
+    # redirect stdout to stderr
+    os.dup2(2, 1)
+    print('hello print')
+    self_stdout.write(b'hello real')
+    log.debug('log')
 
 
 
