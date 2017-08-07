@@ -57,8 +57,8 @@ class OfflineConnection:
         return data
 
     def write(self, data):
-        self.stdout.buffer.write(data)
-        self.stdout.buffer.flush()
+        self.stdout.write(data)
+        self.stdout.flush()
 
 
 class ColonCodec:
