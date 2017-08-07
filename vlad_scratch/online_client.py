@@ -30,6 +30,7 @@ def story_from_msg(msg: Union[GameplayRequest, ScoreRequest]) -> Story:
     story = Story(
         punters=msg.state['punters'],
         my_id=msg.state['my_id'],
+        settings=json_format.parse_settings(msg.state['settings']),
         map=map_,
         my_futures=dict(msg.state['my_futures']),
         moves = moves)

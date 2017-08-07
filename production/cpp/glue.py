@@ -19,6 +19,7 @@ def story_from_state(state) -> Story:
     return Story(
             punters=state['punters'],
             my_id=state['my_id'],
+            settings=json_format.parse_settings(state['settings']),
             map=json_format.parse_map(state['map']),
             my_futures=dict(state['my_futures']),
             moves=[json_format.parse_move(m) for m in state['all_past_moves']])

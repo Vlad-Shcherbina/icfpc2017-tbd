@@ -26,6 +26,7 @@ class CppBot(Bot):
         story = Story(
             punters=req.punters,
             my_id=req.punter,
+            settings=req.settings,
             map=req.map,
             my_futures={},
             moves=[])

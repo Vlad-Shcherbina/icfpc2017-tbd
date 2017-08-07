@@ -220,6 +220,7 @@ def story_from_replay(replay: typing.List[dict], turn_number) -> Story:
     story = Story(
         punters=req.punters,
         my_id=req.punter,
+        settings=req.settings,
         map=req.map,
         my_futures=my_futures,
         moves=moves)

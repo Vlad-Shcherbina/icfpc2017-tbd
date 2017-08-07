@@ -108,6 +108,7 @@ class Story(NamedTuple):
     """Everything that's needed to reconstruct the state of the game."""
     punters: int
     my_id: int
+    settings: Settings
     map: Map
     my_futures: Dict[int, int]
     moves: List[Move]               # no SplurgeMoves: unpacked before adding
