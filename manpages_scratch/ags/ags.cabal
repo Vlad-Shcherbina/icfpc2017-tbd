@@ -28,18 +28,21 @@ library
                      , text
                      , random
                      , directory
+                     , time
   default-language:    Haskell2010
 
 executable ags-exe
   hs-source-dirs:      app
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  other-modules:       Pages
   build-depends:       base
                      , aeson
                      , bytestring
                      , ags
                      , scotty
                      , http-types
+                     , containers
                      , warp
                      , text
   default-language:    Haskell2010
