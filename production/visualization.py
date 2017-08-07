@@ -313,7 +313,10 @@ class Visualization:
                 legend[punter] += f' ~{board.base_score(punter)}'
 
         pass_cnt = Counter()
+        option_cnt = Counter()
         for i, move in enumerate(story.moves):
+            if isinstance(move, OptionMove):
+                option_cnt[move.punter] += 1
             # Don't count pass moves in the first turn
             # (they send placeholder pass moves for each player).
             if i < story.punters:
@@ -326,7 +329,9 @@ class Visualization:
                 pass_cnt[move.punter] += 1
         for i in range(len(legend)):
             if pass_cnt[i]:
-                legend[i] += f' passed {pass_cnt[i]} times'
+                legend[i] += f' {pass_cnt[i]}p'
+            if option_cnt[i]:
+                legend[i] += f' {option_cnt[i]}o'
 
         legend[story.my_id] += ' (me)'
         self.draw_legend(legend)
