@@ -155,7 +155,7 @@ class Visualization:
         elif isinstance(mv, ClaimMove): self.draw_claim(mv, m, me)
         elif isinstance(mv, OptionMove): self.draw_option(mv, m, me)
         elif isinstance(mv, SplurgeMove):
-            for u in mv.unpack(): self.draw_claim(mv, m, me)
+            for u in mv.unpack(): self.draw_claim(u, m, me)
 
     def draw_claim(self, mv: ClaimMove, m: Map, me=False):
         assert isinstance(mv, ClaimMove)   # overkill?
