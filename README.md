@@ -28,10 +28,11 @@ git reset --hard origin/HEAD
 
 To produce a tar ready for submission:
 
-0. docker rm tbd_all
-1. docker build . -t tbd_all # this takes ages on the first run
-2. docker create --name tbd_all tbd_all
-3. docker cp tbd_all:/root/icfpc2017-tbd/icfp-761516ab-2a60-4b4e-a8e8-486e75c4c850.tar.gz .
+0. rm icfp-761516ab-2a60-4b4e-a8e8-486e75c4c850.tar.gz
+1. docker rm tbd_all
+2. docker build . -t tbd_all # this takes ages on the first run
+3. docker create --name tbd_all tbd_all
+4. docker cp tbd_all:/root/icfpc2017-tbd/icfp-761516ab-2a60-4b4e-a8e8-486e75c4c850.tar.gz .
 
 Testing with lamduct:
 ```text
