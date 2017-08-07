@@ -77,35 +77,18 @@ def wait_for_game(*, patience=1, predicate=lambda g: True, shuffle=True, extensi
         time.sleep(random.random() * 6)
 
 
-def wait_for_game1(*, punters=1, patience=0, predicate=lambda g: True, shuffle=True, extensions={}):
-    while True:
-        gs = list(games())
-        if shuffle:
-            random.shuffle(gs)
-        for g in gs:
-            if not predicate(g):
-                continue
-            if any(extension not in extensions for extension in g.extensions):
-                continue
-            log.info(g)
-            if (g.punters_max - g.punters_num > patience
-                             or g.punters_max - g.punters_num < punters):
-                continue
-            return g
-        log.warning('no imminent games, waiting...')
-        time.sleep(3)
-
-
 def only_given_port(x):
     def ogp(g: Game):
         return g.port == x
     return ogp
+
 
 def only_not_blacklisted(xs):
     def onb(g: Game):
         # blackmail 'someone_LDK' along with 'someone'
         return all(name not in p for name in xs for p in g.punters) and (len(g.punters) > 0)
     return onb
+
 
 def soft_blacklisted(xs, N=None, allowed_blacklisted=1):
     '''Return true if there is no more than allowed number for each name in
@@ -124,22 +107,28 @@ def soft_blacklisted(xs, N=None, allowed_blacklisted=1):
         return count >= N if N is not None else count >= len(g.punters) / 2
     return sb
 
+
 # Use this to be nice to others
 def only_eagers_p(g: Game):
     return all(p == 'eager punter' for p in g.punters)
+
 
 # Use this to be nice to others and your dumb bot
 def only_easy_eagers_p(g: Game):
     return only_eagers_p(g) and only_easy_maps(g)
 
+
 def only_hard_eagers_p(g: Game):
     return only_eagers_p(g) and only_hard_maps(g)
+
 
 def only_easy_maps(g: Game):
     return g.map_name in ('sample.json', 'lambda.json', 'Sierpinski-triangle.json')
 
+
 def only_hard_maps(g: Game):
     return g.map_name not in ('sample.json', 'lambda.json', 'Sierpinski-triangle.json')
+
 
 def diverse_players(g:Game):
     return sum(p == 'eager punter' for p in g.punters) < len(g.punters) / 2

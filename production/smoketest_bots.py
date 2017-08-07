@@ -4,11 +4,6 @@ from production.comms import online_mainloop, online_mainloop_pseudoasync
 from production import scraper, json_format
 json_format.REPORT_UNKNOWN_FIELDS = True
 
-# I don't like waiting 5-10 seconds for this shit
-import pybind11
-pybind11.get_include = lambda *args, **kwargs: 'C:/Users/Fj/Miniconda3/Include'
-
-
 def check_FirstMoveBot():
     from production.dumb_bots import FirstMoveBot
     bot = FirstMoveBot()
@@ -43,12 +38,16 @@ def check_FirstMove_and_CppBot():
 
 
 def main():
-    '''Please don't change predicates or bots, this is a smoke test'''
     from production.utils import config_logging
     config_logging()
     log.setLevel(logging.DEBUG)
 
-    # check_FirstMoveBot()
+    check_FirstMoveBot()
+
+    log.warn('')
+    log.warn('-' * 50)
+    log.warn('')
+
     check_FirstMove_and_CppBot()
 
 

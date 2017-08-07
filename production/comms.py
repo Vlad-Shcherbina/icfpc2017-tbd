@@ -1,7 +1,7 @@
 import logging; log = logging.getLogger(__name__)
 import os
 
-import sys, json, socket, typing, time
+import sys, json, socket, typing, time, functools
 from copy import deepcopy
 
 from production import scraper
@@ -198,9 +198,10 @@ class OnlineTransport:
         self.conn.send(jf.format_gameplay_response(response))
 
 
-def online_mainloop(host, port, name: str, bot: bi.Bot, on_comms_cb=lambda msg: msg, game=None):
+def online_mainloop_pseudoasync(host, port, name: str, bot: bi.Bot, on_comms_cb=lambda msg: msg, game=None):
     'Copypaste and augment as you wish'
     tr = OnlineTransport(host, port, name, on_comms_cb)
+    yield # after handshake
 
     req = tr.get_setup()
     log.warning('game started')
@@ -208,6 +209,7 @@ def online_mainloop(host, port, name: str, bot: bi.Bot, on_comms_cb=lambda msg: 
     tr.send_setup_response(res)
 
     while True:
+        yield # after setup and every move
         req = tr.get_gameplay()
         if isinstance(req, bi.ScoreRequest):
             break
@@ -215,35 +217,14 @@ def online_mainloop(host, port, name: str, bot: bi.Bot, on_comms_cb=lambda msg: 
         tr.send_gameplay_response(res)
 
     match_history.submit_replay(name, game, tr.conn.capturelog)
+    yield req
+
+
+@functools.wraps(online_mainloop_pseudoasync)
+def online_mainloop(*args, **kwargs):
+    for req in online_mainloop_pseudoasync(*args, **kwargs):
+        pass
     return req
-
-
-def online_mainloop1(host, port, name: str, bots, on_comms_cb=lambda msg: msg):
-    'Pitting several bots against each other'
-
-    bots0 = []
-    bots1 = {}
-
-    for bot in bots:
-        tr = OnlineTransport(host, port, name, on_comms_cb)
-        bots0.append((tr, bot))
-
-    for (tr, bot) in bots0:
-        req = tr.get_setup()
-        res = bot.setup(req)
-        tr.send_setup_response(res)
-        bots1[res.ready] = (tr, bot)
-
-    while True:
-        # We assume that the dicts in python are sorted by key
-        for i in bots1:
-            tr  = bots1[i][0]
-            bot = bots1[i][1]
-            req = tr.get_gameplay()
-            if isinstance(req, bi.ScoreRequest):
-                return req
-            res = bot.gameplay(req)
-            tr.send_gameplay_response(res)
 
 
 def main():
@@ -255,34 +236,12 @@ def main():
     from production.dumb_bots import FirstMoveBot
     bot = FirstMoveBot()
 
-#    game = scraper.wait_for_game(predicate=scraper.only_easy_eagers_p, 
+#    game = scraper.wait_for_game(predicate=scraper.only_easy_eagers_p,
 #                                 extensions={'futures', 'options'},
 #                                 patience=300)
     game = scraper.wait_for_game(extensions={'futures', 'splurges', 'options'}, patience=1)
     log.info(f'Joining {game}')
     scores = online_mainloop('punter.inf.ed.ac.uk', game.port, 'cbd', bot, game=game)
-    log.info(f'Scores: id={scores.state.get("my_id")} {scores.score_by_punter}')
-
-
-def main1():
-    from production.utils import config_logging
-    config_logging()
-
-    log.setLevel(logging.DEBUG)
-    from production.dumb_bots import FirstMoveBot
-    bot = FirstMoveBot()
-    from production.cpp_bot import CppBot
-    bot1 = CppBot()
-    bot2 = CppBot()
-
-    bots = [bot1, bot2]
-
-    predicate=lambda x: (scraper.only_not_blacklisted(['kontur.ru'])(x)
-               and scraper.only_hard_maps)
-    game = scraper.wait_for_game1(punters=len(bots),
-        predicate=predicate)
-    log.info(f'Joining {game}')
-    scores = online_mainloop1('punter.inf.ed.ac.uk', game.port, 'needy', bots)
     log.info(f'Scores: id={scores.state.get("my_id")} {scores.score_by_punter}')
 
 

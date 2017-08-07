@@ -89,12 +89,12 @@ def format_setup_response(r: SetupResponse):
 def parse_move(d) -> Move:
     d = copy.deepcopy(d)
     if 'claim' in d:
-        claim = d.pop('claim')
+        p = d.pop('claim')
         if REPORT_UNKNOWN_FIELDS: assert not d, d
-        punter = claim.pop('punter')
-        source = claim.pop('source')
-        target = claim.pop('target')
-        if REPORT_UNKNOWN_FIELDS: assert not claim, claim
+        punter = p.pop('punter')
+        source = p.pop('source')
+        target = p.pop('target')
+        if REPORT_UNKNOWN_FIELDS: assert not p, p
         return ClaimMove(punter=punter, source=source, target=target)
     elif 'pass' in d:
         p = d.pop('pass')
@@ -110,11 +110,11 @@ def parse_move(d) -> Move:
         if REPORT_UNKNOWN_FIELDS: assert not p, p
         return SplurgeMove(punter=punter, route=route)
     elif 'option' in d:
-        option = d.pop('option')
+        p = d.pop('option')
         if REPORT_UNKNOWN_FIELDS: assert not d, d
-        punter = option.pop('punter')
-        source = option.pop('source')
-        target = option.pop('target')
+        punter = p.pop('punter')
+        source = p.pop('source')
+        target = p.pop('target')
         if REPORT_UNKNOWN_FIELDS: assert not p, p
         return OptionMove(punter=punter, source=source, target=target)
 
