@@ -42,12 +42,10 @@ class FirstMoveBot(Bot):
                         v1, v2, *_ = unclaimed_adj
                         move = SplurgeMove(punter=story.my_id,
                                 route=(board.unpack[v1], board.unpack[u], board.unpack[v2]))
-                        state['debug_last_move'] = 'splurge'
                         break
             elif last_move == 'claim':
                 # force pass so we can splurge next turn
                 move = PassMove(punter=story.my_id)
-                state['debug_last_move'] = 'pass'
 
         if move is None:
             # Try to claim or option
@@ -73,15 +71,13 @@ class FirstMoveBot(Bot):
                     len(claimed_rivers) > my_options * 3 * story.punters):
                 source, target = claimed_rivers[0]
                 move = OptionMove(punter=story.my_id, source=source, target=target)
-                state['debug_last_move'] = 'option'
             elif free_rivers:
                 source, target = free_rivers[0]
                 move = ClaimMove(punter=story.my_id, source=source, target=target)
-                state['debug_last_move'] = 'claim'
 
         if move is None:
             move = PassMove(punter=story.my_id)
-            state['debug_last_move'] = 'pass'
 
+        state['debug_last_move'] = move.key()
         return GameplayResponse(move=move, state=state)
 

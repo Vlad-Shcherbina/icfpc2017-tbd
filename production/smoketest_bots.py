@@ -65,7 +65,12 @@ def main():
     config_logging()
     log.setLevel(logging.DEBUG)
 
-    for check in (check_FirstMoveBot, check_CppBot, check_FirstMove_and_CppBot, check_FirstMove_and_CppBot_orgy,):
+    for check in (
+                check_FirstMoveBot,
+                check_CppBot,
+                check_FirstMove_and_CppBot,
+                check_FirstMove_and_CppBot_orgy,
+                ):
         check()
         log.warn('')
         log.warn('-' * 50)

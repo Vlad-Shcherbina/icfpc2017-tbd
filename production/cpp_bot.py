@@ -5,10 +5,9 @@ from typing import Dict
 from math import log
 
 from production.bot_interface import *
-from production.json_format import parse_map, parse_move
 from production.cpp import stuff as cpp
 from production.cpp import glue
-from production import visualization
+from production import visualization, json_format
 
 
 class CppBot(Bot):
@@ -67,6 +66,11 @@ class CppBot(Bot):
         story = glue.story_from_state(state)
         board = glue.reconstruct_board(story)
 
+        last_move = state.get('debug_last_move')
+        if last_move and json_format.REPORT_UNKNOWN_FIELDS:
+            [move] = [move for move in req.raw_moves if json_format.parse_move(move).punter == story.my_id]
+            assert last_move in move, (last_move, move)
+
         logging.info(f'remaining options: {story.remaining_options()}')
 
         predicted_score = {}
@@ -89,7 +93,7 @@ class CppBot(Bot):
         else:
             move = PassMove(punter=req.state['my_id'])
 
-
+        state['debug_last_move'] = move.key()
         return GameplayResponse(move=move, state=state)
 
 

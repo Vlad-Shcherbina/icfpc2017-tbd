@@ -24,10 +24,14 @@ class ClaimMove(NamedTuple):
     source: int
     target: int
 
-    def unpack(self): return self
+    @staticmethod
+    def key(): return 'claim'
 
 class PassMove(NamedTuple):
     punter: int
+
+    @staticmethod
+    def key(): return 'pass'
 
 class SplurgeMove(NamedTuple):
     punter: int
@@ -37,10 +41,18 @@ class SplurgeMove(NamedTuple):
         for source, target in zip(self.route, self.route[1:]):
             yield ClaimMove(punter=self.punter, source=source, target=target)
 
+    @staticmethod
+    def key(): return 'splurge'
+
+
 class OptionMove(NamedTuple):
     punter: int
     source: int
     target: int
+
+    @staticmethod
+    def key(): return 'option'
+
 
 Move = Union[ClaimMove, PassMove, SplurgeMove, OptionMove]
 
