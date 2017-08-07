@@ -106,7 +106,11 @@ rays v rs = raysDo (front [v] rs) ( 1, (M.fromList [(v, 0)]) )
                (depth + 1, (foldl (\s1 v1 -> ins v1 depth s1) sigma delta))
 
 score :: Game -> Game
-score = undefined
+score g@(Game {g_players}) =
+    g { g_players = f <$> g_players }
+  where
+    f p@(Punter{claimed}) = p { pScore = mkScore claimed g_rivers }
+    mkScore = undefined
 
 tuck :: a -> b -> (b, a)
 tuck = flip (,)

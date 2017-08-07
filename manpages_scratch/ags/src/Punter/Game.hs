@@ -17,7 +17,8 @@ data Punter = Punter { pId      :: Integer
                      , name     :: Text
                      , claimed  :: [River]
                      , futures  :: [Future]
-                     , splurges :: Integer }
+                     , splurges :: Integer
+                     , pScore   :: Integer }
     deriving (Show, Eq)
 
 data Game = Game { g_players :: M.Map Integer Punter
@@ -27,6 +28,7 @@ data Game = Game { g_players :: M.Map Integer Punter
                  , g_mines   :: [Mine]
                  , g_sites   :: [Site]
                  , g_free    :: [River]
+                 , g_rivers  :: [River]
                  , g_moves   :: [Move] }
     deriving (Show, Eq)
 
@@ -39,6 +41,7 @@ mkGame playerCount (Map{sites, rivers, mines}) =
          , g_mines   = mines
          , g_sites   = sites
          , g_free    = rivers
+         , g_rivers  = rivers
          , g_moves   = [] }
 
 data Future = Future { f_source :: Integer
