@@ -5,7 +5,7 @@ from production.bot_interface import *
 from production import json_format
 
 
-def state_from_setup_req(req, futures={}):
+def state_from_setup_req(req, futures):
     return dict(
             punters=req.punters,
             my_id=req.punter,
