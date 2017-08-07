@@ -70,7 +70,7 @@ class CppBot(Bot):
         last_move = state.get('debug_last_move')
         if last_move and json_format.REPORT_UNKNOWN_FIELDS:
             [move] = [move for move in req.raw_moves if json_format.parse_move(move).punter == story.my_id]
-            assert last_move in move, (last_move, move)
+            assert last_move in move, ('server rejected the move', last_move, move)
 
         logging.info(f'remaining options: {story.remaining_options()}')
 
@@ -86,17 +86,28 @@ class CppBot(Bot):
         #logging.info(f'*********** {cut_prob_grad}')
 
         # ignore option moves for now TODO
-        cut_prob_grad = {
-            (u, v): g
-            for (u, v), g in pi.cut_prob_grad.items()
-            if board.claimed_by(pack[u], pack[v]) == -1}
+        # cut_prob_grad = {
+        #     (u, v): g
+        #     for (u, v), g in pi.cut_prob_grad.items()
+        #     if board.claimed_by(pack[u], pack[v]) == -1}
+        cut_prob_grad = pi.cut_prob_grad
 
-        if pi.cut_prob_grad:
+        if cut_prob_grad:
             source, target = min(cut_prob_grad, key=cut_prob_grad.get)
             #logging.info(f'*** {source}, {target}')
-            move = ClaimMove(
-                punter=req.state['my_id'],
-                source=source, target=target)
+
+            cl = board.claimed_by(pack[source], pack[target])
+            if cl == -1:
+                move = ClaimMove(
+                    punter=req.state['my_id'],
+                    source=source, target=target)
+            else:
+                assert cl != req.state['my_id']
+                assert board.optioned_by(pack[source], pack[target]) == -1
+                assert story.remaining_options() > 0
+                move = OptionMove(
+                    punter=req.state['my_id'],
+                    source=source, target=target)
         else:
             move = PassMove(punter=req.state['my_id'])
 
