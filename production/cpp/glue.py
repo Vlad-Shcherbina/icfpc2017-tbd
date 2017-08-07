@@ -53,7 +53,8 @@ def reconstruct_board(story: Story) -> stuff.Board:
                 board.claim_river(
                     move.punter, pack[source], pack[target])
         elif isinstance(move, OptionMove):
-            '''As long as we don't use options ourselves, it's safe to pretend that nothing happened.'''
+            board.option_river(
+                move.punter, pack[move.source], pack[move.target])
 
     board.pack = pack
     board.unpack = unpack

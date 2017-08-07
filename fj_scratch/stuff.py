@@ -12,26 +12,41 @@ import distutils.util
 import pybind11
 pybind11.get_include = lambda *args, **kwargs: 'C:/Users/Fj/Miniconda3/Include'
 
+
+def check_FirstMoveBot():
+    from production.dumb_bots import FirstMoveBot
+    bot = FirstMoveBot()
+
+    game = scraper.wait_for_game(predicate=scraper.only_easy_eagers_p, extensions={'futures', 'splurges', 'options'})
+
+    log.info(f'Joining {game}')
+    scores = online_mainloop('punter.inf.ed.ac.uk', game.port, 'tbd testbot', bot, game=game)
+    log.info(f'Scores: id={scores.state.get("my_id")} {scores.score_by_punter}')
+
+
+def check_FirstMove_and_CppBot():
+    from production.dumb_bots import FirstMoveBot
+    from production.cpp_bot import CppBot
+    bot1 = FirstMoveBot()
+    bot2 = CppBot()
+
+    def find_empty_room_for_two(g):
+        if not scraper.only_hard_maps(g) return False
+
+
+    game = scraper.wait_for_game(predicate=scraper.only_easy_eagers_p, extensions={'futures', 'splurges', 'options'})
+    log.info(f'Joining {game}')
+    scores = online_mainloop('punter.inf.ed.ac.uk', game.port, 'tbd testbot', bot, game=game)
+    log.info(f'Scores: id={scores.state.get("my_id")} {scores.score_by_punter}')
+
 def main():
     '''Please don't change predicates or bots, this is a smoke test'''
     from production.utils import config_logging
     config_logging()
     log.setLevel(logging.DEBUG)
 
-    log.debug('hello')
-    name='stuff'
-    sources=['stuff.cpp']
-    headers=['debug.h', 'pretty_printing.h']
+    check_FirstMoveBot()
 
-    from production.dumb_bots import FirstMoveBot
-    from production.cpp_bot import CppBot
-    bot = FirstMoveBot()
-    # bot = CppBot()
-
-    game = scraper.wait_for_game(predicate=scraper.only_easy_eagers_p, extensions={'futures', 'splurges', 'options'})
-    log.info(f'Joining {game}')
-    scores = online_mainloop('punter.inf.ed.ac.uk', game.port, 'tbd testbot', bot, game=game)
-    log.info(f'Scores: id={scores.state.get("my_id")} {scores.score_by_punter}')
 
 if __name__ == '__main__':
     main()

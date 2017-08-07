@@ -32,7 +32,7 @@ def test_stuff():
     assert board.reachable_by_claimed(42, 1) == [1]
 
     board.claim_river(42, 1, 2)
-    board.claim_river(42, 3, 2)
+    board.option_river(42, 3, 2)
     assert sorted(board.reachable_by_claimed(42, 1)) == [1, 2, 3]
 
     board.pack = {1: 2}

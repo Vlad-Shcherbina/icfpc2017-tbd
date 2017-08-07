@@ -54,6 +54,12 @@ struct Board {
         claimed_by_map[k] = owner;
     }
 
+    void option_river(int owner, int u, int v) {
+        pair<int, int> k(min(u, v), max(u, v));
+        assert(optioned_by_map.count(k) == 0);
+        optioned_by_map[k] = owner;
+    }
+
     vector<int> reachable_by_claimed(int owner, int start) const {
         vector<bool> visited(adj.size(), false);
         visited[start] = true;
@@ -65,7 +71,7 @@ struct Board {
             for (int v : adj[u]) {
                 if (visited[v])
                     continue;
-                if (claimed_by(u, v) != owner)
+                if (claimed_by(u, v) != owner && optioned_by(u, v) != owner)
                     continue;
 
                 visited[v] = true;
@@ -95,10 +101,18 @@ struct Board {
         return it->second;
     }
 
+    int optioned_by(int u, int v) const {
+        pair<int, int> k(min(u, v), max(u, v));
+        auto it = optioned_by_map.find(k);
+        if (it == end(optioned_by_map)) return -1;
+        return it->second;
+    }
+
     vector<int> mines;
     vector<vector<int>> adj;
     map<int, map<int, int>> futures_by_player;
     map<pair<int, int>, int> claimed_by_map;
+    map<pair<int, int>, int> optioned_by_map;
     vector<vector<int>> dist;  // dist[u][v] is only computed if u is a mine
 
     // Should not be used in the C++ code,
@@ -341,9 +355,11 @@ PYBIND11_PLUGIN(stuff) {
         .def(py::init<const Board&>())
         .def("set_futures", &Board::set_futures)
         .def("claim_river", &Board::claim_river)
+        .def("option_river", &Board::option_river)
         .def("reachable_by_claimed", &Board::reachable_by_claimed)
         .def("base_score", &Board::base_score)
         .def("claimed_by", &Board::claimed_by)
+        .def("optioned_by", &Board::optioned_by)
         .def_readonly("adj", &Board::adj)
         .def_readonly("mines", &Board::mines)
         .def_readonly("dist", &Board::dist)
