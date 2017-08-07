@@ -13,7 +13,7 @@ import           GHC.Generics
 import           Punter.Aeson
 import           Punter.Map
 
-data Punter = Punter { id       :: Integer
+data Punter = Punter { pId      :: Integer
                      , name     :: Text
                      , claimed  :: [River]
                      , futures  :: [Future]

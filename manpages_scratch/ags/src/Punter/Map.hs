@@ -21,7 +21,7 @@ data River = River { source :: Integer
     deriving (Generic, ToJSON, FromJSON, Show, Eq)
 
 newtype Mine = Mine Integer
-    deriving (Generic, ToJSON, FromJSON, Show, Eq)
+    deriving (Generic, ToJSON, FromJSON, Show, Eq, Ord)
 
 exampleMap :: BS.ByteString
 exampleMap = BS.concat

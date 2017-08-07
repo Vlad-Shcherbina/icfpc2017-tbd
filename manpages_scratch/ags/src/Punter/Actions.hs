@@ -1,9 +1,11 @@
 {-# LANGUAGE NamedFieldPuns #-}
 module Punter.Actions where
 
+import           Data.Either
 import           Data.Foldable
 import qualified Data.Map      as M
 import           Data.Maybe
+import           Prelude       hiding (id)
 import           Punter.Game
 import           Punter.Map
 
@@ -79,8 +81,45 @@ delete' (Just y) x = filter ((/=) y) x
 flush :: Game -> Game
 flush g = g { g_moves = [] }
 
-rays :: [Mine] -> [River] -> M.Map Mine [(Site, Integer)]
-rays allMines someRivers = undefined
+riversFrom :: Integer -> [River] -> [River]
+riversFrom v = filter (\River{source,target} -> (v == source) || (v == target))
+
+adjacent :: Integer -> [River] -> [Integer]
+adjacent v = map
+             (\River{source,target} -> if (source == v) then target else source)
+             . (riversFrom v)
+
+front' :: [River] -> [Integer] -> [Integer]
+front' rs = concat . (map (flip adjacent rs))
+
+front :: [Integer] -> [River] -> [Integer]
+front = flip front'
+
+rays :: Integer -> [River] -> M.Map Integer Integer
+rays v rs = raysDo (front [v] rs) ( 1, (M.fromList [(v, 0)]) )
+  where
+    raysDo ::
+        [Integer] -> (Integer, M.Map Integer Integer) -> M.Map Integer Integer
+    raysDo [] (_, sigma) = sigma
+    raysDo delta (depth, sigma) =
+        raysDo (front delta rs)
+               (depth + 1, (foldl (\s1 v1 -> ins v1 depth s1) sigma delta))
+
+score :: Game -> Game
+score = undefined
+
+tuck :: a -> b -> (b, a)
+tuck = flip (,)
+
+ins :: (Ord b) => b -> a -> M.Map b a -> M.Map b a
+ins = M.insertWith (\_ y -> y)
+
+filterRight :: [Either a b] -> [b]
+filterRight xs = map fromRight' (filter isRight xs)
+
+fromRight' :: Either a b -> b
+fromRight' (Right x) = x
+fromRight' _ = error "Can you tell what is right and what is left?"
 
 unsplurge :: Integer -> Integer -> Integer
 unsplurge 0 _ = 0
@@ -88,4 +127,5 @@ unsplurge x y
     | x >= y = x - y
     | otherwise = error "Sploosh"  -- Walking the thin ice
 
+toi :: Int -> Integer
 toi = toInteger
