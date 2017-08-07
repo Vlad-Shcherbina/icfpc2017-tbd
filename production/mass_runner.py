@@ -7,6 +7,7 @@ import urllib.error
 from production import cpp_bot
 from production import scraper
 from production import comms
+from production import json_format
 from production.bot_interface import *
 
 
@@ -33,6 +34,9 @@ def main(_):
     logging.basicConfig(
             level=logging.INFO,
             format='%(levelname).1s %(module)10.10s:%(lineno)-4d %(message)s')
+
+    json_format.REPORT_UNKNOWN_FIELDS
+    json_format.REPORT_UNKNOWN_FIELDS = True
 
     while True:
         time.sleep(random.random() * 10)
