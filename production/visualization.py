@@ -50,6 +50,7 @@ class Visualization:
         # while drawing map width will be reset.
         self.width = width
         self.height = height
+        self.scale = 1
 
         self.back_commands = []
         self.site_commands = []
@@ -171,12 +172,12 @@ class Visualization:
         p2 = m.site_coords[mv.target]
 
         mid_p = ((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2)
-        length = self.height / 80
+        length = 10 * self.scale
         vx, vy = p2[0] - p1[0], p2[1] - p1[1]
         L = sqrt(vx * vx + vy * vy)
+        
         s1 = (mid_p[0] + vy / L * length, mid_p[1] - vx / L * length)
         s2 = (mid_p[0] - vy / L * length, mid_p[1] + vx / L * length)
-        
         color = self.punter_colors[mv.punter] if not me else me_color
         self.draw_edge(s1, s2, color=color, width = 2)
 
@@ -215,6 +216,7 @@ class Visualization:
     def adjust_to_map_coords(self, x_min, x_max, y_min, y_max):
         border_coeff = 0.05
         W, H = (x_max - x_min + 1e-6), (y_max - y_min + 1e-6)
+        self.scale = H / self.height * (1 - 2*border_coeff)
         self.width = int(self.height * W / H)
         canvas_width = self.width * (1 - 2 * border_coeff)
         canvas_height = self.height * (1 - 2 * border_coeff)
