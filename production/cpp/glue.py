@@ -48,6 +48,12 @@ def reconstruct_board(story: Story) -> stuff.Board:
         if isinstance(move, ClaimMove):
             board.claim_river(
                 move.punter, pack[move.source], pack[move.target])
+        elif isinstance(move, SplurgeMove):
+            for source, target in zip(move.route, move.route[1:]):
+                board.claim_river(
+                    move.punter, pack[source], pack[target])
+        elif isinstance(move, OptionMove):
+            '''As long as we don't use options ourselves, it's safe to pretend that nothing happened.'''
 
     board.pack = pack
     board.unpack = unpack

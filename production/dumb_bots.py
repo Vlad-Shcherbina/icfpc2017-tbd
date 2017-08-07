@@ -2,57 +2,47 @@ import copy
 
 from production.bot_interface import *
 from production.json_format import parse_map, parse_move
+from production.cpp_bot import glue
 
 
 class FirstMoveBot(Bot):
-    """Claims the first available river (lexicographically).
-
-    GameState format:
-    {'punters': 142,
-     'my_id': 42,
-     'settings': <in their format>
-     'map': <in their format>
-     'all_past_moves': <list of moves in their format>}
-    """
-
-    # TODO: Tracking my_id and current game state is common for all bots
-    # and should be factored out. Predicting scores goes there as well.
+    """Claims the first available river (lexicographically)."""
 
     def setup(self, req: SetupRequest) -> SetupResponse:
-        state = dict(
-            punters=req.punters,
-            my_id=req.punter,
-            settings=req.settings.raw_settings,
-            map=req.map.raw_map,
-            all_past_moves=[])
         if req.settings.futures:
             not_mines = set(req.map.g) - set(req.map.mines)
             futures = dict(zip(sorted(req.map.mines), sorted(not_mines)))
         else:
             futures = {}
+
+        state = glue.state_from_setup_req(req, futures)
+
         return SetupResponse(ready=req.punter, state=state, futures=futures)
 
+
     def gameplay(self, req: GameplayRequest) -> GameplayResponse:
-        map = parse_map(req.state['map'])
+        state = req.state
+        state['all_past_moves'] += req.raw_moves
+        story = glue.story_from_state(state)
+        board = glue.reconstruct_board(story)
 
-        new_state = copy.deepcopy(req.state)
-        new_state['all_past_moves'] += req.raw_moves
+        last_move = state.get('debug_last_move')
+        if last_move:
+            [move] = [move for move in req.raw_moves if parse_move(move).punter == story.my_id]
+            assert last_move in move
 
-        rivers = set((u, w) for u, ws in map.g.items() for w in ws)
-        for move in new_state['all_past_moves']:
-            move = parse_move(move)
-            if isinstance(move, ClaimMove) or isinstance(move, SplurgeMove):
-                for mv in move.unpack():
-                    rivers.remove((mv.source, mv.target))
-                    rivers.remove((mv.target, mv.source))
+        rivers = []
+        for u, adj in enumerate(board.adj):
+            for v in adj:
+                if board.claimed_by(u, v) < 0:
+                    rivers.append((board.unpack[u], board.unpack[v]))
 
         if rivers:
             source, target = min(rivers)
-            move = ClaimMove(
-                punter=req.state['my_id'],
-                source=source, target=target)
+            move = ClaimMove(punter=req.state['my_id'], source=source, target=target)
+            state['debug_last_move'] = 'claim'
         else:
-            move = PassMove(punter=req.state['my_id'])
+            move = PassMove(punter=state['my_id'])
+            state['debug_last_move'] = 'pass'
 
-
-        return GameplayResponse(move=move, state=new_state)
+        return GameplayResponse(move=move, state=state)

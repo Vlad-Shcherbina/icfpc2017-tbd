@@ -24,8 +24,8 @@ def main():
 
     from production.dumb_bots import FirstMoveBot
     from production.cpp_bot import CppBot
-    # bot = FirstMoveBot()
-    bot = CppBot()
+    bot = FirstMoveBot()
+    # bot = CppBot()
 
     game = scraper.wait_for_game(predicate=scraper.only_easy_eagers_p, extensions={'futures', 'splurges', 'options'})
     log.info(f'Joining {game}')

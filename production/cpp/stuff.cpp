@@ -50,8 +50,8 @@ struct Board {
 
     void claim_river(int owner, int u, int v) {
         pair<int, int> k(min(u, v), max(u, v));
-        assert(claimed_by.count(k) == 0);
-        claimed_by[k] = owner;
+        assert(claimed_by_map.count(k) == 0);
+        claimed_by_map[k] = owner;
     }
 
     vector<int> reachable_by_claimed(int owner, int start) const {
@@ -65,9 +65,7 @@ struct Board {
             for (int v : adj[u]) {
                 if (visited[v])
                     continue;
-                pair<int, int> k(min(u, v), max(u, v));
-                auto it = claimed_by.find(k);
-                if (it == end(claimed_by) || it->second != owner)
+                if (claimed_by(u, v) != owner)
                     continue;
 
                 visited[v] = true;
@@ -90,10 +88,17 @@ struct Board {
         return result;
     }
 
+    int claimed_by(int u, int v) const {
+        pair<int, int> k(min(u, v), max(u, v));
+        auto it = claimed_by_map.find(k);
+        if (it == end(claimed_by_map)) return -1;
+        return it->second;
+    }
+
     vector<int> mines;
     vector<vector<int>> adj;
     map<int, map<int, int>> futures_by_player;
-    map<pair<int, int>, int> claimed_by;
+    map<pair<int, int>, int> claimed_by_map;
     vector<vector<int>> dist;  // dist[u][v] is only computed if u is a mine
 
     // Should not be used in the C++ code,
@@ -181,8 +186,8 @@ vector<double> residual_products(const vector<double> &xs) {
 
 struct ReachProb {
     ReachProb(const Board &board, int owner, int mine, double cut_prob) {
-        DSU dsu(board.adj.size());
-        for (auto kv : board.claimed_by) {
+        DSU dsu((int)board.adj.size());
+        for (auto kv : board.claimed_by_map) {
             if (kv.second == owner) {
                 dsu.merge(kv.first.first, kv.first.second);
             }
@@ -194,8 +199,7 @@ struct ReachProb {
         int u = 0;
         for (const auto &a : board.adj) {
             for (int v : a) {
-                pair<int, int> k(min(u, v), max(u, v));
-                if (board.claimed_by.count(k) == 0)
+                if (board.claimed_by(u, v) < 0)
                     cluster_adj[dsu.find(u)].push_back(dsu.find(v));
             }
             u++;
@@ -230,8 +234,7 @@ struct ReachProb {
             for (int v : a) {
                 if (!binary_search(begin(dca), end(dca), dsu.find(v)))
                     continue;
-                pair<int, int> k(min(u, v), max(u, v));
-                if (board.claimed_by.count(k) == 0)
+                if (board.claimed_by(u, v) < 0)
                     incoming_edges_by_cluster[dsu.find(v)].emplace_back(u, v);
             }
             u++;
@@ -340,6 +343,8 @@ PYBIND11_PLUGIN(stuff) {
         .def("claim_river", &Board::claim_river)
         .def("reachable_by_claimed", &Board::reachable_by_claimed)
         .def("base_score", &Board::base_score)
+        .def("claimed_by", &Board::claimed_by)
+        .def_readonly("adj", &Board::adj)
         .def_readonly("mines", &Board::mines)
         .def_readonly("dist", &Board::dist)
         .def_readwrite("pack", &Board::pack)
