@@ -65,6 +65,8 @@ class CppBot(Bot):
         story = glue.story_from_state(state)
         board = glue.reconstruct_board(story)
 
+        logging.info(f'remaining options: {story.remaining_options()}')
+
         predicted_score = {}
         for punter in range(req.state['punters']):
             predicted_score[punter] = board.base_score(punter)

@@ -54,7 +54,7 @@ def main():
     game = scraper.wait_for_game(
         predicate=scraper.only_easy_eagers_p,
         #predicate=lambda g: not scraper.only_eagers_p(g) and g.map_name != 'sample.json',
-        extensions={'futures'})
+        extensions={'futures', 'splurges', 'options'})
     bot = cpp_bot.CppBot()
 
     turn_number = 0

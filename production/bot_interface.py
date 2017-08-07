@@ -113,3 +113,13 @@ class Story(NamedTuple):
     my_futures: Dict[int, int]
     moves: List[Move]               # no SplurgeMoves: unpacked before adding
     score: Optional[Dict[int, int]] = None  # score as reported by the server
+
+    def remaining_options(self) -> int:
+        r = 0
+        if self.settings.options:
+            r = len(self.map.mines)
+        for move in self.moves:
+            if isinstance(move, OptionMove) and move.punter == self.my_id:
+                r -= 1
+        assert r >= 0, r
+        return r
