@@ -31,17 +31,6 @@ class OnlineConnection:
         self.socket.sendall(data)
 
 
-class RedirectToStderr:
-    def __init__(self, stderr):
-        self.stderr = stderr
-
-    def write(self, data):
-        self.stderr.write(data.decode())
-
-    def flush(self):
-        self.stderr.flush()
-
-
 class OfflineConnection:
     def __init__(self):
         # low-level duplicate the original stdout and open it
