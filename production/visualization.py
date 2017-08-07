@@ -6,7 +6,7 @@
 from collections import namedtuple, Counter
 from typing import Tuple, List
 from random import randrange
-from math import sqrt
+from math import sqrt, atan, pi
 
 from PIL import Image, ImageDraw
 
@@ -46,10 +46,11 @@ class Visualization:
                     (145, 155, 155),
                     (125, 205, 105)]
 
-    def __init__(self, width=800, height=800):
+    def __init__(self, width=800, height=800, noisy=True):
         # while drawing map width will be reset.
         self.width = width
         self.height = height
+        self.noisy = noisy
         self.scale = 1
 
         self.back_commands = []
@@ -104,6 +105,9 @@ class Visualization:
             width=river_width):
         p1 = self.get_coord(p1)
         p2 = self.get_coord(p2)
+        if self.noisy: 
+            self.draw_noisy_edge(p1, p2, color, width)
+            return
 
         def draw_command(img):
             draw = ImageDraw.Draw(img)
@@ -111,6 +115,43 @@ class Visualization:
             return img
         self.river_commands.append(draw_command)
 
+
+    def draw_noisy_edge(
+            self,
+            p1: Tuple[float, float],
+            p2: Tuple[float, float],
+            color=river_color,
+            width=river_width):
+        # p1 and p2 already adjasted.
+        if p1[1] > p2[1] : p1, p2 = p2, p1
+        def sgn(x): return (x > 0) - (x < 0)
+        vx, vy = p2[0] - p1[0], p2[1] - p1[1]
+        coeff = 2
+        L = sqrt(vx * vx + vy * vy) * coeff
+        R = sqrt((L * L) + (vx * vx / 4 + vy * vy / 4))
+        rx, ry = vy * coeff, -vx * coeff
+        center_x, center_y = -rx + (p1[0] + p2[0])/2, -ry + (p1[1] + p2[1])/2
+        if abs(p1[0] - center_x) > 1.e-6 :
+            alpha1 = atan((p1[1] - center_y) / (p1[0] - center_x)) * sgn(p1[0] - center_x)
+        else:
+            alpha1 = (0 if p1[0] - center_x > 0 else pi)
+        if abs(p2[0] - center_x) > 1.e-6 :
+            alpha2 = atan((p2[1] - center_y) / (p2[0] - center_x)) * sgn(p2[0] - center_x)
+        else:
+            alpha2 = (0 if p2[0] - center_x > 0 else pi)
+
+        if abs(alpha2 - alpha1) > pi: 
+            alpha1, alpha2 = max(alpha1, alpha2), min(alpha1, alpha2)
+        else:
+            alpha1, alpha2 = min(alpha1, alpha2), max(alpha1, alpha2)
+
+        def draw_command(img):
+            draw = ImageDraw.Draw(img)
+            draw.arc((center_x - R, center_y - R, center_x + R, center_y + R), 
+                      alpha1 / pi * 180, alpha2 / pi * 180,
+                      fill=color)
+            return img
+        self.river_commands.append(draw_command)
 
     def draw_text(self, p: Tuple[float, float], text: str, color=text_color):
         def draw_command(img):
@@ -192,7 +233,9 @@ class Visualization:
 
     def draw_map(self, m: Map):
         self.adjust_to_map(m)
+        if self.noisy is None: self.noisy = (len(m.g) < 100)
 
+        count = 0
         for source in m.g:
             for target in m.g[source]:
                 self.draw_edge(m.site_coords[source], m.site_coords[target])
@@ -378,6 +421,15 @@ def main():
     # save image
     img = v.get_image()
     img.save(utils.project_root() / 'outputs' / 'foo.png')
+
+
+    v = Visualization(noisy=True)
+    d = utils.project_root() / 'maps' / 'official_map_samples' / 'lambda.json'
+    m = parse_map(json.loads(d.read_text()))
+    v.draw_background()
+    v.draw_map(m)
+    img = v.get_image()
+    img.save(utils.project_root() / 'outputs' / 'lambda.png')
 
 if __name__ == '__main__':
     main()

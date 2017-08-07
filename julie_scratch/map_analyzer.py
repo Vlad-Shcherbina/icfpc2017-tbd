@@ -86,7 +86,11 @@ def main():
                         'oxford-center-sparse' : None,
                         'randomMedium' : None,
                         'randomSparse' : None,
-                        'van-city-sparse' : None
+                        'van-city-sparse' : None,
+
+                        'circle' : None, 
+                        'Sierpinski-triangle' : None,
+                        'lambda' : None
                     }
 
 
