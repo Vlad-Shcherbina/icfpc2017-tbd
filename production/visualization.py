@@ -76,7 +76,7 @@ class Visualization:
             draw = ImageDraw.Draw(img)
             draw.ellipse(
                     (
-                        coord[0] - size/2, 
+                        coord[0] - size/2,
                         coord[1] - size/2,
                         coord[0] + size/2,
                         coord[1] + size/2
@@ -145,7 +145,7 @@ class Visualization:
         if len(self.punter_colors) <= len(legend): self.set_punters(len(legend) + 1)
         assert len(legend) <= len(self.punter_colors)
         for p_text, p_color in zip(legend, self.punter_colors):
-            if '(me)' in p_text: 
+            if '(me)' in p_text:
                 p_color = me_color
             self.draw_text(p, p_text, color=p_color)
             p = (p[0], p[1] + 15)
@@ -175,7 +175,7 @@ class Visualization:
         length = 10 * self.scale
         vx, vy = p2[0] - p1[0], p2[1] - p1[1]
         L = sqrt(vx * vx + vy * vy)
-        
+
         s1 = (mid_p[0] + vy / L * length, mid_p[1] - vx / L * length)
         s2 = (mid_p[0] - vy / L * length, mid_p[1] + vx / L * length)
         color = self.punter_colors[mv.punter] if not me else me_color
@@ -221,14 +221,14 @@ class Visualization:
         canvas_width = self.width * (1 - 2 * border_coeff)
         canvas_height = self.height * (1 - 2 * border_coeff)
         self.width += LEFT_MARGIN
-        
+
 
         def get_x(x):
-            return int((x - x_min) / W * canvas_width 
+            return int((x - x_min) / W * canvas_width
                        + self.width * border_coeff
                        + LEFT_MARGIN)
         def get_y(y):
-            return int((y - y_min) / H * canvas_height 
+            return int((y - y_min) / H * canvas_height
                         + self.height * border_coeff)
 
         self.get_x = get_x
@@ -313,7 +313,7 @@ class Visualization:
             for draw_command in command_set:
                 img = draw_command(img)
         return img
-        
+
 
 def hstack(im1, im2):
     im = Image.new(
@@ -353,7 +353,7 @@ def main():
     v.draw_edge(p1, p2)
     v.draw_point(p1)
     v.draw_point(p2, color=mine_color, size=6)
-    
+
     # draw map
     d = utils.project_root() / 'maps' / 'official_map_samples' / 'randomMedium.json'
     m = parse_map(json.loads(d.read_text()))

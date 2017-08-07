@@ -27,15 +27,13 @@ class FirstMoveBot(Bot):
         story = glue.story_from_state(state)
         board = glue.reconstruct_board(story)
 
-        settings = parse_settings(state['settings'])
-
         last_move = state.get('debug_last_move')
         if last_move:
             [move] = [move for move in req.raw_moves if parse_move(move).punter == story.my_id]
             assert last_move in move, (last_move, move)
 
         move = None
-        if settings.splurges:
+        if story.settings.splurges:
             if last_move == 'pass':
                 # try to splurge, fall back to claim/pass if unsuccessful
                 for u, adj in enumerate(board.adj):
@@ -53,27 +51,33 @@ class FirstMoveBot(Bot):
 
         if move is None:
             # Try to claim or option
-            rivers = []
-            options_left = state['punters']
+            free_rivers = []
+            claimed_rivers = []
+            my_options = 0
 
             for u, adj in enumerate(board.adj):
                 for v in adj:
-                    if board.optioned_by(u, v) == story.my_id:
-                        options_left -= 1
-                    rivers.append((min(board.unpack[u], board.unpack[v]), 
-                            max(board.unpack[u], board.unpack[v])))
-            if rivers:
-                #source, target = min(rivers)
-                source, target = rivers[randrange(len(rivers))]
-                u, v = board.pack[source], board.pack[target]
-                if board.claimed_by(u, v) < 0:
-                    move = ClaimMove(punter=story.my_id, source=source, target=target)
-                    state['debug_last_move'] = 'claim'
-                elif options_left < 1 or board.claimed_by(u, v) == story.my_id:
-                    pass
-                elif board.optioned_by(u, v) < 0:
-                    move = OptionMove(punter=story.my_id, source=source, target=target)
-                    state['debug_last_move'] = 'option'
+                    optioned_by = board.optioned_by(u, v)
+                    claimed_by = board.claimed_by(u, v)
+
+                    if optioned_by == story.my_id:
+                        my_options += 1
+
+                    if claimed_by < 0:
+                        free_rivers.append((board.unpack[u], board.unpack[v]))
+                    elif optioned_by < 0 and claimed_by != story.my_id:
+                        claimed_rivers.append((board.unpack[u], board.unpack[v]))
+
+            if (    story.settings.options and
+                    my_options < story.punters and
+                    len(claimed_rivers) > my_options * 3 * story.punters):
+                source, target = claimed_rivers[0]
+                move = OptionMove(punter=story.my_id, source=source, target=target)
+                state['debug_last_move'] = 'option'
+            elif free_rivers:
+                source, target = free_rivers[0]
+                move = ClaimMove(punter=story.my_id, source=source, target=target)
+                state['debug_last_move'] = 'claim'
 
         if move is None:
             move = PassMove(punter=story.my_id)
