@@ -21,6 +21,11 @@ Root of this repository should be in `PYTHONPATH`, because we use absolute impor
 
 ## Building stuff
 
+Cleanup your local repository (all distribution resources are taken from .):
+```text
+git reset --hard origin/HEAD
+```
+
 To produce a tar ready for submission:
 
 0. docker rm tbd_all
