@@ -43,14 +43,14 @@ def main(_):
                 (not g.punters or
                  not any(p == 'eager punter'
                         for p in g.punters)),
-            extensions={'futures', 'splurges'})
+            extensions={'futures', 'splurges', 'options'})
         logger.warning(f'found game {game}')
         bot = cpp_bot.CppBot()
 
         name = random.choice(['-skulk-', 'gorge', 'Fade', 'ONOS', 'lerk'])
         try:
             scores = comms.online_mainloop(
-                'punter.inf.ed.ac.uk', game.port, name, bot, on_comms_cb=cb, game=game)
+                'punter.inf.ed.ac.uk', game.port, name, bot, game=game)
         except Abandon:
             continue
         except (ConnectionRefusedError, TimeoutError, ConnectionResetError, urllib.error.URLError):
