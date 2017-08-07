@@ -11,4 +11,4 @@ tar -xaf tbd_python.tar.xz
 ln -s production src || true
 
 # run tests to generate C++ bindings
-cd production && $HOME/tbd_python/bin/python3.6 -m pytest
+cd production && TBD_RELEASE=yes $HOME/tbd_python/bin/python3.6 -m pytest
