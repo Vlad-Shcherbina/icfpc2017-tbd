@@ -79,12 +79,6 @@ class CppBot(Bot):
             my_futures=dict(new_state['my_futures']),
             moves=moves)
 
-        rivers = set((u, w) for u, ws in map.g.items() for w in ws)
-        for move in moves:
-            if isinstance(move, ClaimMove):
-                rivers.remove((move.source, move.target))
-                rivers.remove((move.target, move.source))
-
         board = glue.reconstruct_board(story)
         pack = board.pack
         unpack = board.unpack

@@ -108,7 +108,7 @@ def parse_move(d) -> Move:
         if REPORT_UNKNOWN_FIELDS: assert not p, p
         return SplurgeMove(punter=punter, route=route)
     elif 'option' in d:
-        p = d.pop('option')
+        option = d.pop('option')
         if REPORT_UNKNOWN_FIELDS: assert not d, d
         punter = option.pop('punter')
         source = option.pop('source')

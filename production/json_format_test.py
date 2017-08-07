@@ -18,7 +18,10 @@ def test_simple_gameplay_step():
     'move': {
         'moves': [
             {'claim': {'punter': 0, 'source': 3, 'target': 5}},
-            {'pass': {'punter': 1}}]},
+            {'pass': {'punter': 1}},
+            {'option': {'punter': 2, 'source': 3, 'target': 5}},
+            {'splurge': {'punter': 3, 'route' : [0, 2, 4, 6]}}
+            ]},
     'state': 'zzz'}
     print(json_format.parse_gameplay_request(r))
 
