@@ -47,6 +47,8 @@ RUN find . | grep -E "(__pycache__|\.pyc|\.pyo$)" | xargs rm -rf
 
 RUN ~/tbd_python/bin/python3.6 -m production.test_all
 
+RUN rm -rf production/cpp/build && rm production/cpp/stuff.cpython*.so
+
 RUN make clean && make 
 
 RUN rm -rf /root/tbd_python && \
