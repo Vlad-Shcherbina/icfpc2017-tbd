@@ -57,7 +57,7 @@ def test_reach_prob():
         (3, 2): 0.8,
     }
 
-    rp = cpp.ReachProb(board, 42, 0, cut_prob)
+    rp = cpp.ReachProb(board, 42, 0, cut_prob, False)
 
     print(rp.get_cut_prob_grad())
     print(rp.reach_prob)

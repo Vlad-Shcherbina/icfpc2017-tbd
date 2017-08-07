@@ -200,7 +200,8 @@ vector<double> residual_products(const vector<double> &xs) {
 
 struct ReachProb {
     ReachProb(const Board &board, int owner, int mine,
-              const map<pair<int, int>, double> &cut_prob) {
+              const map<pair<int, int>, double> &cut_prob,
+              bool with_option) {
         DSU dsu((int)board.adj.size());
         for (auto kv : board.claimed_by_map) {
             if (kv.second == owner) {
@@ -214,7 +215,9 @@ struct ReachProb {
         int u = 0;
         for (const auto &a : board.adj) {
             for (int v : a) {
-                if (board.claimed_by(u, v) < 0)
+                int cl = board.claimed_by(u, v);
+                if (cl < 0 ||
+                    with_option && cl != owner && board.optioned_by(u, v) < 0)
                     cluster_adj[dsu.find(u)].push_back(dsu.find(v));
             }
             u++;
@@ -249,7 +252,9 @@ struct ReachProb {
             for (int v : a) {
                 if (!binary_search(begin(dca), end(dca), dsu.find(v)))
                     continue;
-                if (board.claimed_by(u, v) < 0)
+                int cl = board.claimed_by(u, v);
+                if (cl < 0 ||
+                    with_option && cl != owner && board.optioned_by(u, v) < 0)
                     incoming_edges_by_cluster[dsu.find(v)].emplace_back(u, v);
             }
             u++;
@@ -370,7 +375,8 @@ PYBIND11_PLUGIN(stuff) {
     ;
 
     py::class_<ReachProb>(m, "ReachProb")
-        .def(py::init<const Board&, int, int, const map<pair<int, int>, double>&>())
+        .def(py::init<
+            const Board&, int, int, const map<pair<int, int>, double>&, bool>())
         .def("get_cut_prob_grad", &ReachProb::get_cut_prob_grad)
         .def_readonly("reach_prob", &ReachProb::reach_prob)
     ;

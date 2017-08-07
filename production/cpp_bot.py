@@ -40,7 +40,7 @@ class CppBot(Bot):
             cut_prob = 0.4  # optimistic  TODO
             cut_prob = {
                 (u, v): cut_prob for u, vs in req.map.g.items() for v in vs}
-            pi = glue.compute_prob_info(cut_prob, board, story.my_id)
+            pi = glue.compute_prob_info(cut_prob, False, board, story.my_id)
 
             dist = board.dist
             for mine in story.map.mines:
@@ -65,6 +65,7 @@ class CppBot(Bot):
         state['all_past_moves'] += req.raw_moves
         story = glue.story_from_state(state)
         board = glue.reconstruct_board(story)
+        pack = board.pack
 
         last_move = state.get('debug_last_move')
         if last_move and json_format.REPORT_UNKNOWN_FIELDS:
@@ -81,11 +82,17 @@ class CppBot(Bot):
         cut_prob = 1 - 1 / story.punters
         cut_prob = {
             (u, v): cut_prob for u, vs in story.map.g.items() for v in vs}
-        pi = glue.compute_prob_info(cut_prob, board, story.my_id)
+        pi = glue.compute_prob_info(cut_prob, story.remaining_options() > 0, board, story.my_id)
         #logging.info(f'*********** {cut_prob_grad}')
 
+        # ignore option moves for now TODO
+        cut_prob_grad = {
+            (u, v): g
+            for (u, v), g in pi.cut_prob_grad.items()
+            if board.claimed_by(pack[u], pack[v]) == -1}
+
         if pi.cut_prob_grad:
-            source, target = min(pi.cut_prob_grad, key=pi.cut_prob_grad.get)
+            source, target = min(cut_prob_grad, key=cut_prob_grad.get)
             #logging.info(f'*** {source}, {target}')
             move = ClaimMove(
                 punter=req.state['my_id'],
@@ -111,7 +118,7 @@ def render_prob_field(story: Story, size=600):
     cut_prob = 1 - 1 / story.punters
     cut_prob = {
         (u, v): cut_prob for u, vs in story.map.g.items() for v in vs}
-    pi = glue.compute_prob_info(cut_prob, board, story.my_id)
+    pi = glue.compute_prob_info(cut_prob, story.remaining_options() > 0, board, story.my_id)
 
     a = min(0, min(pi.cut_prob_grad.values()))
     b = max(0, max(pi.cut_prob_grad.values()))
