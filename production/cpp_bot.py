@@ -84,12 +84,20 @@ class CppBot(Bot):
         pi = glue.compute_prob_info(cut_prob, story.remaining_options() > 0, board, story.my_id)
         #logging.info(f'*********** {cut_prob_grad}')
 
+        total_edges = sum(1 for u, vs in story.map.g.items() for v in vs if v > u)
+        remaining_turns = (total_edges - len(story.moves)) / story.punters
+        option_scarsity = (remaining_turns + 2) / (2 + story.remaining_options())
+        logging.info(f'******  rem turns: {remaining_turns}, opt scarcity: {option_scarsity}')
+        option_scarsity = max(option_scarsity, 1)
         # ignore option moves for now TODO
         # cut_prob_grad = {
         #     (u, v): g
         #     for (u, v), g in pi.cut_prob_grad.items()
         #     if board.claimed_by(pack[u], pack[v]) == -1}
         cut_prob_grad = pi.cut_prob_grad
+        for u, v in cut_prob_grad:
+            if board.claimed_by(pack[u], pack[v]) != -1:
+                cut_prob_grad[u, v] /= option_scarsity
 
         if cut_prob_grad:
             source, target = min(cut_prob_grad, key=cut_prob_grad.get)
