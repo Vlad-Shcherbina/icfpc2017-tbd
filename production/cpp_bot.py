@@ -36,8 +36,7 @@ class CppBot(Bot):
             pack = board.pack
             unpack = board.unpack
 
-            #cut_prob = 1 - 1 / story.punters
-            cut_prob = 0.4  # optimistic  TODO
+            cut_prob = 1 - 1 / story.punters
             cut_prob = {
                 (u, v): cut_prob for u, vs in req.map.g.items() for v in vs}
             pi = glue.compute_prob_info(cut_prob, False, board, story.my_id)
