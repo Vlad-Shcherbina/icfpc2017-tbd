@@ -111,6 +111,62 @@ score g@(Game {g_players}) =
   where
     f p@(Punter{claimed}) = p { pScore = mkScore claimed g_rivers }
     mkScore = undefined
+-- ^
+-- |
+--
+-- I'm dying.
+--
+-- Figuratively. 38°C.
+--
+-- Almost everything is ready in regards to the game logic.
+-- last bits are: implement mkScore that uses `rays` and then
+-- filters mines out of the results tuple and squares the depths.
+--
+-- When / if you'll be supporting bets, this is the function where
+-- you want to count the promise satisfactions.
+--
+-- Splunges are already supported.
+--
+-- I strongly advice to add support for options, it's actually not
+-- that hard to implement. To the game state add one more list of rivers.
+-- When a river is claimed, add it to this list after removing it from
+-- `g_free` list. When a river is optioned just add it to the list of
+-- rivers claimed by a punter and remove it from the additional list.
+-- Handle failure by passing like in the rest of the code.
+--
+-- After the logic of the game is ready, use MVar and forkIO to launch
+-- the game attached to a socket.
+--
+-- Regarding sockets, here's a useful example that should explain how to
+-- handle multiple connections to a single port.
+{--
+import Network
+import Control.Concurrent
+import System.IO
+
+main = withSocketsDo $ do
+    sock <- listenOn $ PortNumber 5002
+    loop sock
+
+loop sock = do
+   (h,_,_) <- accept sock
+   forkIO $ body h
+   loop sock
+  where
+   body h = do
+       hPutStr h msg
+       hFlush h
+       hClose h
+
+msg = "HTTP/1.0 200 OK\r\nContent-Length: 5\r\n\r\nPong!\r\n"
+--}
+--
+-- Regarding synchronizing state:
+--
+{--
+https://github.com/crabmusket/haskell-simple-concurrency/blob/master/src/tutorial.md#thread-synchronisation-with-mvars
+--}
+-- That's it. And sorry.
 
 tuck :: a -> b -> (b, a)
 tuck = flip (,)
