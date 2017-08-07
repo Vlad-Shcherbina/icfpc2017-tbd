@@ -4,7 +4,7 @@ import os
 import sys, json, socket, typing, time
 from copy import deepcopy
 
-import production.scraper as scraper
+from production import scraper
 from production import bot_interface as bi
 from production import json_format as jf
 from production import match_history

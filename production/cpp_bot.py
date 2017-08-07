@@ -54,40 +54,15 @@ class CppBot(Bot):
                 if payoff:
                     futures[mine] = max(payoff, key=payoff.get)
 
-        state = dict(
-            punters=req.punters,
-            my_id=req.punter,
-            settings=req.settings.raw_settings,
-            my_futures=[[k, v] for k, v in futures.items()],
-            map=req.map.raw_map,
-            all_past_moves=[])
-
+        state = glue.state_from_setup_req(req, futures)
         return SetupResponse(ready=req.punter, state=state, futures=futures)
 
+
     def gameplay(self, req: GameplayRequest) -> GameplayResponse:
-        map = parse_map(req.state['map'])
-
-        new_state = copy.deepcopy(req.state)
-        new_state['all_past_moves'] += req.raw_moves
-
-        moves = [parse_move(m) for m in new_state['all_past_moves']]
-        unpackedmoves = []
-        for move in moves:
-            if isinstance(move, SplurgeMove): 
-                unpackedmoves += [mv for mv in move.unpack()]
-            else:
-                unpackedmoves.append(move)
-
-        story = Story(
-            punters=new_state['punters'],
-            my_id=new_state['my_id'],
-            map=map,
-            my_futures=dict(new_state['my_futures']),
-            moves=unpackedmoves)
-
+        state = req.state
+        state['all_past_moves'] += req.raw_moves
+        story = glue.story_from_state(state)
         board = glue.reconstruct_board(story)
-        pack = board.pack
-        unpack = board.unpack
 
         predicted_score = {}
         for punter in range(req.state['punters']):
@@ -108,7 +83,7 @@ class CppBot(Bot):
             move = PassMove(punter=req.state['my_id'])
 
 
-        return GameplayResponse(move=move, state=new_state)
+        return GameplayResponse(move=move, state=state)
 
 
 def render_prob_field(story: Story, size=600):

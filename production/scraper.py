@@ -1,4 +1,3 @@
-from bs4 import BeautifulSoup
 import re
 import sys
 import time
@@ -29,6 +28,7 @@ def __parse_status(status):
 
 
 def games():
+    from bs4 import BeautifulSoup
     with urllib.request.urlopen('http://punter.inf.ed.ac.uk/status.html') as response:
         html = response.read()
         soup = BeautifulSoup(html, 'html.parser')
@@ -61,12 +61,13 @@ def games():
 def wait_for_game(*, patience=1, predicate=lambda g: True, shuffle=True, extensions={}):
     while True:
         gs = list(games())
+        log.info(f'{len(gs)} games found.')
         if shuffle:
             random.shuffle(gs)
         for g in gs:
             if not predicate(g):
                 continue
-            if any(extension not in extensions for extension in g.extensions):
+            if frozenset(extensions) != frozenset(g.extensions):
                 continue
             log.info(g)
             if not (0 < g.punters_max - g.punters_num <= patience):
@@ -87,7 +88,7 @@ def wait_for_game1(*, punters=1, patience=0, predicate=lambda g: True, shuffle=T
             if any(extension not in extensions for extension in g.extensions):
                 continue
             log.info(g)
-            if (g.punters_max - g.punters_num > patience 
+            if (g.punters_max - g.punters_num > patience
                              or g.punters_max - g.punters_num < punters):
                 continue
             return g
@@ -114,7 +115,7 @@ def soft_blacklisted(xs, N=None, allowed_blacklisted=1):
     '''
     def sb(g: Game):
         for name in xs:
-            if sum(1 for p in g.punters if name in p) > allowed_blacklisted: 
+            if sum(1 for p in g.punters if name in p) > allowed_blacklisted:
                 return False
         count = 0
         ext_xs = xs + ['eager punter']
@@ -138,7 +139,7 @@ def only_easy_maps(g: Game):
     return g.map_name in ('sample.json', 'lambda.json', 'Sierpinski-triangle.json')
 
 def only_hard_maps(g: Game):
-    return g.map_name not in ('sample.json', 'lambda.json', 'Sierpinski-triangle.json')    
+    return g.map_name not in ('sample.json', 'lambda.json', 'Sierpinski-triangle.json')
 
 def diverse_players(g:Game):
     return sum(p == 'eager punter' for p in g.punters) < len(g.punters) / 2

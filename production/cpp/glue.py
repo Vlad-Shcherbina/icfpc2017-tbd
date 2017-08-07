@@ -2,6 +2,26 @@ from typing import NamedTuple
 
 from production.cpp import stuff
 from production.bot_interface import *
+from production import json_format
+
+
+def state_from_setup_req(req, futures={}):
+    return dict(
+            punters=req.punters,
+            my_id=req.punter,
+            settings=req.settings.raw_settings,
+            my_futures=[[k, v] for k, v in futures.items()],
+            map=req.map.raw_map,
+            all_past_moves=[])
+
+
+def story_from_state(state):
+    return Story(
+            punters=state['punters'],
+            my_id=state['my_id'],
+            map=json_format.parse_map(state['map']),
+            my_futures=dict(state['my_futures']),
+            moves=[json_format.parse_move(m) for m in state['all_past_moves']])
 
 
 def reconstruct_board(story: Story) -> stuff.Board:
