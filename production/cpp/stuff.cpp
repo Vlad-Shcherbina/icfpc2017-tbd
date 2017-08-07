@@ -204,9 +204,12 @@ struct ReachProb {
               bool with_option) {
         DSU dsu((int)board.adj.size());
         for (auto kv : board.claimed_by_map) {
-            if (kv.second == owner) {
+            if (kv.second == owner)
                 dsu.merge(kv.first.first, kv.first.second);
-            }
+        }
+        for (auto kv : board.optioned_by_map) {
+            if (kv.second == owner)
+                dsu.merge(kv.first.first, kv.first.second);
         }
         // debug2(owner, mine);
         // debug(dsu.up);
