@@ -6,14 +6,13 @@
 from collections import namedtuple, Counter
 from typing import Tuple, List
 from random import randrange
-from math import sqrt, atan, pi
+from math import sqrt, atan, pi, cos, sin
 
 from PIL import Image, ImageDraw
 
 from production.bot_interface import *
 from production.json_format import parse_map, parse_move
 from production.cpp import glue
-
 
 river_color = (100, 100, 100)
 site_color = (200, 200, 200)
@@ -31,6 +30,32 @@ me_width = 3
 
 DEFAULT_CLRS = 6
 LEFT_MARGIN = 70  # for legend
+NOISE_CURV = 2    # the more coeff, the flatter edges
+
+
+def angle(x, y):
+    if x > 1.e-6:    phi = atan(y / x)
+    elif x < -1.e-6: phi = pi + atan(y / x)
+    else:            phi = pi/2 if y > 0 else -pi/2
+    return phi
+
+def arc_params(p1, p2):
+    if p1[1] > p2[1] : p1, p2 = p2, p1
+    vx, vy = (p2[0] - p1[0]) / 2, (p2[1] - p1[1]) / 2   # initial edge vector
+           
+    R = sqrt((vx ** 2 + vy ** 2) * (NOISE_CURV ** 2 + 1)) # raduis of circle
+    
+    center_x = vy * NOISE_CURV + (p1[0] + p2[0])/2        # center of circle
+    center_y = -vx * NOISE_CURV + (p1[1] + p2[1])/2
+    alpha1 = angle(p1[0] - center_x, p1[1] - center_y)    # starting angle
+    alpha2 = angle(p2[0] - center_x, p2[1] - center_y)    # ending angle
+
+
+    if abs(alpha2 - alpha1) > pi: 
+        alpha1, alpha2 = max(alpha1, alpha2) - pi*2, min(alpha1, alpha2)
+    else:
+        alpha1, alpha2 = min(alpha1, alpha2), max(alpha1, alpha2)
+    return (center_x, center_y, R, alpha1, alpha2)
 
 
 class Visualization:
@@ -46,11 +71,12 @@ class Visualization:
                     (145, 155, 155),
                     (125, 205, 105)]
 
-    def __init__(self, width=800, height=800, noisy=True):
+    def __init__(self, width=800, height=800, curved=None):
         # while drawing map width will be reset.
+        # If no map is drawn, set curved param explicitly!
         self.width = width
         self.height = height
-        self.noisy = noisy
+        self.curved = curved
         self.scale = 1
 
         self.back_commands = []
@@ -93,8 +119,8 @@ class Visualization:
         self.draw_point(coord, color=site_color, size=site_size) # just in case
 
     def draw_mine(self, coord: Tuple[float, float]):
-        self.draw_point(coord, color=(0, 0, 0), size=2*mine_size) # just in case
-        self.draw_point(coord, color=mine_color, size=mine_size) # just in case
+        self.draw_point(coord, color=(0, 0, 0), size=2*mine_size)
+        self.draw_point(coord, color=mine_color, size=mine_size) 
 
 
     def draw_edge(
@@ -102,12 +128,13 @@ class Visualization:
             p1: Tuple[float, float],
             p2: Tuple[float, float],
             color=river_color,
-            width=river_width):
+            width=river_width,
+            no_curve=False):
+        if self.curved and not no_curve: 
+            self.draw_curved_edge(p1, p2, color, width)
+            return
         p1 = self.get_coord(p1)
         p2 = self.get_coord(p2)
-        if self.noisy: 
-            self.draw_noisy_edge(p1, p2, color, width)
-            return
 
         def draw_command(img):
             draw = ImageDraw.Draw(img)
@@ -116,40 +143,29 @@ class Visualization:
         self.river_commands.append(draw_command)
 
 
-    def draw_noisy_edge(
+    def draw_curved_edge(
             self,
             p1: Tuple[float, float],
             p2: Tuple[float, float],
             color=river_color,
             width=river_width):
-        # p1 and p2 already adjasted.
-        if p1[1] > p2[1] : p1, p2 = p2, p1
-        def sgn(x): return (x > 0) - (x < 0)
-        vx, vy = p2[0] - p1[0], p2[1] - p1[1]
-        coeff = 2
-        L = sqrt(vx * vx + vy * vy) * coeff
-        R = sqrt((L * L) + (vx * vx / 4 + vy * vy / 4))
-        rx, ry = vy * coeff, -vx * coeff
-        center_x, center_y = -rx + (p1[0] + p2[0])/2, -ry + (p1[1] + p2[1])/2
-        if abs(p1[0] - center_x) > 1.e-6 :
-            alpha1 = atan((p1[1] - center_y) / (p1[0] - center_x)) * sgn(p1[0] - center_x)
-        else:
-            alpha1 = (0 if p1[0] - center_x > 0 else pi)
-        if abs(p2[0] - center_x) > 1.e-6 :
-            alpha2 = atan((p2[1] - center_y) / (p2[0] - center_x)) * sgn(p2[0] - center_x)
-        else:
-            alpha2 = (0 if p2[0] - center_x > 0 else pi)
-
-        if abs(alpha2 - alpha1) > pi: 
-            alpha1, alpha2 = max(alpha1, alpha2), min(alpha1, alpha2)
-        else:
-            alpha1, alpha2 = min(alpha1, alpha2), max(alpha1, alpha2)
+        p1 = self.get_coord(p1)
+        p2 = self.get_coord(p2)
+        center_x, center_y, R, alpha1, alpha2 = arc_params(p1, p2)
+        a = (alpha2 + alpha1) / 2
+        shift = (int(sin(a) / sin(pi/8)), int(cos(a) / cos(pi/8)))
 
         def draw_command(img):
             draw = ImageDraw.Draw(img)
-            draw.arc((center_x - R, center_y - R, center_x + R, center_y + R), 
-                      alpha1 / pi * 180, alpha2 / pi * 180,
-                      fill=color)
+            for i in range(-width//2, width//2):
+                draw.arc((center_x - R + shift[0] * i, 
+                          center_y - R + shift[1] * i, 
+                          center_x + R + shift[0] * i, 
+                          center_y + R + shift[1] * i), 
+                          alpha1 / pi * 180, alpha2 / pi * 180,
+                          fill=color)
+
+
             return img
         self.river_commands.append(draw_command)
 
@@ -199,6 +215,7 @@ class Visualization:
         elif isinstance(mv, SplurgeMove):
             for u in mv.unpack(): self.draw_claim(u, m, me)
 
+
     def draw_claim(self, mv: ClaimMove, m: Map, me=False):
         assert isinstance(mv, ClaimMove)   # overkill?
         if len(self.punter_colors) <= mv.punter: self.set_punters(punter + 1)
@@ -207,12 +224,13 @@ class Visualization:
                        self.punter_colors[mv.punter] if not me else me_color,
                        width=claimed_width if not me else me_width)
 
+
     def draw_option(self, mv: OptionMove, m: Map, me=False):
         assert isinstance(mv, OptionMove)   # overkill?
         p1 = m.site_coords[mv.source]
         p2 = m.site_coords[mv.target]
 
-        mid_p = ((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2)
+        mid_p = self.get_midpoint(p1, p2)
         length = 10 * self.scale
         vx, vy = p2[0] - p1[0], p2[1] - p1[1]
         L = sqrt(vx * vx + vy * vy)
@@ -220,7 +238,15 @@ class Visualization:
         s1 = (mid_p[0] + vy / L * length, mid_p[1] - vx / L * length)
         s2 = (mid_p[0] - vy / L * length, mid_p[1] + vx / L * length)
         color = self.punter_colors[mv.punter] if not me else me_color
-        self.draw_edge(s1, s2, color=color, width = 2)
+        self.draw_edge(s1, s2, color=color, width = 2, no_curve=True)
+
+
+    def get_midpoint(self, p1, p2):
+        if not self.curved:
+            return (p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2
+        center_x, center_y, R, alpha1, alpha2 = arc_params(p1, p2)
+        a = (alpha2 + alpha1) / 2
+        return (center_x + R * cos(a), center_y + R * sin(a))
 
 
     def adjust_to_map(self, m: Map):
@@ -233,12 +259,13 @@ class Visualization:
 
     def draw_map(self, m: Map):
         self.adjust_to_map(m)
-        if self.noisy is None: self.noisy = (len(m.g) < 100)
+        if self.curved is None: self.curved = (len(m.g) < 70)
 
         count = 0
         for source in m.g:
             for target in m.g[source]:
-                self.draw_edge(m.site_coords[source], m.site_coords[target])
+                if source < target:
+                    self.draw_edge(m.site_coords[source], m.site_coords[target])
         for site in m.site_coords:
             if site in m.mines:
                 self.draw_mine(m.site_coords[site])
@@ -347,7 +374,7 @@ class Visualization:
             self.draw_edge(
                 story.map.site_coords[source],
                 story.map.site_coords[target],
-                color=color, width=1)
+                color=color, width=1, no_curve=True)
             self.draw_point(
                 story.map.site_coords[target],
                 color=None, outline=color, size=10)
@@ -427,14 +454,16 @@ def main():
     img = v.get_image()
     img.save(utils.project_root() / 'outputs' / 'foo.png')
 
-
-    v = Visualization(noisy=True)
+    # curved visualization: set curved=None for default 
+    # (curved for small, straight for big).
+    v = Visualization(curved=True)
     d = utils.project_root() / 'maps' / 'official_map_samples' / 'lambda.json'
     m = parse_map(json.loads(d.read_text()))
     v.draw_background()
     v.draw_map(m)
     img = v.get_image()
     img.save(utils.project_root() / 'outputs' / 'lambda.png')
+
 
 if __name__ == '__main__':
     main()

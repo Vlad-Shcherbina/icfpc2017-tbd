@@ -150,10 +150,11 @@ def render_prob_field(story: Story, size=600, individual_mine_probs=False):
                 continue
             t = (pi.cut_prob_grad[u, v] - a) / (b - a + 1e-6)
             c = int(255 * (1 - t))
-            vis.draw_edge(
-            story.map.site_coords[u],
-            story.map.site_coords[v],
-            color=(c, c, c), width=3)
+            if u < v:
+                vis.draw_edge(
+                story.map.site_coords[u],
+                story.map.site_coords[v],
+                color=(c, c, c), width=3)
 
     grad_im = vis.get_image()
 
