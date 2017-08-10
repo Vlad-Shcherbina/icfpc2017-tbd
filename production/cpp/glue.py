@@ -69,6 +69,11 @@ class ProbInfo(NamedTuple):
     # howewer, this thing is sparse and some zero edges are not included
 
 
+# To convince Python profiler to measure it.
+def cpp_ReachProb(*args, **kwargs):
+    return stuff.ReachProb(*args, **kwargs)
+
+
 def compute_prob_info(
         cut_prob: Dict[Tuple[int, int], float],
         with_options: bool,
@@ -87,7 +92,7 @@ def compute_prob_info(
     cut_prob_grad = {}
     for mine in board.mines:
         mine = unpack[mine]
-        rp = stuff.ReachProb(board, my_id, pack[mine], cut_prob, with_options)
+        rp = cpp_ReachProb(board, my_id, pack[mine], cut_prob, with_options)
         reach_prob[mine] = {unpack[k]: v for k, v in enumerate(rp.reach_prob)}
         for (u, v), grad in rp.get_cut_prob_grad().items():
             k = unpack[u], unpack[v]
