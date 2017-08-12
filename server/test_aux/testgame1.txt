@@ -1,0 +1,8 @@
+{"claim": {"punter": 0, "source": 8, "target": 29}}
+{"claim": {"punter": 1, "source": 27, "target": 26}}
+{"pass": {"punter": 2}}
+{"pass": {"punter": 3}}
+{"claim": {"punter": 0, "source": 32, "target": 29}}
+{"claim": {"punter": 1, "source": 25, "target": 15}}
+{"pass": {"punter": 2}}
+{"splurge": {"punter": 3, "route": [7, 34, 37]}}
