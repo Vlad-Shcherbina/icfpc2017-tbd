@@ -48,6 +48,20 @@ struct Board {
         futures_by_player[owner] = futures;
     }
 
+    int claimed_by(int u, int v) const {
+        pair<int, int> k(min(u, v), max(u, v));
+        auto it = claimed_by_map.find(k);
+        if (it == end(claimed_by_map)) return -1;
+        return it->second;
+    }
+
+    int optioned_by(int u, int v) const {
+        pair<int, int> k(min(u, v), max(u, v));
+        auto it = optioned_by_map.find(k);
+        if (it == end(optioned_by_map)) return -1;
+        return it->second;
+    }
+
     void claim_river(int owner, int u, int v) {
         pair<int, int> k(min(u, v), max(u, v));
         assert(claimed_by_map.count(k) == 0);
@@ -58,6 +72,18 @@ struct Board {
         pair<int, int> k(min(u, v), max(u, v));
         assert(optioned_by_map.count(k) == 0);
         optioned_by_map[k] = owner;
+    }
+
+    void set_claims(const vector<vector<int>> &claims) {
+        for (auto a : claims) {
+            claim_river(a[0], a[1], a[2]);
+        }
+    }
+
+    void set_options(const vector<vector<int>> &options) {
+        for (auto a : options) {
+            option_river(a[0], a[1], a[2]);
+        }
     }
 
     vector<int> reachable_by_claimed(int owner, int start) const {
@@ -82,10 +108,10 @@ struct Board {
         return result;
     }
 
-    int base_score(int owner) const {
+    int base_score(int owner, map<int, vector<int>> reachables) const {
         int result = 0;
         for (int mine : mines) {
-            for (int v : reachable_by_claimed(owner, mine)) {
+            for (int v : reachables[mine]) {
                 int d = dist[mine][v];
                 assert(d != -1);
                 result += d * d;
@@ -94,18 +120,28 @@ struct Board {
         return result;
     }
 
-    int claimed_by(int u, int v) const {
-        pair<int, int> k(min(u, v), max(u, v));
-        auto it = claimed_by_map.find(k);
-        if (it == end(claimed_by_map)) return -1;
-        return it->second;
-    }
+    vector<vector<int>> totals(int players) const {
+        vector<vector<int>> scores;
+        scores.resize(players);
+        for (int p = 0; p < players; p++) {
+            map<int, vector<int>> reachables;
+            for (int mine : mines) {
+                reachables[mine] = reachable_by_claimed(p, mine);
+            }
+            scores[p].push_back(base_score(p, reachables));
 
-    int optioned_by(int u, int v) const {
-        pair<int, int> k(min(u, v), max(u, v));
-        auto it = optioned_by_map.find(k);
-        if (it == end(optioned_by_map)) return -1;
-        return it->second;
+            if (futures_by_player.find(p) == futures_by_player.end())
+                continue;
+            for (const auto &f : futures_by_player.at(p)) {
+                int d = dist[f.first][f.second];
+                auto r = reachables[f.first];
+                if (std::find(r.begin(), r.end(), f.second) != r.end())
+                    scores[p].push_back(d * d * d);
+                else
+                    scores[p].push_back(-d * d * d);
+            }
+        }
+        return scores;
     }
 
     vector<int> mines;
@@ -364,12 +400,15 @@ PYBIND11_PLUGIN(stuff) {
         .def(py::init<const vector<vector<int>>&, const vector<int>&>())
         .def(py::init<const Board&>())
         .def("set_futures", &Board::set_futures)
-        .def("claim_river", &Board::claim_river)
-        .def("option_river", &Board::option_river)
-        .def("reachable_by_claimed", &Board::reachable_by_claimed)
-        .def("base_score", &Board::base_score)
         .def("claimed_by", &Board::claimed_by)
         .def("optioned_by", &Board::optioned_by)
+        .def("claim_river", &Board::claim_river)
+        .def("option_river", &Board::option_river)
+        .def("set_claims", &Board::set_claims)
+        .def("set_options", &Board::set_options)
+        .def("reachable_by_claimed", &Board::reachable_by_claimed)
+        .def("base_score", &Board::base_score)
+        .def("totals", &Board::totals)
         .def_readonly("adj", &Board::adj)
         .def_readonly("mines", &Board::mines)
         .def_readonly("dist", &Board::dist)

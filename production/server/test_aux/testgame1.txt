@@ -1,3 +1,4 @@
+{"ready": 0, "futures": [{"source": 32, "target": 8}]}
 {"claim": {"punter": 0, "source": 8, "target": 29}}
 {"claim": {"punter": 1, "source": 27, "target": 26}}
 {"pass": {"punter": 2}}

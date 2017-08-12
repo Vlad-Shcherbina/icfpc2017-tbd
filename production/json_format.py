@@ -12,6 +12,7 @@ import copy
 import json
 
 from production.bot_interface import *
+from production.server.gameholder import Gameboard
 
 
 REPORT_UNKNOWN_FIELDS = False
@@ -53,6 +54,9 @@ def parse_map(d) -> Map:
 
     return Map(g=g, mines=set(mines), site_coords=site_coords, raw_map=raw_map)
 
+def parse_board(d) -> Gameboard:
+    m = parse_map(d)
+    return Gameboard(adj=m.g, mines=m.mines)
 
 def parse_settings(d) -> Settings:
     raw_settings = copy.deepcopy(d)
@@ -121,19 +125,18 @@ def parse_move(d) -> Move:
     else:
         assert False, d
 
-def format_move(m: Move):
-    if isinstance(m, ClaimMove):
-        return dict(
-            claim=dict(punter=m.punter, source=m.source, target=m.target))
-    elif isinstance(m, OptionMove):
-        return dict(
-            option=dict(punter=m.punter, source=m.source, target=m.target))
-    elif isinstance(m, PassMove):
-        return {'pass': dict(punter=m.punter)}
+def format_move(m: Move, add_error=False):
+    result = { m.key() : {'punter': m.punter}}
+    if isinstance(m, PassMove):
+        if add_error:
+            result['pass'].update({'error': m.error})
+    elif isinstance(m, ClaimMove) or  isinstance(m, OptionMove):
+        result[m.key()].update({'source': m.source, 'target': m.target})
     elif isinstance(m, SplurgeMove):
-        return {'splurge': dict(punter=m.punter, route=m.route)}
+        result[m.key()].update({'route': m.route})
     else:
         assert False, m
+    return result
 
 
 def parse_gameplay_request(d) -> GameplayRequest:

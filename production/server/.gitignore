@@ -2,3 +2,4 @@ build/
 *.pyd
 *.so
 *tmp
+_my_*

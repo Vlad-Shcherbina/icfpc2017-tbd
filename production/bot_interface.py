@@ -19,44 +19,6 @@ class Map(NamedTuple):
     site_coords: Dict[int, Tuple[float, float]]
 
 
-class ClaimMove(NamedTuple):
-    punter: int
-    source: int
-    target: int
-
-    @staticmethod
-    def key(): return 'claim'
-
-class PassMove(NamedTuple):
-    punter: int
-
-    @staticmethod
-    def key(): return 'pass'
-
-class SplurgeMove(NamedTuple):
-    punter: int
-    route: List[int]
-
-    def unpack(self):
-        for source, target in zip(self.route, self.route[1:]):
-            yield ClaimMove(punter=self.punter, source=source, target=target)
-
-    @staticmethod
-    def key(): return 'splurge'
-
-
-class OptionMove(NamedTuple):
-    punter: int
-    source: int
-    target: int
-
-    @staticmethod
-    def key(): return 'option'
-
-
-Move = Union[ClaimMove, PassMove, SplurgeMove, OptionMove]
-
-
 GameState = Any
 # Better call it 'bot state', but they chose this name.
 # teuwer | @mangbo: GameState
@@ -73,6 +35,71 @@ class Settings(NamedTuple):
     options: bool
     raw_settings: dict
 
+
+#-------------------------- MOVE TYPES ---------------------------------#
+
+class PassMove(NamedTuple):
+    punter: int
+    error: str = ''
+
+    @staticmethod
+    def key(): return 'pass'
+
+    def verify(self, board) -> bool:
+        return True
+
+    def play(self, board):
+        board.passmove(self.punter)
+
+
+class ClaimMove(NamedTuple):
+    punter: int
+    source: int
+    target: int
+
+    @staticmethod
+    def key(): return 'claim'
+
+    def verify(self, board) -> bool:
+        return board.verify_claim(self.punter, self.source, self.target)
+
+    def play(self, board):
+        board.claim(self.punter, self.source, self.target)
+
+
+class OptionMove(NamedTuple):
+    punter: int
+    source: int
+    target: int
+
+    @staticmethod
+    def key(): return 'option'
+
+    def verify(self, board) -> bool:
+        return board.verify_option(self.punter, self.source, self.target)
+
+    def play(self, board):
+        board.option(self.punter, self.source, self.target)
+
+
+class SplurgeMove(NamedTuple):
+    punter: int
+    route: List[int]
+
+    @staticmethod
+    def key(): return 'splurge'
+
+    def verify(self, board) -> bool:
+        return board.verify_splurge(self.punter, self.route)
+
+    def play(self, board):
+        board.splurge(self.punter, self.route)
+
+
+Move = Union[ClaimMove, PassMove, SplurgeMove, OptionMove]
+
+
+#------------------------ REQUEST AND RESPONSE -------------------------#
 
 class SetupRequest(NamedTuple):
     punter: int  # my punter ID
@@ -101,6 +128,8 @@ class ScoreRequest(NamedTuple):
     moves: List[Move]
     score_by_punter: Dict[int, int]
 
+
+#------------------------- OTHER GAME OBJECTS --------------------------#
 
 class Bot(metaclass=ABCMeta):
     """Pretty much reflects the offline protocol.
