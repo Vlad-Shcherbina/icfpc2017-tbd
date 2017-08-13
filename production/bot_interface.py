@@ -40,7 +40,6 @@ class Settings(NamedTuple):
 
 class PassMove(NamedTuple):
     punter: int
-    error: str = ''
 
     @staticmethod
     def key(): return 'pass'
@@ -127,6 +126,7 @@ class ScoreRequest(NamedTuple):
     state: GameState
     moves: List[Move]
     score_by_punter: Dict[int, int]
+
 
 
 #------------------------- OTHER GAME OBJECTS --------------------------#

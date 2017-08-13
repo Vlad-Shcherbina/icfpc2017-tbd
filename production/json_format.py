@@ -54,9 +54,6 @@ def parse_map(d) -> Map:
 
     return Map(g=g, mines=set(mines), site_coords=site_coords, raw_map=raw_map)
 
-def parse_board(d) -> Gameboard:
-    m = parse_map(d)
-    return Gameboard(adj=m.g, mines=m.mines)
 
 def parse_settings(d) -> Settings:
     raw_settings = copy.deepcopy(d)
@@ -92,7 +89,13 @@ def format_setup_response(r: SetupResponse):
 
 def parse_move(d) -> Move:
     d = copy.deepcopy(d)
-    if 'claim' in d:
+    if 'pass' in d:
+        p = d.pop('pass')
+        if REPORT_UNKNOWN_FIELDS: assert not d, d
+        punter = p.pop('punter')
+        if REPORT_UNKNOWN_FIELDS: assert not p, p
+        return PassMove(punter=punter)
+    elif 'claim' in d:
         p = d.pop('claim')
         if REPORT_UNKNOWN_FIELDS: assert not d, d
         punter = p.pop('punter')
@@ -100,19 +103,6 @@ def parse_move(d) -> Move:
         target = p.pop('target')
         if REPORT_UNKNOWN_FIELDS: assert not p, p
         return ClaimMove(punter=punter, source=source, target=target)
-    elif 'pass' in d:
-        p = d.pop('pass')
-        if REPORT_UNKNOWN_FIELDS: assert not d, d
-        punter = p.pop('punter')
-        if REPORT_UNKNOWN_FIELDS: assert not p, p
-        return PassMove(punter=punter)
-    elif 'splurge' in d:
-        p = d.pop('splurge')
-        if REPORT_UNKNOWN_FIELDS: assert not d, d
-        punter = p.pop('punter')
-        route = p.pop('route')
-        if REPORT_UNKNOWN_FIELDS: assert not p, p
-        return SplurgeMove(punter=punter, route=route)
     elif 'option' in d:
         p = d.pop('option')
         if REPORT_UNKNOWN_FIELDS: assert not d, d
@@ -121,21 +111,30 @@ def parse_move(d) -> Move:
         target = p.pop('target')
         if REPORT_UNKNOWN_FIELDS: assert not p, p
         return OptionMove(punter=punter, source=source, target=target)
+    elif 'splurge' in d:
+        p = d.pop('splurge')
+        if REPORT_UNKNOWN_FIELDS: assert not d, d
+        punter = p.pop('punter')
+        route = p.pop('route')
+        if REPORT_UNKNOWN_FIELDS: assert not p, p
+        return SplurgeMove(punter=punter, route=route)
 
     else:
         assert False, d
 
-def format_move(m: Move, add_error=False):
+def format_move(m: Move, error=None, timespan=None):
     result = { m.key() : {'punter': m.punter}}
     if isinstance(m, PassMove):
-        if add_error:
-            result['pass'].update({'error': m.error})
+        if error is not None:
+            result['pass'].update({'error': error})
     elif isinstance(m, ClaimMove) or  isinstance(m, OptionMove):
         result[m.key()].update({'source': m.source, 'target': m.target})
     elif isinstance(m, SplurgeMove):
         result[m.key()].update({'route': m.route})
     else:
         assert False, m
+    if timespan is not None:
+        result[m.key()].update({'timespan': timespan})
     return result
 
 

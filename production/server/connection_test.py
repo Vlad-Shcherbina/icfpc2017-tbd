@@ -154,7 +154,7 @@ def test_length_not_dict(connect):
 
     client.send(b'1:1')
     msg = conn.receive(deadline=time.time() + 1)
-    assert msg == Dead(reason='not a dict')
+    assert msg == Dead(reason='not a valid move')  # not a dict
     assert not conn.alive
 
 

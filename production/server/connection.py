@@ -105,7 +105,7 @@ class NetworkConnection:
             return Dead(reason=self.reason_dead)
 
         if not isinstance(res, dict):
-            self.reason_dead = 'not a dict'
+            self.reason_dead = 'not a valid move'  # not a dict
             return Dead(reason=self.reason_dead)
 
         del buf[:msg_end]
@@ -158,8 +158,13 @@ class NetworkConnection:
     def kick(self, reason):
         if not self.alive:
             return
-
         self.reason_dead = f'kicked ({reason})'
+        # try:
+        #     self.socket.sendall(f'kicked ({reason})'.encode())
+        # except socket.timeout:
+        #     pass
+        # except OSError:
+        #     logger.exception('send failed')
         self.socket.close()
         self.socket = None
 
