@@ -159,12 +159,12 @@ class NetworkConnection:
         if not self.alive:
             return
         self.reason_dead = f'kicked ({reason})'
-        # try:
-        #     self.socket.sendall(f'kicked ({reason})'.encode())
-        # except socket.timeout:
-        #     pass
-        # except OSError:
-        #     logger.exception('send failed')
+        try:
+            self.socket.sendall((f'kicked ({reason})').encode())
+        except socket.timeout:
+            pass
+        except OSError:
+            logger.exception('send failed')
         self.socket.close()
         self.socket = None
 

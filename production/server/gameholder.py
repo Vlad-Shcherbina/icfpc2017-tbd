@@ -9,11 +9,10 @@ from production.bot_interface import *
 from production.json_format import *
 
 
+#--------------------------- GAMEBOARD ---------------------------------#
+
 def pair(x, y):
     return (min(x, y), max(x, y))
-
-
-#--------------------------- GAMEBOARD ---------------------------------#
 
 
 class Gameboard:
@@ -32,6 +31,7 @@ class Gameboard:
         self.N = N
         self.passes = [0] * N
         self.settings = settings
+        self.options_left = [len(mines)] * self.N
 
 
     def adjacent(self, u: int, v: int) -> bool:
@@ -54,9 +54,9 @@ class Gameboard:
 
 
     def verify_option(self, punter: int, source: int, target: int) -> bool:
-        if not self.settings.options: 
-            return False
-        if not self.adjacent(source, target):
+        if (not self.settings.options 
+                or self.options_left[punter] == 0
+                or not self.adjacent(source, target)):
             return False
         river = pair(source, target)
         return (river in self.claimed_by 
@@ -67,10 +67,17 @@ class Gameboard:
     def verify_splurge(self, punter: int, route: List[int]) -> bool:
         if not self.settings.splurges: 
             return False
-        # no duplicate rivers!
-        return all((self.verify_claim(punter, s, t) 
-                    or self.verify_option(punter, s, t))
-                    for s, t in zip(route, route[1:]))
+        rivers = list(pair(x, y) for x, y in zip(route, route[1:]))
+        if len(set(rivers)) < len(rivers): return False   # duplicating rivers
+        options_asked = 0
+        for river in rivers:
+            if not self.adjacent(*river):
+                return False
+            if river in self.claimed_by:
+                if not self.verify_option(punter, *river):
+                    return False
+                options_asked += 1
+        return options_asked <= self.options_left[punter]
 
 
     def claim(self, punter: int, source: int, target: int):
@@ -81,6 +88,7 @@ class Gameboard:
     def option(self, punter: int, source: int, target: int):
         self.optioned_by[pair(source, target)] = punter
         self.passes[punter] = 0
+        self.options_left[punter] -= 1
 
 
     def splurge(self, punter: int, route: List[int]):
@@ -148,29 +156,35 @@ class GameHolder:
     def __init__(self, board: Gameboard):
         self.N = board.N
         self.board = board
-        self.lastmove = [format_move(PassMove(punter=i)) for i in range(board.N)]
+        self.lastmove = [format_move(PassMove(punter=i)) for i in range(self.N)]
 
 
     def setup_response(self, ID: int, raw_map: dict) -> dict:
         return dict(punter=ID, punters=self.N, map=raw_map)
 
 
-    def process_setup(self, punter: int, request: dict):
+    def process_futures(self, punter: int, request: dict):
         '''Set futures, if there are any.'''
         if not self.board.settings.futures: return
         for f in request.get('futures', []):
-            self.board.set_futures(punter, source=f['source'], target=f['target'])
+            try:
+                self.board.set_futures(punter, f['source'], f['target'])
+            except KeyError:
+                return 'not a valid setup'
 
 
-    def process_request(self, punter: int, request: dict) -> str:
+    def process_request(self, punter: int, request: dict):
         '''Take move request in json and play it.
 
-        Return false if unable to parse a valid (perhaps illegal) move.
+        Return parsed move (requested by player) for replay and any error
+        that occured during parsing.
+        Parsing and formating move for replay guarantees it has no additional
+        fields. Illegal moves go to replay, invalid don't.
         '''
         revised = self._request_to_move(punter, request)
-        revised = self._make_move(revised)
+        verified = self._make_move(revised)
         self.lastmove[punter] = format_move(revised.move)
-        return revised
+        return (revised.move, verified.error)
 
 
     def _request_to_move(self, punter: int, request: dict) -> RevisedMove:
@@ -181,8 +195,8 @@ class GameHolder:
         try:
             move = parse_move(request)
             if move.punter != punter:
-                log.info(f'Punter {punter} declared wrong number {move.punter}')
-                move.punter = punter
+                logger.info(f'Punter {punter} declared wrong number {move.punter}')
+                move = move._replace(punter=punter)
             return RevisedMove(move=move, error=None)
 
         except (AssertionError, KeyError) as e:

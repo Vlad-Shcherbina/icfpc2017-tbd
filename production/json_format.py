@@ -65,6 +65,10 @@ def parse_settings(d) -> Settings:
     return Settings(futures=futures, splurges=splurges, options=options, raw_settings=raw_settings)
 
 
+def format_settings(s: Settings) -> dict:
+    return dict(futures=s.futures, options=s.options, splurges=s.splurges)
+
+
 def parse_setup_request(d) -> SetupRequest:
     d = copy.deepcopy(d)
     punter = d.pop('punter')
@@ -178,6 +182,15 @@ def parse_score_request(d) -> ScoreRequest:
 
     return ScoreRequest(
         moves=moves, score_by_punter=score_by_punter, state=state)
+
+
+def format_total_score(totals, names):
+    d = []
+    for i in range(len(names)):
+        d.append(dict(punter=i, 
+                      nickname=names[i], 
+                      score=sum(totals[i]), 
+                      futures=[totals[i][1:]]))
 
 
 def parse_any_request(d) -> Union[SetupRequest, GameplayRequest, ScoreRequest]:

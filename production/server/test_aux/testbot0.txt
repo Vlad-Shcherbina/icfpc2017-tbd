@@ -1,0 +1,5 @@
+{"ready": 1}
+{"claim": {"punter": 1, "source": 27, "target": 26}}
+{"claim": {"punter": 1, "source": 26, "target": 1}}
+{"pass": {"punter": 1}}
+{"splurge": {"punter": 1, "route": [7, 34, 37]}}
