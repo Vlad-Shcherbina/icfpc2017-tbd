@@ -11,17 +11,22 @@ GAMELIMIT = 1
 SETUPLIMIT = 10
 
 def gameloop(rawmap, settings, connections, names):
+    '''Main loop for single game. Connects players and gamestate.
+
+    Holds the game and returns replay (List[Dict]) and summary scores.
+    Closes connections with all bots at exit.
+    '''
     N = len(names)
     assert N == len(connections)
-    replay = [{ 'punter' : i, 'name' : names[i]} for i in range(N)]
+    replay = {'participants' : [{ 'punter' : i, 'name' : names[i]} for i in range(N)]}
 
     connector, gameholder = setup_game(rawmap, settings, connections, replay)
     turns = sum([len(a) for a in gameholder.board.adj.values()]) // 2
 
+    # Game starts!
     ID = 0
-    for _ in range(turns):
-        request = gameholder.get_gameplay_request()
-        connector.send(ID, request)
+    for moveno in range(turns):
+        connector.send(ID, gameholder.get_gameplay_request())
         connresponse = connector.receive(ID, time.time() + GAMELIMIT)
         error = connresponse.error
         try:
@@ -45,7 +50,8 @@ def gameloop(rawmap, settings, connections, names):
         record = json_format.format_move(move, 
                                          error=error, 
                                          timespan=connresponse.timespan,
-                                         original=original)
+                                         original=original,
+                                         moveno=moveno)
         replay.append(record)
         ID = (ID + 1) % N
 
@@ -66,11 +72,11 @@ def setup_game(rawmap: dict,
           settings: Settings, 
           connections: List[NetworkConnection], 
           replay: List) -> int:
-
+    '''Pre-loop setups: create gameholder and connector and send setup requests.'''
     N = len(connections)
     m = json_format.parse_map(rawmap)
 
-    # add only one setup to replay, to provide map and settings
+    # add one setup request to replay, to provide map and settings
     replay.append(dict(punter=0, 
                        punters=N, 
                        map=rawmap, 

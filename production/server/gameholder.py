@@ -27,12 +27,11 @@ class Gameboard:
         self.claimed_by = {}
         self.optioned_by = {}
         self.futures_by_player = {}
-        self.totals = None
 
         self.N = N
         self.passes = [0] * N
         self.settings = settings
-        self.options_left = [len(mines)] * self.N
+        self.remaining_options = [len(mines)] * self.N
 
 
     def adjacent(self, u: int, v: int) -> bool:
@@ -56,7 +55,7 @@ class Gameboard:
 
     def verify_option(self, punter: int, source: int, target: int) -> bool:
         if (not self.settings.options 
-                or self.options_left[punter] == 0
+                or self.remaining_options[punter] == 0
                 or not self.adjacent(source, target)):
             return False
         river = pair(source, target)
@@ -70,15 +69,15 @@ class Gameboard:
             return False
         rivers = list(pair(x, y) for x, y in zip(route, route[1:]))
         if len(set(rivers)) < len(rivers): return False   # duplicating rivers
-        options_asked = 0
+        options_needed = 0
         for river in rivers:
             if not self.adjacent(*river):
                 return False
             if river in self.claimed_by:
                 if not self.verify_option(punter, *river):
                     return False
-                options_asked += 1
-        return options_asked <= self.options_left[punter]
+                options_needed += 1
+        return options_needed <= self.remaining_options[punter]
 
 
     def claim(self, punter: int, source: int, target: int):
@@ -89,7 +88,7 @@ class Gameboard:
     def option(self, punter: int, source: int, target: int):
         self.optioned_by[pair(source, target)] = punter
         self.passes[punter] = 0
-        self.options_left[punter] -= 1
+        self.remaining_options[punter] -= 1
 
 
     def splurge(self, punter: int, route: List[int]):
@@ -97,8 +96,10 @@ class Gameboard:
             river = pair(source, target)
             if river in self.claimed_by:
                 self.optioned_by[river] = punter
+                self.remaining_options[punter] -= 1
             else:
                 self.claimed_by[river] = punter
+        assert self.remaining_options[punter] >= 0
         self.passes[punter] = 0
 
 
@@ -166,6 +167,7 @@ class GameHolder:
         self.N = board.N
         self.board = board
         self.lastmove = [format_move(PassMove(punter=i)) for i in range(self.N)]
+        self.totals = None
 
 
     def get_setup_request(self, ID: int, rawmap: dict) -> dict:
@@ -204,8 +206,9 @@ class GameHolder:
 
 
     def score(self):
-        '''Score is list of lists for each player.
+        '''Returns summary score for each player.
 
+        Also calculates totals -- list of lists for each player.
         First number is base score, others are futures.
         '''
         scoreboard = construct_scoreboard(self.board)

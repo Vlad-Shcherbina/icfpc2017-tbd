@@ -160,7 +160,8 @@ class NetworkConnection:
             return
         self.reason_dead = f'kicked ({reason})'
         try:
-            self.socket.sendall((f'kicked ({reason})').encode())
+            msg = '{"kicked": "' + reason + '"}'
+            self.socket.sendall((f'%d:%s' % (len(msg), msg)).encode())
         except socket.timeout:
             pass
         except OSError:

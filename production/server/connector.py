@@ -1,9 +1,10 @@
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 import time
 from connection import *
 
 import logging;
 logger = logging.getLogger(__name__)
+
 
 CONN_TOLERANCE = 0
 
@@ -11,11 +12,14 @@ CONN_TOLERANCE = 0
 class ConnMessage(NamedTuple):
     message: dict
     timespan: float
-    error: str
+    error: Optional[str]
 
 
 class Connector:
-    ''' Interim between gameloop and connections.'''
+    '''Interim between gameloop and connections.
+
+    Keeps track on all set of current connections, their timeouts
+    and zombie status.'''
 
     def __init__(self, conns):
         self.bots = conns
@@ -30,7 +34,12 @@ class Connector:
         bot.send(request)
 
 
-    def receive(self, ID, deadline):
+    def receive(self, ID, deadline) -> ConnMessage:
+        '''Return message if player connected and sent valid json.
+
+        If connection timed out or is considered dead, return pass move and
+        error message.
+        '''
         bot = self.bots[ID]
         if not bot.alive:
             error = bot.reason_dead

@@ -99,7 +99,7 @@ def test_kick(connect):
     conn.kick('test')
 
     data = client.recv(4096)
-    assert data == b'kicked (test)'
+    assert data == b'18:{"kicked": "test"}'
 
     conn.send({'hi': 1})
     msg = conn.receive(deadline=time.time() + 1)

@@ -159,7 +159,7 @@ def parse_move(d, ID=None) -> Move:
         assert False, key
 
 
-def format_move(m: Move, error=None, timespan=None, original=None):
+def format_move(m: Move, error=None, timespan=None, original=None, moveno=None):
     result = { m.key() : {'punter': m.punter}}
     if isinstance(m, PassMove):
         pass
@@ -172,10 +172,12 @@ def format_move(m: Move, error=None, timespan=None, original=None):
     
     if error is not None:
         result[m.key()].update({'error': error})
-    if timespan is not None:
+    elif timespan is not None:
         result[m.key()].update({'timespan': timespan})
     if original is not None:
-        result[m.key()].update({'original': timespan})
+        result[m.key()].update({'original': format_move(original)})
+    if moveno is not None:
+        result[m.key()].update({'moveno' : moveno})
     return result
 
 

@@ -5,7 +5,7 @@ from production.server.gameloop import *
 from production.utils import project_root
 
 
-def test_smth():
+def test_tester():
     #assert False, "working"
     pass
 
@@ -21,7 +21,6 @@ def test_gameholder_from_file():
 
     board = Gameboard(adj=m.g, mines=m.mines, N=4, settings=s)
     holder = GameHolder(board)
-
     data = open(project_root() / 'production' / 'server' / 'test_aux' / 'testgame1.txt')
     
     ID = 0
@@ -33,7 +32,8 @@ def test_gameholder_from_file():
         holder.process_move(move)
         ID = (ID + 1) % 4
     data.close()
-    assert holder.score() == [18, 5, 0, 0]   # [[10, 8], [5], [0], [0]]
+    holder.score()
+    assert holder.totals == [[10, 8], [5], [0], [0]]
 
 
 class FileBot(threading.Thread):
@@ -57,7 +57,7 @@ class FileBot(threading.Thread):
         text.close()
 
 
-def gameloop_from_file(N, testfiles, settings, rawmap, result=None, turns=10):
+def gameloop_from_file(N, testfiles, settings, rawmap, result=None):
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(('127.0.0.1', 42424))
     server.listen(1)
@@ -89,14 +89,16 @@ def test_gameloop_simple():
     N = 2
     testfolder = project_root() / 'production' / 'server' / 'test_aux'
     testfiles = [testfolder / (f'testbot{i}.txt') for i in range(N)]
+
     with open(project_root() / 'maps' / 'official_map_samples' / 'sample.json', 'r') as f:
         rawmap = json.load(f)
+
     settings = Settings(options=True, 
                         futures=True, 
                         splurges=False, 
                         raw_settings='')
     result = [-7, 16]        # [[1, -8], [15, 1]]
-    gameloop_from_file(N, testfiles, settings, rawmap, result, turns=15)
+    gameloop_from_file(N, testfiles, settings, rawmap, result)
 
 
 if __name__ == '__main__':
