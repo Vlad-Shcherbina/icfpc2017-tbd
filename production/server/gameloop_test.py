@@ -1,4 +1,5 @@
 import threading
+import production.json_format
 
 from production.server.gameloop import *
 from production.utils import project_root
@@ -14,9 +15,9 @@ def test_gameholder_from_file():
                  splurges=False, 
                  options=True, 
                  raw_settings='')
-    mapfile = project_root() / 'maps' / 'official_map_samples' / 'lambda.json'
+    mapfile = project_root() / 'maps' / 'official_map_samples' / 'sample.json'
     with open(mapfile) as f:
-        m = parse_map(json.load(f))
+        m = json_format.parse_map(json.load(f))
 
     board = Gameboard(adj=m.g, mines=m.mines, N=4, settings=s)
     holder = GameHolder(board)
@@ -24,23 +25,23 @@ def test_gameholder_from_file():
     data = open(project_root() / 'production' / 'server' / 'test_aux' / 'testgame1.txt')
     
     ID = 0
-    f = json.loads(data.readline())
-    holder.process_futures(0, f)
+    f = json_format.parse_setup_response(json.loads(data.readline()), ID)
+    holder.process_futures(f)
     
     for line in data.readlines():
-        request = json.loads(line)
-        holder.process_request(ID, request)
+        move = json_format.parse_move(json.loads(line))
+        holder.process_move(move)
         ID = (ID + 1) % 4
     data.close()
-    assert holder.score() == [[5, 8], [1], [0], [0]]
+    assert holder.score() == [18, 5, 0, 0]   # [[10, 8], [5], [0], [0]]
 
 
 class FileBot(threading.Thread):
-    def __init__(self, filename, client, timelimit):
+    def __init__(self, filename, client):
         threading.Thread.__init__(self)
         self.filename = filename
         self.client = client
-        self.timelimit = timelimit
+        self.client.settimeout(1)
 
     def run(self):
         text = open(self.filename, 'r')
@@ -56,25 +57,27 @@ class FileBot(threading.Thread):
         text.close()
 
 
-def gameloop_from_file(N, testfiles, settings, mapfile, result=None, turns=10):
+def gameloop_from_file(N, testfiles, settings, rawmap, result=None, turns=10):
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(('127.0.0.1', 42424))
     server.listen(1)
 
     conns = []
     clients = [None] * N
+    bots = [None] * N
 
     for i in range(N):
         clients[i] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         clients[i].connect(('127.0.0.1', 42424))
-        bot = FileBot(testfiles[i], clients[i], timelimit=0.5)
+        bots[i] = FileBot(testfiles[i], clients[i])
         
         conn, addr = server.accept()
         conn = NetworkConnection(conn)
         conns.append(conn)
-        bot.start()
+        bots[i].start()
 
-    t = gameloop(mapfile, settings, conns, [str(i) for i in range(N)], turns)
+    _, t = gameloop(rawmap, settings, conns, [str(i) for i in range(N)])
+    for bot in bots: bot.join()
     assert result is None or t == result
 
     for c in conns: c.close()
@@ -85,15 +88,17 @@ def gameloop_from_file(N, testfiles, settings, mapfile, result=None, turns=10):
 def test_gameloop_simple():
     N = 2
     testfolder = project_root() / 'production' / 'server' / 'test_aux'
-    testfiles = [testfolder / ('testbot' + str(i) + '.txt') for i in range(N)]
-    mapfile = project_root() / 'maps' / 'official_map_samples' / 'lambda.json'
+    testfiles = [testfolder / (f'testbot{i}.txt') for i in range(N)]
+    with open(project_root() / 'maps' / 'official_map_samples' / 'sample.json', 'r') as f:
+        rawmap = json.load(f)
     settings = Settings(options=True, 
                         futures=True, 
                         splurges=False, 
                         raw_settings='')
-    result = [[5], [5, -8]]
-    gameloop_from_file(N, testfiles, settings, mapfile, result, turns=15)
-        
+    result = [-7, 16]        # [[1, -8], [15, 1]]
+    gameloop_from_file(N, testfiles, settings, rawmap, result, turns=15)
+
 
 if __name__ == '__main__':
-    test_gameloop_simple()
+    #test_gameloop_simple()
+    test_gameholder_from_file()

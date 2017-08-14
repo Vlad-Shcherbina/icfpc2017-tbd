@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 from production.cpp.stuff import Board as Scoreboard
 from production.bot_interface import *
-from production.json_format import *
+from production.json_format import format_move, format_settings
 
 
 #--------------------------- GAMEBOARD ---------------------------------#
@@ -27,6 +27,7 @@ class Gameboard:
         self.claimed_by = {}
         self.optioned_by = {}
         self.futures_by_player = {}
+        self.totals = None
 
         self.N = N
         self.passes = [0] * N
@@ -149,78 +150,57 @@ def construct_scoreboard(board: Gameboard) -> Scoreboard:
 
 class RevisedMove(NamedTuple):
     move: Move
-    error: str
+    error: Optional[str]
 
 
 class GameHolder:
+    '''Update game state, verify whether move is legal, calculate score.
+
+    self.process_xxx()
+        gets pre-parsed Responces, guaranteed to be valid.
+
+    self.get_xxx()
+        returns formatted jsons
+    '''
     def __init__(self, board: Gameboard):
         self.N = board.N
         self.board = board
         self.lastmove = [format_move(PassMove(punter=i)) for i in range(self.N)]
 
 
-    def setup_response(self, ID: int, raw_map: dict) -> dict:
-        return dict(punter=ID, punters=self.N, map=raw_map)
+    def get_setup_request(self, ID: int, rawmap: dict) -> dict:
+        return { 'punter' : ID,
+                 'punters' : self.N,
+                 'map' : rawmap,
+                 'settings' : format_settings(self.board.settings)}
 
 
-    def process_futures(self, punter: int, request: dict):
-        '''Set futures, if there are any.'''
+    def process_futures(self, response: SetupResponse):
         if not self.board.settings.futures: return
-        for f in request.get('futures', []):
-            try:
-                self.board.set_futures(punter, f['source'], f['target'])
-            except KeyError:
-                return 'not a valid setup'
+        for s, t in response.futures.items():
+            self.board.set_futures(response.ready, s, t)
 
 
-    def process_request(self, punter: int, request: dict):
-        '''Take move request in json and play it.
-
-        Return parsed move (requested by player) for replay and any error
-        that occured during parsing.
-        Parsing and formating move for replay guarantees it has no additional
-        fields. Illegal moves go to replay, invalid don't.
-        '''
-        revised = self._request_to_move(punter, request)
-        verified = self._make_move(revised)
-        self.lastmove[punter] = format_move(revised.move)
-        return (revised.move, verified.error)
+    def get_gameplay_request(self):
+        return { 'move' : { 'moves' : self.lastmove[:] } }
 
 
-    def _request_to_move(self, punter: int, request: dict) -> RevisedMove:
-        '''Parse move in json to Move. 
-
-        If move is badly formatted, return Pass with error, bot goes to zombie.
-        '''
-        try:
-            move = parse_move(request)
-            if move.punter != punter:
-                logger.info(f'Punter {punter} declared wrong number {move.punter}')
-                move = move._replace(punter=punter)
-            return RevisedMove(move=move, error=None)
-
-        except (AssertionError, KeyError) as e:
-            return RevisedMove(move=PassMove(punter=punter), 
-                               error='not a valid move')
-
-
-    def _make_move(self, revised: RevisedMove) -> RevisedMove:
-        '''Check if move is legal and play it.
-
-        If move is illegal, return Pass with error, bot keeps running.
-        '''
-        if revised.move.key() == 'pass': return revised
-        if revised.move.verify(self.board):
-            revised.move.play(self.board)
-            return revised
+    def process_move(self, move: Move) -> Optional[str]:
+        error = None
+        if move.verify(self.board):
+            move.play(self.board)
         else:
-            return RevisedMove(move = PassMove(punter=revised.move.punter), 
-                               error='illegal move')
+            move = PassMove(punter=move.punter)
+            error = 'illegal move'
+
+        self.lastmove[move.punter] = format_move(move)
+        return error
 
 
-    def get_response(self):
-        '''Get json to pass to the next player.'''
-        return dict(move = dict(moves=self.lastmove[:]))
+    def get_score_request(self):
+        if self.totals is None: self.score()
+        scores = [dict(punter=i, score=sum(self.totals[i])) for i in range(self.N)]
+        return dict(stop = dict(moves=self.lastmove[:], scores=scores))
 
 
     def score(self):
@@ -229,8 +209,8 @@ class GameHolder:
         First number is base score, others are futures.
         '''
         scoreboard = construct_scoreboard(self.board)
-        totals = scoreboard.totals(self.N)
-        return totals
+        self.totals = scoreboard.totals(self.N)
+        return [sum(s) for s in self.totals]
 
 
 if __name__ == '__main__':

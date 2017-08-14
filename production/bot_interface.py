@@ -128,7 +128,6 @@ class ScoreRequest(NamedTuple):
     score_by_punter: Dict[int, int]
 
 
-
 #------------------------- OTHER GAME OBJECTS --------------------------#
 
 class Bot(metaclass=ABCMeta):

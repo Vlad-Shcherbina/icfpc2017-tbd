@@ -12,11 +12,14 @@ import copy
 import json
 
 from production.bot_interface import *
-from production.server.gameholder import Gameboard
+
+
+class InvalidResponseError(Exception):
+    def __init__(self, msg):
+        self.msg = msg
 
 
 REPORT_UNKNOWN_FIELDS = False
-
 
 def parse_map(d) -> Map:
     d = copy.deepcopy(d)
@@ -84,6 +87,30 @@ def parse_setup_request(d) -> SetupRequest:
         settings=parse_settings(settings))
 
 
+def parse_setup_response(d, ID=None) -> SetupResponse:
+    # Got from player - check for any possible inconsistency
+    if not isinstance(d, dict): 
+        raise InvalidResponseError('not a valid setup response')
+    if (not 'ready' in d):
+        raise InvalidResponseError('not a valid setup response')
+
+    if (not 'futures' in d):
+        return SetupResponse(ready=ID, state=None, futures={})
+
+    if not isinstance(d['futures'], list):
+        raise InvalidResponseError('not a valid setup response')
+    futures = {}
+    for f in d['futures']:
+        if (not isinstance(f, dict) 
+                or not 'source' in f 
+                or not 'target' in f
+                or not isinstance(f['source'], int)
+                or not isinstance(f['target'], int)):
+            raise InvalidResponseError('not a valid setup response')
+        futures[f['source']] = f['target']
+    return SetupResponse(ready=ID, state=None, futures=futures)
+
+
 def format_setup_response(r: SetupResponse):
     d = dict(ready=r.ready, state=r.state)
     if r.futures:
@@ -91,54 +118,64 @@ def format_setup_response(r: SetupResponse):
     return d
 
 
-def parse_move(d) -> Move:
+def parse_move(d, ID=None) -> Move:
+    # Probably got from player - check for any possible inconsistency
+    if not isinstance(d, dict):
+        raise InvalidResponseError('not a valid move')
+    for k in ('pass', 'claim', 'option', 'splurge'):
+        if k in d: 
+            key = k
+            break
+    else:
+        raise InvalidResponseError('not a valid move')
+
     d = copy.deepcopy(d)
-    if 'pass' in d:
-        p = d.pop('pass')
-        if REPORT_UNKNOWN_FIELDS: assert not d, d
-        punter = p.pop('punter')
+    p = d.pop(key)
+    if REPORT_UNKNOWN_FIELDS: assert not d, d
+    if not isinstance(p, dict) or not 'punter' in p:
+        raise InvalidResponseError('not a valid move')
+
+    punter = p.pop('punter')
+    if ID is not None: punter = ID
+
+    if key == 'pass':
         if REPORT_UNKNOWN_FIELDS: assert not p, p
         return PassMove(punter=punter)
-    elif 'claim' in d:
-        p = d.pop('claim')
-        if REPORT_UNKNOWN_FIELDS: assert not d, d
-        punter = p.pop('punter')
+    elif key == 'claim' or key == 'option':
         source = p.pop('source')
         target = p.pop('target')
         if REPORT_UNKNOWN_FIELDS: assert not p, p
-        return ClaimMove(punter=punter, source=source, target=target)
-    elif 'option' in d:
-        p = d.pop('option')
-        if REPORT_UNKNOWN_FIELDS: assert not d, d
-        punter = p.pop('punter')
-        source = p.pop('source')
-        target = p.pop('target')
-        if REPORT_UNKNOWN_FIELDS: assert not p, p
-        return OptionMove(punter=punter, source=source, target=target)
-    elif 'splurge' in d:
-        p = d.pop('splurge')
-        if REPORT_UNKNOWN_FIELDS: assert not d, d
-        punter = p.pop('punter')
+        if not isinstance(source, int) or not isinstance(target, int):
+            raise InvalidResponseError('not a valid move')
+        SomeMove = ClaimMove if key == 'claim' else OptionMove
+        return SomeMove(punter=punter, source=source, target=target)
+    elif key == 'splurge':
         route = p.pop('route')
         if REPORT_UNKNOWN_FIELDS: assert not p, p
+        if not isinstance(route, list):
+            raise InvalidResponseError('not a valid move')
         return SplurgeMove(punter=punter, route=route)
-
     else:
-        assert False, d
+        assert False, key
 
-def format_move(m: Move, error=None, timespan=None):
+
+def format_move(m: Move, error=None, timespan=None, original=None):
     result = { m.key() : {'punter': m.punter}}
     if isinstance(m, PassMove):
-        if error is not None:
-            result['pass'].update({'error': error})
+        pass
     elif isinstance(m, ClaimMove) or  isinstance(m, OptionMove):
         result[m.key()].update({'source': m.source, 'target': m.target})
     elif isinstance(m, SplurgeMove):
         result[m.key()].update({'route': m.route})
     else:
         assert False, m
+    
+    if error is not None:
+        result[m.key()].update({'error': error})
     if timespan is not None:
         result[m.key()].update({'timespan': timespan})
+    if original is not None:
+        result[m.key()].update({'original': timespan})
     return result
 
 
@@ -152,6 +189,14 @@ def parse_gameplay_request(d) -> GameplayRequest:
     raw_moves = copy.deepcopy(moves)
     moves = [parse_move(move) for move in moves]
     return GameplayRequest(moves=moves, state=state, raw_moves=raw_moves)
+
+
+def parse_gameplay_response(d, ID=None) -> GameplayResponse:
+    # Got from player - check for any possible inconsistency
+    if not isinstance(d, dict) or not 'move' in d:
+        raise InvalidResponseError('not a valid move')
+    move = parse_move(d['move'], ID)
+    return GameplayResponse(move=move, state='')
 
 
 def format_gameplay_response(r: GameplayResponse):

@@ -14,47 +14,51 @@ class ConnMessage(NamedTuple):
     error: str
 
 
-def passmove(N):
-    return {'pass': {'punter': N}}
-
-
 class Connector:
+    ''' Interim between gameloop and connections.'''
+
     def __init__(self, conns):
         self.bots = conns
         self.timeouts = [0] * len(conns)
 
 
-    def send(self, ID, response, timelimit):
+    def send(self, ID, request):
+        bot = self.bots[ID]
+        if not bot.alive:
+            return      
+        bot.skip_received()
+        bot.send(request)
+
+
+    def receive(self, ID, deadline):
         bot = self.bots[ID]
         if not bot.alive:
             error = bot.reason_dead
             bot.reason_dead = 'zombie'
-            return ConnMessage(message=passmove(ID), 
+            return ConnMessage(message={'pass': {'punter': ID}}, 
                                error=error,
                                timespan=0)
 
-        bot.skip_received()
         timestart = time.time()
-        bot.send(response)
-        request = bot.receive(time.time() + timelimit + CONN_TOLERANCE)
+        response = bot.receive(deadline + CONN_TOLERANCE)
         timespan = time.time() - timestart
 
-        if isinstance(request, Dead):
-            return ConnMessage(message=passmove(ID), 
-                               error=request.reason,
+        if isinstance(response, Dead):
+            return ConnMessage(message={'pass': {'punter': ID}}, 
+                               error=response.reason,
                                timespan=0)
 
-        if isinstance(request, Timeout):
+        if isinstance(response, Timeout):
             self.timeouts[ID] += 1
-            bot.send({'timeout': timelimit})
+            bot.send({'timeout': 1})   # ??? should we really send timelimit?
             if self.timeouts[ID] >= 10:
                 bot.reason_dead = 'timeouts limit exceeded'
-            return ConnMessage(message=passmove(ID), 
+            return ConnMessage(message={'pass': {'punter': ID}}, 
                                error='timeout',
                                timespan=0)
 
-        if isinstance(request, dict):
-            return ConnMessage(message=request, 
+        if isinstance(response, dict):
+            return ConnMessage(message=response, 
                                error=None, 
                                timespan=timespan)
 
@@ -69,4 +73,3 @@ class Connector:
     def close_all(self):
         for bot in self.bots:
             bot.close()
-

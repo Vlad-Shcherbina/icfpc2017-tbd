@@ -108,7 +108,19 @@ struct Board {
         return result;
     }
 
-    int base_score(int owner, map<int, vector<int>> reachables) const {
+    int base_score(int owner) const {
+        int result = 0;
+        for (int mine : mines) {
+            for (int v : reachable_by_claimed(owner, mine)) {
+                int d = dist[mine][v];
+                assert(d != -1);
+                result += d * d;
+            }
+        }
+        return result;
+    }
+
+    int base_score_2(int owner, map<int, vector<int>> reachables) const {
         int result = 0;
         for (int mine : mines) {
             for (int v : reachables[mine]) {
@@ -128,7 +140,7 @@ struct Board {
             for (int mine : mines) {
                 reachables[mine] = reachable_by_claimed(p, mine);
             }
-            scores[p].push_back(base_score(p, reachables));
+            scores[p].push_back(base_score_2(p, reachables));
 
             if (futures_by_player.find(p) == futures_by_player.end())
                 continue;

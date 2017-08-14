@@ -5,88 +5,98 @@ from gameholder import *
 from connector import *
 from production.bot_interface import *
 from production import json_format
+from production.json_format import InvalidResponseError
 
-def gameloop(mapfile, settings, connections, names, turns):
-    replay = []
+GAMELIMIT = 1
+SETUPLIMIT = 10
+
+def gameloop(rawmap, settings, connections, names):
     N = len(names)
     assert N == len(connections)
+    replay = [{ 'punter' : i, 'name' : names[i]} for i in range(N)]
 
-    connector, gameholder = setup_game(mapfile, settings, connections, names, replay)
+    connector, gameholder = setup_game(rawmap, settings, connections, replay)
+    turns = sum([len(a) for a in gameholder.board.adj.values()]) // 2
 
     ID = 0
-    for _ in range(turns * N):
-        request = connector.send(ID, gameholder.get_response(), timelimit=1)
-        move, error = gameholder.process_request(ID, request.message)
-        if error == 'not a valid move':
-            connector.zombify(ID, error)
+    for _ in range(turns):
+        request = gameholder.get_gameplay_request()
+        connector.send(ID, request)
+        connresponse = connector.receive(ID, time.time() + GAMELIMIT)
+        error = connresponse.error
+        try:
+            move = json_format.parse_move(connresponse.message, ID)
+        except InvalidResponseError as e:
+            assert connresponse.error is None
+            connector.zombify(ID, e.msg)
+            move = PassMove(punter=ID)
+            error = e.msg
 
-        # there should appear only one not-None error
-        assert error is None or request.error is None
-        if request.error: error = request.error
-        record = json_format.format_move(move, error, request.timespan)
+        illegal_error = gameholder.process_move(move)
+
+        original = None
+        if illegal_error is not None:
+            # illegal move - change move to pass and add original
+            assert error is None
+            error = illegal_error
+            original = move
+            move = PassMove(punter=ID)
+
+        record = json_format.format_move(move, 
+                                         error=error, 
+                                         timespan=connresponse.timespan,
+                                         original=original)
         replay.append(record)
         ID = (ID + 1) % N
 
-    totals = gameholder.score()
-
+    score = gameholder.score()
+    totals = []
     for i in range(N):
-        connector.send(i, sum(totals[i]), timelimit=0.5) # 1s
-        replay.append(dict(punter=i, 
+        connector.send(i, gameholder.get_score_request())
+        totals.append(dict(punter=i, 
                            name=names[i], 
-                           score=sum(totals[i]),
-                           futures=totals[i][1:]))
-    #replay to DB
-    #new ratings to DB
-    return totals   # <-- for debug only
+                           score=score[i],
+                           futures=gameholder.totals[i][1:]))
+    replay.append({ 'scores' : totals })
+    connector.close_all()
+    return replay, score
 
 
-def setup_game(mapfile: str, 
+def setup_game(rawmap: dict, 
           settings: Settings, 
           connections: List[NetworkConnection], 
-          names: List[str],
           replay: List) -> int:
 
-    N = len(names)
-    with open(mapfile) as f:
-        m = json_format.parse_map(json.load(f))
+    N = len(connections)
+    m = json_format.parse_map(rawmap)
 
     # add only one setup to replay, to provide map and settings
     replay.append(dict(punter=0, 
                        punters=N, 
-                       map=m.raw_map, 
+                       map=rawmap, 
                        settings=json_format.format_settings(settings)))
 
     board = Gameboard(adj=m.g, mines=m.mines, N=N, settings=settings)
     gameholder = GameHolder(board)
     connector = Connector(connections)
 
+    deadlines = [None] * N
     for ID in range(N):
-        setup_response = gameholder.setup_response(ID, m.raw_map)
-        request = connector.send(ID, setup_response, timelimit=10)
-        r = reparse_setup_request(ID, request.message)
-        if r is None:
-            connector.zombify(ID, 'not a valid futures request')
-            r = { 'ready': ID }
+        setup_request = gameholder.get_setup_request(ID, m.raw_map)
+        connector.send(ID, setup_request)
+        deadlines[ID] = time.time() + SETUPLIMIT
+        time.sleep(0.1)
+
+    for ID in range(N):
+        connresponse = connector.receive(ID, deadlines[ID])
+        try:
+            r = json_format.parse_setup_response(connresponse.message, ID)
+        except InvalidResponseError as e:
+            assert connresponse.error is None
+            connector.zombify(ID, e.msg)
+            r = SetupResponse(ready=ID, state='', futures=[])
         else:
-            gameholder.process_futures(ID, r)
-        replay.append(r)
+            gameholder.process_futures(response=r)
+        replay.append(json_format.format_setup_response(r))
             
     return connector, gameholder
-
-
-# move to json_format?
-def reparse_setup_request(ID, request):
-    '''Remove any possible additional field from request for replay.'''
-    revised = { 'ready': ID }
-    if not 'futures' in request:
-        return revised
-
-    revised['futures'] = []
-    if not isinstance(request['futures'], list):
-        return None
-
-    for f in request['futures']:
-        if (not isinstance(f, dict) or not 'source' in f or not 'target' in f):
-            return None
-        revised['futures'].append(dict(source=f['source'], target=f['target']))
-    return revised
