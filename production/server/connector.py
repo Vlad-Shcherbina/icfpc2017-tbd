@@ -71,7 +71,7 @@ class Connector:
                                error=None, 
                                timespan=timespan)
 
-        assert False, request
+        assert False, response
 
 
     def zombify(self, ID: int, msg: str):

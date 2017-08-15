@@ -10,7 +10,10 @@ from production.json_format import InvalidResponseError
 GAMELIMIT = 1
 SETUPLIMIT = 10
 
-def gameloop(rawmap, settings, connections, names):
+def gameloop(m: Map, 
+             settings: Settings, 
+             connections: List[NetworkConnection], 
+             names: List[str]):
     '''Main loop for single game. Connects players and gamestate.
 
     Holds the game and returns replay (List[Dict]) and summary scores.
@@ -18,9 +21,9 @@ def gameloop(rawmap, settings, connections, names):
     '''
     N = len(names)
     assert N == len(connections)
-    replay = {'participants' : [{ 'punter' : i, 'name' : names[i]} for i in range(N)]}
+    replay = [{'participants' : [{ 'punter' : i, 'name' : names[i]} for i in range(N)]}]
 
-    connector, gameholder = setup_game(rawmap, settings, connections, replay)
+    connector, gameholder = setup_game(m, settings, connections, replay)
     turns = sum([len(a) for a in gameholder.board.adj.values()]) // 2
 
     # Game starts!
@@ -68,18 +71,18 @@ def gameloop(rawmap, settings, connections, names):
     return replay, score
 
 
-def setup_game(rawmap: dict, 
+def setup_game(m: Map, 
           settings: Settings, 
           connections: List[NetworkConnection], 
           replay: List) -> int:
+
     '''Pre-loop setups: create gameholder and connector and send setup requests.'''
     N = len(connections)
-    m = json_format.parse_map(rawmap)
 
     # add one setup request to replay, to provide map and settings
     replay.append(dict(punter=0, 
                        punters=N, 
-                       map=rawmap, 
+                       map=m.raw_map, 
                        settings=json_format.format_settings(settings)))
 
     board = Gameboard(adj=m.g, mines=m.mines, N=N, settings=settings)
@@ -95,14 +98,17 @@ def setup_game(rawmap: dict,
 
     for ID in range(N):
         connresponse = connector.receive(ID, deadlines[ID])
-        try:
-            r = json_format.parse_setup_response(connresponse.message, ID)
-        except InvalidResponseError as e:
-            assert connresponse.error is None
-            connector.zombify(ID, e.msg)
+        if 'pass' in connresponse.message:
             r = SetupResponse(ready=ID, state='', futures=[])
         else:
-            gameholder.process_futures(response=r)
+            try:
+                r = json_format.parse_setup_response(connresponse.message, ID)
+            except InvalidResponseError as e:
+                assert connresponse.error is None, connresponse.error
+                connector.zombify(ID, e.msg)
+                r = SetupResponse(ready=ID, state='', futures=[])
+            else:
+                gameholder.process_futures(response=r)
         replay.append(json_format.format_setup_response(r))
             
     return connector, gameholder

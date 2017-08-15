@@ -77,17 +77,17 @@ class NetworkConnection:
             if colon_pos >= 0:
                 break
             if len(buf) > 9:
-                self.reason_dead = 'message length is too long'
+                self.kick('message length is too long', True)
                 return Dead(reason=self.reason_dead)
             self.socket.settimeout(max(1e-3, deadline - time.time()))
             buf.extend(self.socket.recv(4096))
 
         if colon_pos > 9:
-            self.reason_dead = 'message length is too long'
+            self.kick('message length is too long', True)
             return Dead(reason=self.reason_dead)
 
         if not re.match(b'\d+$', buf[:colon_pos]):
-            self.reason_dead = 'message length is not a number'
+            self.kick('message length is not a number', True)
             return Dead(reason=self.reason_dead)
 
         msg_len = int(buf[:colon_pos].decode())
@@ -101,11 +101,11 @@ class NetworkConnection:
         try:
             res = json.loads(buf[colon_pos + 1 : msg_end])
         except json.JSONDecodeError:
-            self.reason_dead = 'not a valid JSON'
+            self.kick('not a valid JSON', True)
             return Dead(reason=self.reason_dead)
 
         if not isinstance(res, dict):
-            self.reason_dead = 'not a valid move'  # not a dict
+            self.kick('not a valid move', True)  # not a dict
             return Dead(reason=self.reason_dead)
 
         del buf[:msg_end]
@@ -155,12 +155,15 @@ class NetworkConnection:
             self.reason_dead = 'peer disconnected'
         self.buf.extend(data)
 
-    def kick(self, reason):
+    def kick(self, reason, inner=False):
         if not self.alive:
             return
-        self.reason_dead = f'kicked ({reason})'
+
+        if inner:   self.reason_dead = reason
+        else:       self.reason_dead = f'kicked ({reason})'
+
         try:
-            msg = '{"kicked": "' + reason + '"}'
+            msg = '{"kicked": "' + str(reason) + '"}'
             self.socket.sendall((f'%d:%s' % (len(msg), msg)).encode())
         except socket.timeout:
             pass

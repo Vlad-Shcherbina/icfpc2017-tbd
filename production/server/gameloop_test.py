@@ -57,7 +57,7 @@ class FileBot(threading.Thread):
         text.close()
 
 
-def gameloop_from_file(N, testfiles, settings, rawmap, result=None):
+def gameloop_from_file(N, testfiles, settings, m, result=None):
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(('127.0.0.1', 42424))
     server.listen(1)
@@ -76,7 +76,7 @@ def gameloop_from_file(N, testfiles, settings, rawmap, result=None):
         conns.append(conn)
         bots[i].start()
 
-    _, t = gameloop(rawmap, settings, conns, [str(i) for i in range(N)])
+    _, t = gameloop(m, settings, conns, [str(i) for i in range(N)])
     for bot in bots: bot.join()
     assert result is None or t == result
 
@@ -91,16 +91,16 @@ def test_gameloop_simple():
     testfiles = [testfolder / (f'testbot{i}.txt') for i in range(N)]
 
     with open(project_root() / 'maps' / 'official_map_samples' / 'sample.json', 'r') as f:
-        rawmap = json.load(f)
+        m = json_format.parse_map(json.load(f))
 
     settings = Settings(options=True, 
                         futures=True, 
                         splurges=False, 
                         raw_settings='')
     result = [-7, 16]        # [[1, -8], [15, 1]]
-    gameloop_from_file(N, testfiles, settings, rawmap, result)
+    gameloop_from_file(N, testfiles, settings, m, result)
 
 
 if __name__ == '__main__':
-    #test_gameloop_simple()
+    test_gameloop_simple()
     test_gameholder_from_file()

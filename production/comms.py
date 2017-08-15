@@ -206,7 +206,7 @@ def online_mainloop_pseudoasync(host, port, name: str, bot: bi.Bot, on_comms_cb=
         res = bot.gameplay(req)
         tr.send_gameplay_response(res)
 
-    match_history.submit_replay(name, game, tr.conn.capturelog)
+    #match_history.submit_replay(name, game, tr.conn.capturelog)
     yield req
 
 
