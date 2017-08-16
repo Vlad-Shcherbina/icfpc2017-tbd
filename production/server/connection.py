@@ -58,7 +58,7 @@ class NetworkConnection:
 
         s = json.dumps(msg).encode()
         s = b'%d:%b' % (len(s), s)
-        logger.debug(f'send({s})')
+        #logger.debug(f'send({s})')
 
         self.socket.settimeout(0.5)
         try:
@@ -109,7 +109,7 @@ class NetworkConnection:
             return Dead(reason=self.reason_dead)
 
         del buf[:msg_end]
-        logger.debug(f'recv({res})')
+        #logger.debug(f'recv({res})')
 
         return res
 
@@ -151,6 +151,7 @@ class NetworkConnection:
         except OSError:
             logger.exception('recheck failed')
             self.reason_dead = 'recheck failed'
+            return
         if not data:
             self.reason_dead = 'peer disconnected'
         self.buf.extend(data)

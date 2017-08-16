@@ -1,6 +1,6 @@
 from typing import NamedTuple, Optional
 import time
-from connection import *
+from production.server.connection import *
 
 import logging;
 logger = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ class Connector:
 
         if isinstance(response, Timeout):
             self.timeouts[ID] += 1
-            bot.send({'timeout': 1})   # ??? should we really send timelimit?
+            bot.send({'timeout': 0})   # ??? should we really send timelimit?
             if self.timeouts[ID] >= 10:
                 bot.reason_dead = 'timeouts limit exceeded'
             return ConnMessage(message={'pass': {'punter': ID}}, 
@@ -77,6 +77,7 @@ class Connector:
     def zombify(self, ID: int, msg: str):
         self.bots[ID].kick(reason=msg)
         self.bots[ID].reason_dead = 'zombie'
+        self.bots[ID].close()
 
 
     def close_all(self):
