@@ -80,7 +80,11 @@ class NetworkConnection:
                 self.kick('message length is too long', True)
                 return Dead(reason=self.reason_dead)
             self.socket.settimeout(max(1e-3, deadline - time.time()))
-            buf.extend(self.socket.recv(4096))
+            msg = self.socket.recv(4096)
+            if not msg:
+                self.reason_dead = 'peer disconnected'
+                return Dead(reason=self.reason_dead)
+            buf.extend(msg)
 
         if colon_pos > 9:
             self.kick('message length is too long', True)
@@ -96,7 +100,12 @@ class NetworkConnection:
         msg_end = colon_pos + 1 + msg_len
         while len(buf) < msg_end:
             self.socket.settimeout(max(1e-3, deadline - time.time()))
-            buf.extend(self.socket.recv(4096))
+            msg = self.socket.recv(4096)
+            if not msg:
+                self.reason_dead = 'peer disconnected'
+                return Dead(reason=self.reason_dead)
+            buf.extend(msg)
+
 
         try:
             res = json.loads(buf[colon_pos + 1 : msg_end])
@@ -133,7 +142,12 @@ class NetworkConnection:
         self.socket.settimeout(1e-3)
         try:
             while True:
-                self.socket.recv(4096)
+                msg = self.socket.recv(4096)
+                if not msg:
+                    self.reason_dead = 'peer disconnected'
+                    return Dead(reason=self.reason_dead)
+            buf.extend(msg)
+
         except socket.timeout:
             pass
         except OSError:

@@ -72,6 +72,17 @@ def format_settings(s: Settings) -> dict:
     return dict(futures=s.futures, options=s.options, splurges=s.splurges)
 
 
+def parse_handshake_response(d) -> str:
+    # Got from player - check for any possible inconsistency
+    if not isinstance(d, dict): 
+        raise InvalidResponseError('not a valid handshake response')
+    if (not 'me' in d):
+        raise InvalidResponseError('not a valid handshake response')
+    if not isinstance(d['me'], str):
+        raise InvalidResponseError('not a valid handshake response')
+    return d['me']
+
+
 def parse_setup_request(d) -> SetupRequest:
     d = copy.deepcopy(d)
     punter = d.pop('punter')

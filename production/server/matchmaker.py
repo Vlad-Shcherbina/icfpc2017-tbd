@@ -1,6 +1,8 @@
 from random import random, randrange
 from typing import NamedTuple, List, Optional, Dict
 from math import exp, factorial
+from collections import defaultdict
+import trueskill
 import json
 import os
 import time
@@ -14,12 +16,15 @@ logger = logging.getLogger(__name__)
 
 
 MAX_PLAYERS = 3 #16
-P_THRESHOLD = 0.5
+WAITING_THRESHOLD = 0.95
 
 
-class Rating(NamedTuple):
+class PlayerStats(NamedTuple):
+    name: str
     games: int
-    rating: float
+    mu: float
+    sigma: float
+
     large: float
     medium: float
     small: float
@@ -29,24 +34,18 @@ class Rating(NamedTuple):
     opponents: Dict[str, float]
 
 
-class PlayerRating(NamedTuple):
-    name: str
-    rating: Rating
+class ConnInfo(NamedTuple):
+    stats: PlayerStats
     deadline: float
 
 
-class Match(NamedTuple):
+class MatchInfo(NamedTuple):
     participants: List[bool]
     map: Map
     settings: Settings
 
 
-def probability(rate, t, N):
-    '''Given rate (number of connections per second), return probability that
-    at least N connections will be made in next t seconds.
-    '''
-    return sum(((rate*t) ** i) * exp(-rate*t) / factorial(i) for i in range(N))
-
+#--------------------------- MAKE MATCH --------------------------------#
 
 def random_map():
     '''Return random loaded map and random settings.'''
@@ -54,64 +53,114 @@ def random_map():
     maps = os.listdir(mapdir)
     with open(mapdir / maps[randrange(len(maps))], 'r') as mapfile:
         m = parse_map(json.load(mapfile))
+
     setts = Settings(options = True if random() > 0.5 else False,
                      splurges = True if random() > 0.5 else False,
                      futures = True if random() > 0.5 else False,
                      raw_settings = '')
+
     return (m, setts)
 
 
-def one_player_priority(player: PlayerRating, conncount: int) -> float:
-    return max(0, deadline - time.time()) * player.games * conncount
+def poissonflow(rate, t, N):
+    '''Given rate (number of connections per second), return probability that
+    at least N connections will be made in next t seconds.
+    '''
+    L = rate * t
+    S = P = 1
+    for i in range(1, N + 1):
+        P *= (L / i)
+        S += P
+    return S * exp(-rate * t)
 
-def players_priority(players: List[PlayerRating]):
-    conncounts = {}
-    for i, p in enumerate(player):
-        if p not in conncounts:
-            conncounts[p.name] = []
-        conncounts[p.name].append(i)
+
+def _player_priority(player: ConnInfo, conncount: int) -> float:
+    return max(0, player.deadline - time.time()) * player.stats.games * conncount
+
+def players_priority(players: List[ConnInfo]):
+    '''Return list of pairs (priority, index) sorted by priority.
+
+    Priority is an arbitrary number, less is better, 0 if deadline has passed.
+    Index is player's index number in the initial list.
+    '''
+    conncounts = defaultdict(list)
+    for i, p_info in enumerate(players):
+        conncounts[p_info.stats.name].append(i)
+    
     priorities = []
     for name in conncounts:
-        r = one_player_priority(players[conncounts[name][0]], len(conncounts[name]))
+        assert conncounts[name], name    # no empty lists!
+        r = _player_priority(players[conncounts[name][0]], len(conncounts[name]))
         for i in conncounts[name]:
             priorities.append((r, i))
     priorities.sort(key=lambda x: x[0])
     return priorities
 
 
-def make_match(players: List[PlayerRating], conn_rate) -> Optional[Match]:
-    m, settings = random_map()
-    if len(players) < min(len(m.mines), MAX_PLAYERS):
+def match(players: List[ConnInfo], conn_rate) -> Optional[MatchInfo]:
+    if len(players) < MAX_PLAYERS:
+        logger.debug('Not enought players')
         return None
 
-    if (len(players) < len(m.mines) + MAX_PLAYERS 
+    # any reason to wait longer?
+    if (len(players) < MAX_PLAYERS * 2
         and players[0].deadline > time.time()
-        and probability(conn_rate, 
-                        players[0].deadline - time.time(),
-                        len(m.mines) + MAX_PLAYERS - len(players)) > P_THRESHOLD):
-        pass
-
-
-
-    return Match(participants = [True] * len(m.mines) + [False] * (len(players) - len(m.mines)),
-                 map = m,
-                 settings = settings)
-
-
-    if len(players) < 2:
-#        logger.debug('no match found')
-
+        and poissonflow(conn_rate, 
+                        (players[0].deadline - time.time()),
+                        (MAX_PLAYERS * 2 - len(players))
+                        ) > WAITING_THRESHOLD):
+        logger.debug('Waiting for a better player')
         return None
-    if random() < 0.6:
-        logger.debug('no match found')
-        return None
-    with open(project_root() / 'maps' / 'official_map_samples' / 'sample.json', 'r') as f:
-        m = parse_map(json.load(f))
-#    logger.debug('match found')
-    return Match(participants=[True] * 2 + [False] * (len(players) - 2), 
-                 map=m, 
-                 settings=Settings(futures=True, options=True, splurges=True, raw_settings=''))
 
+    m, settings = random_map()
+    priorities = players_priority(players)
+    participants = [False] * len(players)
+    N = min(len(m.mines), MAX_PLAYERS)
+    for r, i in priorities[:N]:
+        participants[i] = True
+
+    logger.debug('Making new match')
+    return MatchInfo(participants=participants, map=m, settings=settings)
+
+
+#------------------------- GET NEW RATINGS -----------------------------#
+
+# Temp! will receive and return data in another format 
+# (not binded to trueskill module)
+def rate(players, scores):
+    env = trueskill.TrueSkill(mu    = 50.0, 
+                              sigma = 50.0/3, 
+                              beta  = 50.0/6, 
+                              tau   = 50.0/3/100, 
+                              draw_probability = 0.05)
+    rates = [[trueskill.Rating(p.stats.mu, p.stats.sigma)] for p in players]
+
+    d = { s : i for i, s in enumerate(sorted(scores, reverse=True)) }
+    places = [d[s] for s in scores]
+
+    new_rates = env.rate(rates, places)
+    return [r[0] for r in new_rates]
+    #leaderboard = sorted(ratings, key=env.expose, reverse=True)
+
+
+#-----------------------------------------------------------------------#
 
 if __name__ == '__main__':
-    random_map()
+    def rating_by_player(token: str):
+        return PlayerStats(name=token,
+                          games=randrange(1000), 
+                          mu=random() * 100,
+                          sigma=random() * 50 / 3,
+                          large=random(),
+                          medium=random(),
+                          small=random(),
+                          futures=random(),
+                          options=random(),
+                          splurges=random(),
+                          opponents={})
+
+    p1 = ConnInfo(rating_by_player('julie'), 1)
+    p2 = ConnInfo(rating_by_player('me'), 2)
+    print(p1.stats.name, p1.stats.mu, p1.stats.sigma)
+    print(p2.stats.name, p2.stats.mu, p2.stats.sigma)
+    print(rate([p1, p2], [50, -10]))

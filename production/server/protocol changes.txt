@@ -1,0 +1,23 @@
+Changes in protocol:
+
+1) At handshake stage you send {"me": token} instead of {"me": name}. 
+You may receive {"you": name} or {"kicked": reason} in response.
+In the first case you'll be send registered bot name.
+The second may appear if server accepts no more players or if you bot has too many simultaneous connections.
+2) If you timed out, you get {"timeout": 0} - without indicating time limit. Time limits are stated in protocols.
+3) During the game if you are kicked due to invalid request, you'll be sent message: {"kicked": reason}.
+
+
+Replay format:
+
+1) Handshakes are not recorded in replay. Instead there is a single key "participants" in the beginning:
+        {"participants": [{"punter": number, "name": name }, ... ]}
+2) Setup request is only recorded once (for punter 0), to provide map and settings
+3) No gameplay requests from server are recorded
+4) Gameplay responses from players are saved in the order they are send, every erroneous move is changed to pass. They have several additional fields:
+        * moveno - move number, to additionally assert their order;
+        * timespan - answering time (measured at server). Not recorded for setup response and erroneous moves;
+        * error - for forced passes, states the error that occured;
+        * original - if move was valid, but illegal at given map (river already claimed or non-existent, extension absent), the originally declared move is recorded here.
+5) Score record hasn't last moves, and is formatted: {"scores": [score_record]}, where:
+        score_record is {"punter": punter, "name": name, "score": score, "futures": [...]}
