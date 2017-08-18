@@ -1,8 +1,8 @@
 import logging;
 logger = logging.getLogger(__name__)
 
-from gameholder import *
-from connector import *
+from production.server.gameholder import *
+from production.server.connector import *
 from production.bot_interface import *
 from production import json_format
 from production.json_format import InvalidResponseError

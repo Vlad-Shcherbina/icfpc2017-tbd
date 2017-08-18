@@ -4,7 +4,7 @@ import threading
 
 import pytest
 
-from connection import NetworkConnection, Timeout, Dead
+from production.server.connection import NetworkConnection, Timeout, Dead
 
 
 @pytest.fixture
