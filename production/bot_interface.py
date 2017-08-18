@@ -155,6 +155,7 @@ class Story(NamedTuple):
     score: Optional[Dict[int, int]] = None  # score as reported by the server
 
     def remaining_options(self) -> int:
+        # TODO: splurge can option rivers too
         r = 0
         if self.settings.options:
             r = len(self.map.mines)

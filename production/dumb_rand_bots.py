@@ -54,7 +54,9 @@ class RandMoveBot(Bot):
         if move is None:
             # Try to claim or option
             rivers = []
-            options_left = state['punters']
+
+            # TODO: reuse Story.remaining_options() once fixed
+            options_left = state['punters'] if settings.options else 0
 
             for u, adj in enumerate(board.adj):
                 for v in adj:
