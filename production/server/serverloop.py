@@ -86,7 +86,7 @@ class ServerStatistics():
         self.connected_at[self.c_ind] = time.time() - self.last_connection
         self.last_connection = time.time()
         self.c_ind = (self.c_ind + 1) % self.STATRANGE
-        if self.n_connected % 10 == 0: self.log()    # Temp! make 100
+        if self.n_connected % 10 == 0: self.log()    # Temp! make 100   
 
     def reg_disconnect(self, deadline):
         self.n_disconnected += 1
@@ -146,12 +146,12 @@ class GameThread(threading.Thread):
 
 #--------------------------- SERVER LOOP -------------------------------#
 
-def connectserver(aux: bool):
+def connectserver(port, timeout):
     '''Initial server connection. Return server socket.'''
-    address = '127.0.0.1', (45454 if aux else 42424)
+    address = '127.0.0.1', port
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(address)
-    server.settimeout(.5 if aux else 5)
+    server.settimeout(timeout)
     server.listen(10)
     return server
 
@@ -258,8 +258,8 @@ def _resolve_ended_games(games, conns_by_token, db, stats):
 
 def serverloop():
     '''Main loop. Accept connections, gather players for match and start games.'''
-    server = connectserver(aux=False)
-    aux_server = connectserver(aux=True)
+    server = connectserver(42424, timeout=5)
+    aux_server = connectserver(45454, timeout=.5)
     logger.info('Server started successfully')
     waiting = []
     conns_by_token = defaultdict(int)

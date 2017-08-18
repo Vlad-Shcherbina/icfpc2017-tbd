@@ -14,7 +14,7 @@ def test_gameholder_from_file():
     s = Settings(futures=True, 
                  splurges=False, 
                  options=True, 
-                 raw_settings='')
+                 raw_settings={})
     mapfile = project_root() / 'maps' / 'official_map_samples' / 'sample.json'
     with open(mapfile) as f:
         m = json_format.parse_map(json.load(f))
@@ -96,7 +96,7 @@ def test_gameloop_simple():
     settings = Settings(options=True, 
                         futures=True, 
                         splurges=False, 
-                        raw_settings='')
+                        raw_settings={})
     result = [-7, 16]        # [[1, -8], [15, 1]]
     gameloop_from_file(N, testfiles, settings, m, result)
 

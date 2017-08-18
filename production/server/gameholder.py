@@ -1,4 +1,4 @@
-from typing import NamedTuple, List, Dict, Union
+from typing import NamedTuple, List, Dict, Union, Set
 import json
 
 import logging;
@@ -21,7 +21,7 @@ class Gameboard:
     Checks if move is legal and carries it out. Holds the current state 
     of the game. Does not count score.
     '''
-    def __init__(self, adj: Graph, mines: Set, N: int, settings: Settings):
+    def __init__(self, adj: Graph, mines: Set[int], N: int, settings: Settings):
         self.adj = adj
         self.mines = mines
         self.claimed_by = {}

@@ -1,5 +1,5 @@
 from random import random, randrange
-from typing import NamedTuple, List, Optional, Dict
+from typing import NamedTuple, List, Optional, Dict, Tuple
 from math import exp, factorial
 from collections import defaultdict
 import trueskill
@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 MAX_PLAYERS = 3 #16
 WAITING_THRESHOLD = 0.95
+LARGE = 1000
+SMALL = 100
 
 
 class PlayerStats(NamedTuple):
@@ -25,13 +27,13 @@ class PlayerStats(NamedTuple):
     mu: float
     sigma: float
 
-    large: float
-    medium: float
-    small: float
-    futures: float
-    options: float
-    splurges: float
-    opponents: Dict[str, float]
+    large: int
+    medium: int
+    small: int
+    futures: int
+    options: int
+    splurges: int
+    opponents: Dict[str, int]
 
 
 class ConnInfo(NamedTuple):
@@ -47,17 +49,16 @@ class MatchInfo(NamedTuple):
 
 #--------------------------- MAKE MATCH --------------------------------#
 
-def random_map():
-    '''Return random loaded map and random settings.'''
+def random_map() -> Tuple[Map, Settings]:
     mapdir = project_root() / 'maps' / 'official_map_samples'
     maps = os.listdir(mapdir)
-    with open(mapdir / maps[randrange(len(maps))], 'r') as mapfile:
+    with open(mapdir / random.choice(maps), 'r') as mapfile:
         m = parse_map(json.load(mapfile))
 
     setts = Settings(options = True if random() > 0.5 else False,
                      splurges = True if random() > 0.5 else False,
                      futures = True if random() > 0.5 else False,
-                     raw_settings = '')
+                     raw_settings = {})
 
     return (m, setts)
 
@@ -88,11 +89,9 @@ def players_priority(players: List[ConnInfo]):
         conncounts[p_info.stats.name].append(i)
     
     priorities = []
-    for name in conncounts:
-        assert conncounts[name], name    # no empty lists!
-        r = _player_priority(players[conncounts[name][0]], len(conncounts[name]))
-        for i in conncounts[name]:
-            priorities.append((r, i))
+    for i, p_info in enumerate(players):
+        r = _player_priority(p_info, len(conncounts[p_info.stats.name]))
+        priorities.append((r, i))
     priorities.sort(key=lambda x: x[0])
     return priorities
 
@@ -125,23 +124,46 @@ def match(players: List[ConnInfo], conn_rate) -> Optional[MatchInfo]:
 
 #------------------------- GET NEW RATINGS -----------------------------#
 
-# Temp! will receive and return data in another format 
-# (not binded to trueskill module)
-def rate(players, scores):
+def revise_ratings(players: List[PlayerStats], scores):
+    # returns list of pairs (mu, sigma) in the corresponding order.
     env = trueskill.TrueSkill(mu    = 50.0, 
                               sigma = 50.0/3, 
                               beta  = 50.0/6, 
                               tau   = 50.0/3/100, 
-                              draw_probability = 0.05)
-    rates = [[trueskill.Rating(p.stats.mu, p.stats.sigma)] for p in players]
+                              draw_probability = 0.05)    # <-- or what?
+    rates = [[trueskill.Rating(p.mu, p.sigma)] for p in players]
 
     d = { s : i for i, s in enumerate(sorted(scores, reverse=True)) }
+    # Luckily this means [10, 10, 0] <-- first two players share 2nd place.
     places = [d[s] for s in scores]
 
     new_rates = env.rate(rates, places)
-    return [r[0] for r in new_rates]
+    return [(r[0].mu, r[0].sigma) for r in new_rates]
+
     #leaderboard = sorted(ratings, key=env.expose, reverse=True)
 
+
+def revise_players(players: List[PlayerStats], scores, settings, mapsites):
+    names = set(p.name for p in players)
+    revised = []
+    new_ratings = recalc_rating(players, scores)
+    for i, p in enumerate(players):
+        opponents = defaultdict(int)
+        opponents.update(p.opponents)
+        for name in names:
+            if not n == p.name:
+                opponents[name] += 1
+        revised.append(PlayerStats(name = p.name,
+                                   mu = new_ratings[i][0],
+                                   sigma = new_ratings[i][1],
+                                   large = p.large + (mapsites >= LARGE),
+                                   medium = p.medium + (mapsites < LARGE and mapsites > SMALL),
+                                   small = p.small + (mapsites <= SMALL),
+                                   futures = p.futures + settings.futures,
+                                   options = p.options + settings.options,
+                                   splurges = p.splurges + settings.splurges,
+                                   opponents = opponents))
+    return revised
 
 #-----------------------------------------------------------------------#
 
@@ -151,16 +173,16 @@ if __name__ == '__main__':
                           games=randrange(1000), 
                           mu=random() * 100,
                           sigma=random() * 50 / 3,
-                          large=random(),
-                          medium=random(),
-                          small=random(),
-                          futures=random(),
-                          options=random(),
-                          splurges=random(),
+                          large=randrange(1000),
+                          medium=randrange(1000),
+                          small=randrange(1000),
+                          futures=randrange(1000),
+                          options=randrange(1000),
+                          splurges=randrange(1000),
                           opponents={})
 
     p1 = ConnInfo(rating_by_player('julie'), 1)
     p2 = ConnInfo(rating_by_player('me'), 2)
     print(p1.stats.name, p1.stats.mu, p1.stats.sigma)
     print(p2.stats.name, p2.stats.mu, p2.stats.sigma)
-    print(rate([p1, p2], [50, -10]))
+    print(recalc_rating([p1.stats, p2.stats], [50, -10]))
