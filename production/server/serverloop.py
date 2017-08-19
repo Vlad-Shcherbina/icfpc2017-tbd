@@ -10,8 +10,9 @@ from random import randrange, random
 from production.server.connection import NetworkConnection, Timeout, Dead
 from production.server.gameloop import gameloop
 from production.bot_interface import Settings, Map
+from production.server.server_interface import
 from production.json_format import parse_handshake_response, InvalidResponseError
-import production.server.matchmaker as matchmaker
+from production.server.matchmaker import match
 
 import logging
 logger = logging.getLogger(__name__)
@@ -42,13 +43,13 @@ SERVER_COMMANDS = (SC_STOP, )
 class WaitingPlayer(NamedTuple):
     token: str
     name: str
-    rating: matchmaker.PlayerStats
+    rating: PlayerStats
     conn: NetworkConnection
     deadline: int
 
     def conninfo(self):
         '''Shorter version for matchmaker.'''
-        return matchmaker.ConnInfo(stats=self.rating, deadline=self.deadline)
+        return ConnInfo(stats=self.rating, deadline=self.deadline)
 
 
 class ServerStatistics():
@@ -228,7 +229,7 @@ def _remove_from_conns(conns_by_token, token):
 
 def _call_match_maker(waiting, ongoing, stats):
     # return revised waiting list
-    match = matchmaker.match([p.conninfo() for p in waiting], stats.connection_rate())
+    match = match([p.conninfo() for p in waiting], stats.connection_rate())
     if match is None: 
         return waiting
     players = list(compress(waiting, match.participants))
@@ -293,17 +294,10 @@ def serverloop():
 # TEMP!
 def load_player(token: str):
     # get id from database
-    return matchmaker.PlayerStats(name=token,
+    return PlayerStats(name=token,
                   games=randrange(1000), 
                   mu=random() * 100,
-                  sigma=random() * 50 / 3,
-                  large=random(),
-                  medium=random(),
-                  small=random(),
-                  futures=random(),
-                  options=random(),
-                  splurges=random(),
-                  opponents={})
+                  sigma=random() * 50 / 3)
 
 
 if __name__ == '__main__':

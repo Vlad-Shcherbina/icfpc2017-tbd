@@ -9,6 +9,7 @@ import time
 
 from production.utils import project_root
 from production.bot_interface import Map, Settings
+from production.server.server_interface import *
 from production.json_format import parse_map
 
 import logging
@@ -19,32 +20,6 @@ MAX_PLAYERS = 3 #16
 WAITING_THRESHOLD = 0.95
 LARGE = 1000
 SMALL = 100
-
-
-class PlayerStats(NamedTuple):
-    name: str
-    games: int
-    mu: float
-    sigma: float
-
-    large: int
-    medium: int
-    small: int
-    futures: int
-    options: int
-    splurges: int
-    opponents: Dict[str, int]
-
-
-class ConnInfo(NamedTuple):
-    stats: PlayerStats
-    deadline: float
-
-
-class MatchInfo(NamedTuple):
-    participants: List[bool]
-    map: Map
-    settings: Settings
 
 
 #--------------------------- MAKE MATCH --------------------------------#
@@ -143,26 +118,21 @@ def revise_ratings(players: List[PlayerStats], scores):
     #leaderboard = sorted(ratings, key=env.expose, reverse=True)
 
 
-def revise_players(players: List[PlayerStats], scores, settings, mapsites):
+def revise_players(players: List[PlayerStats], scores):
     names = set(p.name for p in players)
     revised = []
     new_ratings = recalc_rating(players, scores)
     for i, p in enumerate(players):
-        opponents = defaultdict(int)
-        opponents.update(p.opponents)
-        for name in names:
-            if not n == p.name:
-                opponents[name] += 1
+        # opponents = defaultdict(int)
+        # opponents.update(p.opponents)
+        # for name in names:
+        #     if not n == p.name:
+        #         opponents[name] += 1
         revised.append(PlayerStats(name = p.name,
+                                   games = p.games + 1,
                                    mu = new_ratings[i][0],
                                    sigma = new_ratings[i][1],
-                                   large = p.large + (mapsites >= LARGE),
-                                   medium = p.medium + (mapsites < LARGE and mapsites > SMALL),
-                                   small = p.small + (mapsites <= SMALL),
-                                   futures = p.futures + settings.futures,
-                                   options = p.options + settings.options,
-                                   splurges = p.splurges + settings.splurges,
-                                   opponents = opponents))
+                                   ))
     return revised
 
 #-----------------------------------------------------------------------#
@@ -173,13 +143,7 @@ if __name__ == '__main__':
                           games=randrange(1000), 
                           mu=random() * 100,
                           sigma=random() * 50 / 3,
-                          large=randrange(1000),
-                          medium=randrange(1000),
-                          small=randrange(1000),
-                          futures=randrange(1000),
-                          options=randrange(1000),
-                          splurges=randrange(1000),
-                          opponents={})
+                          )
 
     p1 = ConnInfo(rating_by_player('julie'), 1)
     p2 = ConnInfo(rating_by_player('me'), 2)

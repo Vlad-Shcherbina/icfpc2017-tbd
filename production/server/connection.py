@@ -158,8 +158,8 @@ class NetworkConnection:
         if not self.alive:
             return
         self.socket.settimeout(1e-3)
-            try:
-                data = self.socket.recv(1)
+        try:
+            data = self.socket.recv(1)
         except socket.timeout:
             return
         except OSError:
