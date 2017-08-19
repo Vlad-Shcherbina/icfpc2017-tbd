@@ -69,7 +69,7 @@ class ServerStatistics():
         self.started_at = [None] * self.STATRANGE
         self.s_ind = 0
 
-        self.games_running = 0
+        self.ongoing = 0
 
     def log(self):
         logger.info(f'Server statistics:\n'
@@ -79,7 +79,7 @@ class ServerStatistics():
             f'disconnections while waiting:             '
             f'{(self.n_disconnected/self.n_connected*100):.1f}%\n'
             f'averate waiting time before game:         {self.avg_started():.3f}\n'
-            f'games currently running:                  {self.games_running}')
+            f'games currently running:                  {self.ongoing}')
 
     def reg_connect(self):
         self.n_connected += 1
@@ -194,7 +194,7 @@ def handshake(conn: socket.socket, conns_by_token, accept) -> Optional[WaitingPl
     conns_by_token[token] += 1
     player = load_player(token)     # temp! get from db_connections
     conn.send({'you': player.name})
-    return WaitingPlayer(token, player.name, load_player(player.name), conn, time.time() + 60)
+    return WaitingPlayer(token, player.name, load_player(player.name), conn, time.time() + 55)
 
 
 def _accept_new_connection(server, waiting, conns_by_token, accept, db, stats):
@@ -226,7 +226,7 @@ def _remove_from_conns(conns_by_token, token):
         del conns_by_token[token]
 
 
-def _call_match_maker(waiting, games, stats):
+def _call_match_maker(waiting, ongoing, stats):
     # return revised waiting list
     match = matchmaker.match([p.conninfo() for p in waiting], stats.connection_rate())
     if match is None: 
@@ -237,14 +237,14 @@ def _call_match_maker(waiting, games, stats):
         stats.reg_start(p.deadline)
     game.running = True
     game.start()
-    games.append(game)
+    ongoing.append(game)
     waiting[:] = list(compress(waiting, (not x for x in match.participants)))
 
 
-def _resolve_ended_games(games, conns_by_token, db, stats):
+def _resolve_ended_games(ongoing, conns_by_token, db, stats):
     # return revised game list
     games_running = []
-    for g in games:
+    for g in ongoing:
         if g.running:
             games_running.append(g)
             continue
@@ -253,7 +253,7 @@ def _resolve_ended_games(games, conns_by_token, db, stats):
         for p in g.players:
             _remove_from_conns(conns_by_token, p.token)
         # replay and rating to DB
-    games[:] = games_running
+    ongoing[:] = games_running
 
 
 def serverloop():
@@ -263,12 +263,12 @@ def serverloop():
     logger.info('Server started successfully')
     waiting = []
     conns_by_token = defaultdict(int)
-    games = []
+    ongoing = []
     stats = ServerStatistics()
     accept_players = True
     db = None
 
-    while accept_players or games:
+    while accept_players or ongoing:
         # get technical commands
         command = _get_command(aux_server)
         if command == SC_STOP:
@@ -279,14 +279,15 @@ def serverloop():
 
         # if smb's already disconnected, remove them
         _check_disconnected(waiting, conns_by_token, stats)
+        print(len(waiting))
 
         # make match and start a new game
-        _call_match_maker(waiting, games, stats)
+        _call_match_maker(waiting, ongoing, stats)
 
         # if any game ended, clean up
-        _resolve_ended_games(games, conns_by_token, db, stats)
+        _resolve_ended_games(ongoing, conns_by_token, db, stats)
 
-        stats.games_running = len(games)
+        stats.ongoing = len(ongoing)
     
 
 # TEMP!

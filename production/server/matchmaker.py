@@ -1,4 +1,4 @@
-from random import random, randrange
+from random import random, randrange, choice
 from typing import NamedTuple, List, Optional, Dict, Tuple
 from math import exp, factorial
 from collections import defaultdict
@@ -52,7 +52,7 @@ class MatchInfo(NamedTuple):
 def random_map() -> Tuple[Map, Settings]:
     mapdir = project_root() / 'maps' / 'official_map_samples'
     maps = os.listdir(mapdir)
-    with open(mapdir / random.choice(maps), 'r') as mapfile:
+    with open(mapdir / choice(maps), 'r') as mapfile:
         m = parse_map(json.load(mapfile))
 
     setts = Settings(options = True if random() > 0.5 else False,

@@ -17,7 +17,7 @@ def help():
         'loop -- 0 or omitted for single run, cycle time in seconds for loop\n')
 
 
-def run_bot(token, bot, cycled):
+def run_bot(token, bot, cycled, ip, port):
     if bot == 'cpp':
         from production.cpp_bot import CppBot as Bot
     elif bot == 'dumb':
@@ -31,7 +31,7 @@ def run_bot(token, bot, cycled):
     while True:
         logger.info(f'bot {token} is connecting to the game')
         try:
-            scores = online_mainloop('127.0.0.1', 42424, token, bot)
+            scores = online_mainloop(ip, port, token, bot)
         except ConnectionRefusedError as e:
             logger.warning('Server refused connection')
         except ConnectionResetError as e:
@@ -61,7 +61,7 @@ def main():
         level=logging.DEBUG,
         stream=sys.stdout,
         format='%(levelname).1s %(module)10.10s:%(lineno)-4d %(message)s')
-    run_bot(args.token, args.bot, args.cycle)
+    run_bot(args.token, args.bot, args.cycle, '127.0.0.1', 42424)
 
 if __name__ == '__main__':
     main()
