@@ -1,86 +1,17 @@
-from typing import NamedTuple, List
+from typing import NamedTuple, List, Optional
 from datetime import datetime
 import psycopg2
 import json
 
+from production.bot_interface import Settings
+from production.server.server_interface import PlayerStats
+
 import logging;
 logger = logging.getLogger(__name__)
 
-class _ReplayProxy:
-    '''Lazily initialized replay fetching, using explicit get() method to make the magic conspicuous'''
-    def __init__(self, id):
-        self.id = id
-        self._replay = None
 
-    def get(self):
-        if self._replay is None:
-            self._replay = _fetch_replay(self.id)
-        return self._replay
-
-
-class GameRecord(NamedTuple):
-    id              : int
-    time            : datetime
-    mapname         : str
-    extensions      : List[str]
-    player_names    : List[str]
-    num_players     : int
-    scores          : List[int]
-    timeouts        : int
-    replay          : _ReplayProxy
-
-
-class PlayerRecord(NamedTuple):
-    id              : str
-    botname         : str
-    rating          : float
-
-
-def get_game_by_id(gameID: int):
-    conn = _connect()
-    with conn.cursor() as cursor:
-        cursor.execute('select replay from icfpc_games where id=%s' % gameID)
-        return json.loads(cursor.fetchone(), encoding='utf-8')
-    conn.close()
-
-
-def get_games_by_range(last=100, page=0):
-    conn = _connect()
-
-    conn.close()    
-    pass
-
-
-def get_games_by_player(playerID: str, last=100, page=0):
-    conn = _connect()
-
-    conn.close()    
-    pass
-
-
-def get_player_rating(playerID: str):
-    conn = _connect()
-
-    conn.close()    
-    pass
-
-
-def submit_game():
-    conn = _connect()
-
-    conn.close()    
-    pass
-
-
-def submit_player_rating():
-    conn = _connect()
-
-    conn.close()    
-    pass
-
-
-def _connect():
-    log.info('Connecting to replay database')
+def connect_to_db():
+    logger.debug('Connecting to database')
     conn = psycopg2.connect(
             dbname='practice',
             host='127.0.0.1',
@@ -89,3 +20,66 @@ def _connect():
     return conn
 
 
+#----------------------- CREATE DEV DATABASE ---------------------------#
+
+def local_create_tables(conn):
+    with conn.cursor() as cursor:
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS icfpc2017_games(
+                id              serial primary key,
+                mapname         varchar(50) not null,
+                futures         boolean,
+                options         boolean,
+                splurges        boolean,
+                status          varchar(50) not null,
+                timestart       timestamp not null default CURRENT_TIMESTAMP,
+                timefinish      timestamp
+                );
+
+            CREATE TABLE IF NOT EXISTS icfpc2017_players(
+                id              serial primary key,
+                token           varchar(32) not null unique,
+                name            varchar(50) not null unique,
+                rating_mu       double precision not null,
+                rating_sigma    double precision not null,
+                contact         varchar(256) not null
+                );
+
+            CREATE TABLE IF NOT EXISTS icfpc2017_participation(
+                id              serial primary key,
+                game_id         integer not null,
+                player_id       integer not null,
+                player_order    smallint,
+                score           integer
+                );
+
+            CREATE TABLE IF NOT EXISTS icfpc2017_replays(
+                id              integer,
+                replay          bytea
+                );''')
+
+
+def local_add_players(conn):
+    with conn.cursor() as cursor:
+        cursor.execute('''
+            INSERT INTO icfpc2017_players(token, name, rating_mu, rating_sigma, contact)
+            VALUES 
+            ('5ccdcda942c53fa5edff6b9a49eff231', 
+                'zzz_julie', 50, 16.6666666666667, 'j@mail.com'),
+            ('299c78a33d868f859e0536493219556a', 
+                'zzz_meee', 43, 4.1, 'me@hehe.he'),
+            ('36f94b07397d25040528808da4fcb4db', 
+                'zzz_yahoo', 21, 3.33, 'ya@hoo.oo'),
+            ('d4d15906a8ad1f9b16ab727b38b3f39f', 
+                'zzz_smb', 65, 1.99, 'smb@smwhr.hz'),
+            ('e8b2cb9ac3844a4eb85bfca5d729c37e', 
+                'zzz_nevermore', 81, 1.15, 'a@b.c')
+            ''')
+
+
+if __name__ == '__main__':
+    conn = connect_to_db()
+    local_create_tables(conn)
+    local_add_players(conn)
+    conn.commit()
+    conn.close()

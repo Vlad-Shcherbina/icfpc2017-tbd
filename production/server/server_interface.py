@@ -4,23 +4,16 @@ from datetime import datetime
 from production.bot_interface import Map, Settings
 
 
-
 class PlayerStats(NamedTuple):
+    ID: int
     name: str
     games: int
     mu: float
     sigma: float
 
-    # large: int
-    # medium: int
-    # small: int
-    # futures: int
-    # options: int
-    # splurges: int
-    # opponents: Dict[str, int]
-
 
 class GameStats(NamedTuple):
+    ID: int
     mapname: str
     futures: bool
     options: bool
@@ -30,7 +23,7 @@ class GameStats(NamedTuple):
     timestamp: int  # TODO: datetime?
 
 
-class ConnInfo(NamedTuple):
+class WaitingPlayer(NamedTuple):
     stats: PlayerStats
     deadline: float
 
@@ -38,4 +31,5 @@ class ConnInfo(NamedTuple):
 class MatchInfo(NamedTuple):
     participants: List[bool]
     map: Map
+    mapname: str
     settings: Settings

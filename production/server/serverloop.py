@@ -1,18 +1,21 @@
 from typing import NamedTuple, List, Optional
 from itertools import compress
 from collections import defaultdict
+from datetime import datetime
 import socket
 import time
 import threading
 import sys
+import json
 from random import randrange, random
 
 from production.server.connection import NetworkConnection, Timeout, Dead
 from production.server.gameloop import gameloop
 from production.bot_interface import Settings, Map
-from production.server.server_interface import
+from production.server.server_interface import *
 from production.json_format import parse_handshake_response, InvalidResponseError
-from production.server.matchmaker import match
+from production.server.matchmaker import makematch, revise_players
+from production.server.db_connection import connect_to_db
 
 import logging
 logger = logging.getLogger(__name__)
@@ -23,15 +26,14 @@ Local usage:
 serverloop()
 
 from cmd:
-production\botscript.py john_doe dumb -c
-production\botscript.py jane_doe random -c
-production\botscript.py batman cpp -c
+production\botscript.py zzz_julie random -c
+production\botscript.py zzz_yahoo dumb -c
+production\botscript.py zzz_nevermore cpp -c
 
-Warning! Using names is temporary and will be replaced by tokens.
 '''
 
 
-HANDSHAKE_TIMELIMIT = 0.5
+HANDSHAKE_TIMELIMIT = 1
 CONNECTIONS_PER_TOKEN = 10
 
 SC_STOP = 'stop server'
@@ -40,21 +42,21 @@ SERVER_COMMANDS = (SC_STOP, )
 
 #------------------------ AUXILIARY CLASSES ----------------------------#
 
-class WaitingPlayer(NamedTuple):
+class ConnectedPlayer(NamedTuple):
     token: str
-    name: str
-    rating: PlayerStats
+    stats: PlayerStats
     conn: NetworkConnection
     deadline: int
 
     def conninfo(self):
         '''Shorter version for matchmaker.'''
-        return ConnInfo(stats=self.rating, deadline=self.deadline)
+        return WaitingPlayer(stats=self.stats, deadline=self.deadline)
 
 
 class ServerStatistics():
-    '''Gather statistics about connection, disconnection and game finding timespans'''
+    '''Gather statistics about connection, disconnection and game finding timespans.
 
+    Not thread-safe and should be called from main thread.'''
     def __init__(self):
         self.STATRANGE = 100   # collect data only about that much last events.
         self.last_connection = time.time()
@@ -76,16 +78,16 @@ class ServerStatistics():
         logger.info(f'Server statistics:\n'
             f'total connections:                        {self.n_connected}\n'
             f'average connection rate:                  {self.avg_connected():.3f}\n'
-            f'average disconnection time while waiting: {self.avg_disconnected():.3f}\n'
-            f'disconnections while waiting:             '
+            f'average disconnection time while _waiting: {self.avg_disconnected():.3f}\n'
+            f'disconnections while _waiting:             '
             f'{(self.n_disconnected/self.n_connected*100):.1f}%\n'
-            f'averate waiting time before game:         {self.avg_started():.3f}\n'
+            f'averate _waiting time before game:         {self.avg_started():.3f}\n'
             f'games currently running:                  {self.ongoing}')
-
-    def reg_connect(self):
+        
+    def reg_connect(self, timestamp):
         self.n_connected += 1
-        self.connected_at[self.c_ind] = time.time() - self.last_connection
-        self.last_connection = time.time()
+        self.connected_at[self.c_ind] = timestamp - self.last_connection
+        self.last_connection = timestamp
         self.c_ind = (self.c_ind + 1) % self.STATRANGE
         if self.n_connected % 10 == 0: self.log()    # Temp! make 100   
 
@@ -120,10 +122,78 @@ class ServerStatistics():
 
 
 
+class HandshakeThread(threading.Thread):
+    '''Accept and check handshake'''
+    def __init__(self, conn: socket.socket, accept):
+        threading.Thread.__init__(self)
+        self.conn = conn
+        self.accept = accept
+        self.player = None
+        self.timestamp = None
+        self.running = True
+
+    def run(self):
+        self.player = self.handshake()
+        self.timestamp = time.time()
+        self.running = False
+
+    def handshake(self) -> Optional[ConnectedPlayer]:
+        '''Handshake phase. Exchange messages and get player stats from DB.
+
+        Return _waiting player if protocol was satisfied, None otherwise.'''
+        conn = NetworkConnection(self.conn)
+        r = conn.receive(time.time() + HANDSHAKE_TIMELIMIT)
+        if isinstance(r, Timeout) or isinstance(r, Dead):
+            conn.close()
+            return None
+        try:
+            token = parse_handshake_response(r)
+        except InvalidResponseError as e:
+            conn.kick(e.msg)
+            return None
+        if not self.accept:
+            conn.kick('Server is about to reboot. Try again later.')
+            return None
+
+        _conncount_lock.acquire()
+        if _conns_by_token[token] >= CONNECTIONS_PER_TOKEN:
+            _conncount_lock.release()
+            conn.kick('connections limit exceeded')
+            return None
+
+        _conns_by_token[token] += 1
+        _conncount_lock.release()
+        player = self.db_load_player_by_token(token)
+        if player is None:
+            conn.kick('unknown token')
+            return None
+        conn.send({'you': player.name})
+        return ConnectedPlayer(token=token, 
+                               stats=player, 
+                               conn=conn, 
+                               deadline=time.time() + 55)
+
+
+    def db_load_player_by_token(self, token) -> Optional[PlayerStats]:
+        dbconn = connect_to_db()
+        with dbconn.cursor() as cursor:
+            cursor.execute('''SELECT id, name, rating_mu, rating_sigma FROM 
+                              icfpc2017_players WHERE token=%s;''', (token,))
+            if cursor.rowcount == 0:
+                return None
+            #print(cursor.fetchone())
+            playerID, name, mu, sigma = cursor.fetchone()
+            cursor.execute('''SELECT * FROM icfpc2017_participation 
+                              WHERE player_id=%s''', (playerID, ))
+            games = cursor.rowcount
+            return PlayerStats(ID=playerID, name=name, games=games, mu=mu, sigma=sigma)
+
+
+
 class GameThread(threading.Thread):
-    '''Thread derivative class to start gameloop and return result.'''
+    '''Start gameloop and return result.'''
     def __init__(self, ID: int, 
-                       players: List[WaitingPlayer], 
+                       players: List[ConnectedPlayer], 
                        m: Map, 
                        settings: Settings):
         threading.Thread.__init__(self)
@@ -135,17 +205,28 @@ class GameThread(threading.Thread):
         self.replay = None
         self.scores = None
         self.running = False
+        self.timefinish = None
 
     def run(self):
         connections = [p.conn for p in self.players]
-        names = [p.name for p in self.players]
+        names = [p.stats.name for p in self.players]
         logger.info(f'Game {self.ID} started with ' + str(names))
         self.replay, self.scores = gameloop(self.m, self.settings, connections, names)
         logger.info(f'Game {self.ID} finished.')
+        self.timefinish = datetime.fromtimestamp(time.time())
         self.running = False
 
 
 #--------------------------- SERVER LOOP -------------------------------#
+
+_waiting = []
+_handshaking = []
+_ongoing = []
+_conns_by_token = defaultdict(int)
+_stats = ServerStatistics()
+
+_conncount_lock = threading.Lock()
+
 
 def connectserver(port, timeout):
     '''Initial server connection. Return server socket.'''
@@ -155,6 +236,15 @@ def connectserver(port, timeout):
     server.settimeout(timeout)
     server.listen(10)
     return server
+
+
+def _close_pending_games():
+    dbconn = connect_to_db()
+    with dbconn.cursor() as cursor:
+        cursor.execute('''UPDATE icfpc2017_games SET status='aborted'
+                          WHERE status='ongoing';''')
+    dbconn.commit()
+    dbconn.close()
 
 
 def _get_command(server):
@@ -171,90 +261,135 @@ def _get_command(server):
         return r['command']
 
 
-def handshake(conn: socket.socket, conns_by_token, accept) -> Optional[WaitingPlayer]:
-    '''Handshake phase. Exchange messages and get player stats from DB.
-
-    Return waiting player if protocol was satisfied, None otherwise.'''
-    conn = NetworkConnection(conn)
-    r = conn.receive(time.time() + HANDSHAKE_TIMELIMIT)
-    if isinstance(r, Timeout) or isinstance(r, Dead):
-        conn.close()
-        return None
-    try:
-        token = parse_handshake_response(r)
-    except InvalidResponseError as e:
-        conn.kick(e.msg)
-        return None
-    if not accept:
-        conn.kick('Server is about to reboot. Try again later.')
-        return None
-    if conns_by_token[token] >= CONNECTIONS_PER_TOKEN:
-        conn.kick('connections limit exceeded')
-        return None
-
-    conns_by_token[token] += 1
-    player = load_player(token)     # temp! get from db_connections
-    conn.send({'you': player.name})
-    return WaitingPlayer(token, player.name, load_player(player.name), conn, time.time() + 55)
-
-
-def _accept_new_connection(server, waiting, conns_by_token, accept, db, stats):
+def _accept_new_connection(server, accept):
     try:
         conn, addr = server.accept()
     except socket.timeout:
         logger.debug('timed out')
         return
-    player = handshake(conn, conns_by_token, accept)
-    if player:
-        stats.reg_connect()
-        waiting.append(player)
+    h = HandshakeThread(conn, accept)
+    h.start()
+    _handshaking.append(h)
 
 
-def _check_disconnected(waiting, conns_by_token, stats):
-    # return revised waiting list
-    for p in waiting:
+def _add_new_players():
+    h_running = []
+    times = []
+    for h in _handshaking:
+        if h.running:
+            h_running.append(h)
+            continue
+
+        h.join()
+        if h.player is None:
+            continue
+        _waiting.append(h.player)
+        times.append(h.timestamp)
+
+    for t in sorted(times):
+        _stats.reg_connect(t)
+    _handshaking[:] = h_running
+
+
+def _check_disconnected():
+    for p in _waiting:
         p.conn.recheck()
         if not p.conn.alive: 
-            stats.reg_disconnect(p.deadline)
-            _remove_from_conns(conns_by_token, p.token)
-    waiting[:] = list(compress(waiting, (p.conn.alive for p in waiting)))
+            _stats.reg_disconnect(p.deadline)
+            _remove_from_conns(p.token)
+    _waiting[:] = list(compress(_waiting, (p.conn.alive for p in _waiting)))
 
 
-def _remove_from_conns(conns_by_token, token):
+def _remove_from_conns(token):
     # Player disconnected; if no connections are open, delete from dictionary
-    conns_by_token[token] -= 1
-    if conns_by_token[token] <= 0:
-        del conns_by_token[token]
+    _conncount_lock.acquire()
+    _conns_by_token[token] -= 1
+    if _conns_by_token[token] <= 0:
+        del _conns_by_token[token]
+    _conncount_lock.release()
 
 
-def _call_match_maker(waiting, ongoing, stats):
-    # return revised waiting list
-    match = match([p.conninfo() for p in waiting], stats.connection_rate())
+def _call_match_maker():
+    match = makematch([p.conninfo() for p in _waiting], _stats.connection_rate())
     if match is None: 
-        return waiting
-    players = list(compress(waiting, match.participants))
-    game = GameThread(randrange(100), players, match.map, match.settings)
+        return
+    players = list(compress(_waiting, match.participants))
+
+    dbconn = connect_to_db()
+    gameID = db_submit_game_started(dbconn, match.mapname, match.settings, players)
+    dbconn.commit()
+    dbconn.close()
+
+    game = GameThread(gameID, players, match.map, match.settings)
     for p in players:
-        stats.reg_start(p.deadline)
+        _stats.reg_start(p.deadline)
     game.running = True
     game.start()
-    ongoing.append(game)
-    waiting[:] = list(compress(waiting, (not x for x in match.participants)))
+    _ongoing.append(game)
+    _waiting[:] = list(compress(_waiting, (not x for x in match.participants)))
 
 
-def _resolve_ended_games(ongoing, conns_by_token, db, stats):
-    # return revised game list
+def db_submit_game_started(conn, mapname: str, s: Settings, players):
+    with conn.cursor() as cursor:
+        cursor.execute('''INSERT INTO icfpc2017_games(mapname, futures, 
+                          options, splurges, timestart, status) 
+                          VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;''',
+                          (mapname, s.futures, s.options, s.splurges, 
+                          datetime.fromtimestamp(time.time()), 'ongoing'))
+        gameID = cursor.fetchone()[0]
+        for i, player in enumerate(players):
+            cursor.execute('''INSERT INTO icfpc2017_participation(game_id, 
+                              player_id, player_order) 
+                              VALUES (%s, %s, %s);''',
+                              (gameID, player.stats.ID, i))
+    return gameID
+
+
+def _resolve_ended_games():
     games_running = []
-    for g in ongoing:
+    dbconn = connect_to_db()
+    for g in _ongoing:
         if g.running:
             games_running.append(g)
             continue
         logger.debug(f'Resolving game {g.ID}')
         g.join()
+        db_sumbit_game_finished(dbconn, g.ID, g.timefinish, g.replay)
+        db_submit_players_scores(dbconn, g.ID, g.players, g.scores)
+
         for p in g.players:
-            _remove_from_conns(conns_by_token, p.token)
-        # replay and rating to DB
-    ongoing[:] = games_running
+            _remove_from_conns(p.token)
+        revised = revise_players([p.stats for p in g.players], g.scores)
+        db_submit_players_rating(dbconn, revised)
+
+    dbconn.commit()
+    dbconn.close()
+    _ongoing[:] = games_running
+
+
+def db_sumbit_game_finished(conn, gameID, timefinish, replay):
+    with conn.cursor() as cursor:
+        cursor.execute('UPDATE icfpc2017_games SET status=%s, timefinish=%s WHERE id=%s;', 
+                                ('finished', timefinish, gameID))
+        cursor.execute('INSERT INTO icfpc2017_replays(id, replay) VALUES(%s, %s);', 
+                                (gameID, json.dumps(replay)))
+
+
+def db_submit_players_scores(conn, gameID, players, scores):
+    with conn.cursor() as cursor:
+        for player, score in zip(players, scores):
+            cursor.execute('''UPDATE icfpc2017_participation SET score=%s 
+                              WHERE game_id=%s AND player_id=%s;''',
+                              (score, gameID, player.stats.ID))
+
+
+def db_submit_players_rating(conn, players: List[PlayerStats]):
+    with conn.cursor() as cursor:
+        for p in players:
+            cursor.execute('''UPDATE icfpc2017_players 
+                              SET rating_mu=%s, rating_sigma=%s 
+                              WHERE name=%s;''',
+                              (p.mu, p.sigma, p.name))
 
 
 def serverloop():
@@ -262,43 +397,32 @@ def serverloop():
     server = connectserver(42424, timeout=5)
     aux_server = connectserver(45454, timeout=.5)
     logger.info('Server started successfully')
-    waiting = []
-    conns_by_token = defaultdict(int)
-    ongoing = []
-    stats = ServerStatistics()
+    _close_pending_games()
     accept_players = True
-    db = None
 
-    while accept_players or ongoing:
+    while accept_players or _ongoing:
         # get technical commands
         command = _get_command(aux_server)
         if command == SC_STOP:
             accept_players = False
 
         # if there is new connection request, accept it
-        _accept_new_connection(server, waiting, conns_by_token, accept_players, db, stats)
+        _accept_new_connection(server, accept_players)
+
+        # add players that finished handshake
+        _add_new_players()
 
         # if smb's already disconnected, remove them
-        _check_disconnected(waiting, conns_by_token, stats)
-        print(len(waiting))
+        _check_disconnected()
 
         # make match and start a new game
-        _call_match_maker(waiting, ongoing, stats)
+        _call_match_maker()
 
         # if any game ended, clean up
-        _resolve_ended_games(ongoing, conns_by_token, db, stats)
+        _resolve_ended_games()
 
-        stats.ongoing = len(ongoing)
+        _stats._ongoing = len(_ongoing)
     
-
-# TEMP!
-def load_player(token: str):
-    # get id from database
-    return PlayerStats(name=token,
-                  games=randrange(1000), 
-                  mu=random() * 100,
-                  sigma=random() * 50 / 3)
-
 
 if __name__ == '__main__':
     logging.basicConfig(

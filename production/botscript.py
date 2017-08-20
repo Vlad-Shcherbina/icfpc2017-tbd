@@ -2,6 +2,7 @@ import sys
 import time
 import argparse
 from production.comms import online_mainloop
+from production.server.db_connection import connect_to_db
 
 import logging
 logger = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ def help():
         'loop -- 0 or omitted for single run, cycle time in seconds for loop\n')
 
 
-def run_bot(token, bot, cycled, ip, port):
+def run_bot(name, bot, cycled, ip, port):
     if bot == 'cpp':
         from production.cpp_bot import CppBot as Bot
     elif bot == 'dumb':
@@ -28,8 +29,16 @@ def run_bot(token, bot, cycled, ip, port):
         return
     bot = Bot()
 
+    dbconn = connect_to_db()
+    with dbconn.cursor() as cursor:
+        cursor.execute('SELECT token FROM icfpc2017_players WHERE name=%s', (name,))
+        if cursor.rowcount == 0:
+            logger.warning(f'name {name} is not registered')
+            return
+        token = cursor.fetchone()[0]
+
     while True:
-        logger.info(f'bot {token} is connecting to the game')
+        logger.info(f'bot {name} is connecting to the game')
         try:
             scores = online_mainloop(ip, port, token, bot)
         except ConnectionRefusedError as e:
@@ -44,8 +53,8 @@ def run_bot(token, bot, cycled, ip, port):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('token', 
-                        help='token (currently arbitrary nickname) of the bot',
+    parser.add_argument('name', 
+                        help='name (registered in local or global database) of the bot',
                         type=str)
 
     parser.add_argument('bot', 
@@ -61,7 +70,7 @@ def main():
         level=logging.DEBUG,
         stream=sys.stdout,
         format='%(levelname).1s %(module)10.10s:%(lineno)-4d %(message)s')
-    run_bot(args.token, args.bot, args.cycle, '127.0.0.1', 42424)
+    run_bot(args.name, args.bot, args.cycle, '127.0.0.1', 42424)
 
 if __name__ == '__main__':
     main()

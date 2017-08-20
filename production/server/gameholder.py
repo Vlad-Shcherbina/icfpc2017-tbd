@@ -215,6 +215,5 @@ class GameHolder:
         self.totals = scoreboard.totals(self.N)
         return [sum(s) for s in self.totals]
 
-
 if __name__ == '__main__':
     pass

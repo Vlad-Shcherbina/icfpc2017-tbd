@@ -24,10 +24,10 @@ SMALL = 100
 
 #--------------------------- MAKE MATCH --------------------------------#
 
-def random_map() -> Tuple[Map, Settings]:
+def random_map() -> Tuple[Map, str, Settings]:
     mapdir = project_root() / 'maps' / 'official_map_samples'
-    maps = os.listdir(mapdir)
-    with open(mapdir / choice(maps), 'r') as mapfile:
+    mapname = choice(os.listdir(mapdir))
+    with open(mapdir / mapname, 'r') as mapfile:
         m = parse_map(json.load(mapfile))
 
     setts = Settings(options = True if random() > 0.5 else False,
@@ -35,7 +35,7 @@ def random_map() -> Tuple[Map, Settings]:
                      futures = True if random() > 0.5 else False,
                      raw_settings = {})
 
-    return (m, setts)
+    return (m, mapname, setts)
 
 
 def poissonflow(rate, t, N):
@@ -50,10 +50,10 @@ def poissonflow(rate, t, N):
     return S * exp(-rate * t)
 
 
-def _player_priority(player: ConnInfo, conncount: int) -> float:
+def _player_priority(player: WaitingPlayer, conncount: int) -> float:
     return max(0, player.deadline - time.time()) * player.stats.games * conncount
 
-def players_priority(players: List[ConnInfo]):
+def players_priority(players: List[WaitingPlayer]):
     '''Return list of pairs (priority, index) sorted by priority.
 
     Priority is an arbitrary number, less is better, 0 if deadline has passed.
@@ -71,7 +71,7 @@ def players_priority(players: List[ConnInfo]):
     return priorities
 
 
-def match(players: List[ConnInfo], conn_rate) -> Optional[MatchInfo]:
+def makematch(players: List[WaitingPlayer], conn_rate) -> Optional[MatchInfo]:
     if len(players) < MAX_PLAYERS:
         logger.debug('Not enought players')
         return None
@@ -86,7 +86,7 @@ def match(players: List[ConnInfo], conn_rate) -> Optional[MatchInfo]:
         logger.debug('Waiting for a better player')
         return None
 
-    m, settings = random_map()
+    m, mapname, settings = random_map()
     priorities = players_priority(players)
     participants = [False] * len(players)
     N = min(len(m.mines), MAX_PLAYERS)
@@ -94,7 +94,10 @@ def match(players: List[ConnInfo], conn_rate) -> Optional[MatchInfo]:
         participants[i] = True
 
     logger.debug('Making new match')
-    return MatchInfo(participants=participants, map=m, settings=settings)
+    return MatchInfo(participants=participants, 
+                     map=m, 
+                     mapname=mapname, 
+                     settings=settings)
 
 
 #------------------------- GET NEW RATINGS -----------------------------#
@@ -121,14 +124,10 @@ def revise_ratings(players: List[PlayerStats], scores):
 def revise_players(players: List[PlayerStats], scores):
     names = set(p.name for p in players)
     revised = []
-    new_ratings = recalc_rating(players, scores)
+    new_ratings = revise_ratings(players, scores)
     for i, p in enumerate(players):
-        # opponents = defaultdict(int)
-        # opponents.update(p.opponents)
-        # for name in names:
-        #     if not n == p.name:
-        #         opponents[name] += 1
-        revised.append(PlayerStats(name = p.name,
+        revised.append(PlayerStats(ID=p.ID,
+                                   name = p.name,
                                    games = p.games + 1,
                                    mu = new_ratings[i][0],
                                    sigma = new_ratings[i][1],
@@ -145,8 +144,8 @@ if __name__ == '__main__':
                           sigma=random() * 50 / 3,
                           )
 
-    p1 = ConnInfo(rating_by_player('julie'), 1)
-    p2 = ConnInfo(rating_by_player('me'), 2)
+    p1 = WaitingPlayer(rating_by_player('julie'), 1)
+    p2 = WaitingPlayer(rating_by_player('me'), 2)
     print(p1.stats.name, p1.stats.mu, p1.stats.sigma)
     print(p2.stats.name, p2.stats.mu, p2.stats.sigma)
     print(recalc_rating([p1.stats, p2.stats], [50, -10]))

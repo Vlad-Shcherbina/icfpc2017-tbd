@@ -118,7 +118,7 @@ class Capturer:
 def handshake(conn, name):
     conn.send({'me': name})
     res = conn.recv()
-    assert res['you'] == name
+    #assert res['you'] == name
 
 
 def offline_mainloop(name: str, bot: bi.Bot):
