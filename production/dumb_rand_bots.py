@@ -55,13 +55,10 @@ class RandMoveBot(Bot):
             # Try to claim or option
             rivers = []
 
-            # TODO: reuse Story.remaining_options() once fixed
-            options_left = state['punters'] if settings.options else 0
+            remaining_options = board.remaining_options(story.my_id) if settings.options else 0
 
             for u, adj in enumerate(board.adj):
                 for v in adj:
-                    if board.optioned_by(u, v) == story.my_id:
-                        options_left -= 1
                     rivers.append((min(board.unpack[u], board.unpack[v]), 
                             max(board.unpack[u], board.unpack[v])))
             if rivers:
@@ -71,7 +68,7 @@ class RandMoveBot(Bot):
                 if board.claimed_by(u, v) < 0:
                     move = ClaimMove(punter=story.my_id, source=source, target=target)
                     state['debug_last_move'] = 'claim'
-                elif options_left < 1 or board.claimed_by(u, v) == story.my_id:
+                elif remaining_options < 1 or board.claimed_by(u, v) == story.my_id:
                     pass
                 elif board.optioned_by(u, v) < 0:
                     move = OptionMove(punter=story.my_id, source=source, target=target)

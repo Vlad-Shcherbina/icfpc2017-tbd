@@ -49,15 +49,16 @@ def reconstruct_board(story: Story) -> stuff.Board:
         if isinstance(move, ClaimMove):
             board.claim_river(
                 move.punter, pack[move.source], pack[move.target])
-        elif isinstance(move, SplurgeMove):
-            for source, target in zip(move.route, move.route[1:]):
-                # TODO: splurge can option rivers too
-                board.claim_river(
-                    move.punter, pack[source], pack[target])
         elif isinstance(move, OptionMove):
             board.option_river(
                 move.punter, pack[move.source], pack[move.target])
-
+        elif isinstance(move, SplurgeMove):
+            for source, target in zip(move.route, move.route[1:]):
+                if board.claimed_by(pack[source], pack[target]) < 0:
+                    board.claim_river(move.punter, pack[source], pack[target])
+                else:
+                    board.option_river(move.punter, pack[source], pack[target])
+        
     board.pack = pack
     board.unpack = unpack
     return board

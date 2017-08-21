@@ -51,15 +51,13 @@ class FirstMoveBot(Bot):
             # Try to claim or option
             free_rivers = []
             claimed_rivers = []
-            my_options = 0
+            my_options = (len(board.mines) - board.remaining_options(story.my_id)
+                                if story.settings.options else 0)
 
             for u, adj in enumerate(board.adj):
                 for v in adj:
                     optioned_by = board.optioned_by(u, v)
                     claimed_by = board.claimed_by(u, v)
-
-                    if optioned_by == story.my_id:
-                        my_options += 1
 
                     if claimed_by < 0:
                         free_rivers.append((board.unpack[u], board.unpack[v]))
@@ -67,7 +65,7 @@ class FirstMoveBot(Bot):
                         claimed_rivers.append((board.unpack[u], board.unpack[v]))
 
             if (    story.settings.options and
-                    my_options < story.punters and
+                    my_options < len(board.mines) and
                     len(claimed_rivers) > my_options * 3 * story.punters):
                 source, target = claimed_rivers[0]
                 move = OptionMove(punter=story.my_id, source=source, target=target)

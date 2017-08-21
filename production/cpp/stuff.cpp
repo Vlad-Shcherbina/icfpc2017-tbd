@@ -86,6 +86,15 @@ struct Board {
         }
     }
 
+    int remaining_options(int optioner) {
+        int r = mines.size();
+        for (auto kv : optioned_by_map) {
+            if (kv.second == optioner) 
+                r--;
+        }
+        return r;
+    }
+
     vector<int> reachable_by_claimed(int owner, int start) const {
         vector<bool> visited(adj.size(), false);
         visited[start] = true;
@@ -418,6 +427,7 @@ PYBIND11_PLUGIN(stuff) {
         .def("option_river", &Board::option_river)
         .def("set_claims", &Board::set_claims)
         .def("set_options", &Board::set_options)
+        .def("remaining_options", &Board::remaining_options)
         .def("reachable_by_claimed", &Board::reachable_by_claimed)
         .def("base_score", &Board::base_score)
         .def("totals", &Board::totals)

@@ -71,7 +71,12 @@ class CppBot(Bot):
             [move] = [move for move in req.raw_moves if json_format.parse_move(move).punter == story.my_id]
             assert last_move in move, ('server rejected the move', last_move, move)
 
-        logging.info(f'remaining options: {story.remaining_options()}')
+        if not story.settings.options:
+            remaining_options = 0
+        else:
+            remaining_options = board.remaining_options(story.my_id)
+
+        logging.info(f'remaining options: {remaining_options}')
 
         predicted_score = {}
         for punter in range(req.state['punters']):
@@ -81,12 +86,12 @@ class CppBot(Bot):
         cut_prob = 1 - 1 / story.punters
         cut_prob = {
             (u, v): cut_prob for u, vs in story.map.g.items() for v in vs}
-        pi = glue.compute_prob_info(cut_prob, story.remaining_options() > 0, board, story.my_id)
+        pi = glue.compute_prob_info(cut_prob, remaining_options() > 0, board, story.my_id)
         #logging.info(f'*********** {cut_prob_grad}')
 
         total_edges = sum(1 for u, vs in story.map.g.items() for v in vs if v > u)
         remaining_turns = (total_edges - len(story.moves)) / story.punters
-        option_scarsity = (remaining_turns + 2) / (2 + story.remaining_options())
+        option_scarsity = (remaining_turns + 2) / (2 + remaining_options())
         logging.info(f'******  rem turns: {remaining_turns}, opt scarcity: {option_scarsity}')
         option_scarsity = max(option_scarsity, 1)
         # ignore option moves for now TODO
@@ -111,7 +116,7 @@ class CppBot(Bot):
             else:
                 assert cl != req.state['my_id']
                 assert board.optioned_by(pack[source], pack[target]) == -1
-                assert story.remaining_options() > 0
+                assert remaining_options > 0
                 move = OptionMove(
                     punter=req.state['my_id'],
                     source=source, target=target)
@@ -136,7 +141,11 @@ def render_prob_field(story: Story, size=600, individual_mine_probs=False):
     cut_prob = 1 - 1 / story.punters
     cut_prob = {
         (u, v): cut_prob for u, vs in story.map.g.items() for v in vs}
-    pi = glue.compute_prob_info(cut_prob, story.remaining_options() > 0, board, story.my_id)
+    if not story.settings.options:
+        remaining_options = 0
+    else:
+        remaining_options = board.remaining_options(story.my_id)
+    pi = glue.compute_prob_info(cut_prob, remaining_options > 0, board, story.my_id)
 
     a = min(0, min(pi.cut_prob_grad.values()))
     b = max(0, max(pi.cut_prob_grad.values()))

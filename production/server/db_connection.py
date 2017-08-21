@@ -27,11 +27,11 @@ def local_create_tables(conn):
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS icfpc2017_games(
                 id              serial primary key,
-                mapname         varchar(50) not null,
+                mapname         text not null,
                 futures         boolean,
                 options         boolean,
                 splurges        boolean,
-                status          varchar(50) not null,
+                status          text not null,
                 timestart       timestamp not null default CURRENT_TIMESTAMP,
                 timefinish      timestamp
                 );
@@ -39,22 +39,22 @@ def local_create_tables(conn):
             CREATE TABLE IF NOT EXISTS icfpc2017_players(
                 id              serial primary key,
                 token           varchar(32) not null unique,
-                name            varchar(50) not null unique,
+                name            text not null unique,
                 rating_mu       double precision not null,
                 rating_sigma    double precision not null,
-                contact         varchar(256) not null
+                contact         text not null
                 );
 
             CREATE TABLE IF NOT EXISTS icfpc2017_participation(
                 id              serial primary key,
-                game_id         integer not null,
-                player_id       integer not null,
+                game_id         integer REFERENCES icfpc2017_games (id),
+                player_id       integer  REFERENCES icfpc2017_players (id),
                 player_order    smallint,
                 score           integer
                 );
 
             CREATE TABLE IF NOT EXISTS icfpc2017_replays(
-                id              integer,
+                id              integer REFERENCES icfpc2017_games (id),
                 replay          bytea
                 );''')
 
