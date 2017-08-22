@@ -95,4 +95,18 @@
 
 </script>
 
+<br>
+<canvas id='vis'></canvas>
+
+<script src="{{ url_for('static', filename='viewer.js')}}">
+</script>
+
+<script>
+const map = {{ replay['setup'][0]['map'] | tojson | safe }}
+const canvas = document.getElementById('vis')
+const context = canvas.getContext('2d')
+context.clearRect(0, 0, canvas.width, canvas.height)
+drawMap(map, canvas)
+</script>
+
 {% endblock %}

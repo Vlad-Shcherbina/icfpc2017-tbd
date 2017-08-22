@@ -1,3 +1,7 @@
+# hack to placate the restarter
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+
 from typing import NamedTuple, List
 import io
 import os
@@ -12,10 +16,12 @@ from production import json_format
 from production.server.db_connection import connect_to_db
 #from production.server.server_interface import *
 
-PORT = 5000
+PORT = 5017
 GAMES_RANGE = 100
 
-app = flask.Flask('webviewer')
+app = flask.Flask(
+    'webviewer',
+    root_path=os.path.dirname(__file__))
 
 
 class PlayerBaseInfo(NamedTuple):
@@ -164,7 +170,8 @@ def gamestatistics(gameID):
                                  settings=settings,
                                  movecount=len(replay['moves']),
                                  timespan=timefinish-timestart,
-                                 playerperfs=playerlist)
+                                 playerperfs=playerlist,
+                                 replay=replay)
 
 
 @app.route('/replay<gameID>.json')
@@ -235,4 +242,8 @@ def _playerperfomances(replay: dict, playerIDs):
 
 
 if __name__ == '__main__':
+    if '--debug' in sys.argv[1:]:
+        app.jinja_env.auto_reload = True
+        app.debug = True
+
     app.run(port=PORT)
