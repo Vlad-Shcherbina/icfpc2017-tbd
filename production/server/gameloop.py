@@ -77,7 +77,7 @@ def gameloop(m: Map,
 def setup_game(m: Map, 
           settings: Settings, 
           connections: List[NetworkConnection], 
-          replay: List[dict]):
+          replay: dict):
 
     '''Pre-loop setups: create gameholder and connector and send setup requests.'''
     N = len(connections)

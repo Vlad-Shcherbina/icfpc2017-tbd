@@ -78,10 +78,10 @@ class ServerStatistics():
         logger.info(f'Server statistics:\n'
             f'total connections:                        {self.n_connected}\n'
             f'average connection rate:                  {self.avg_connected():.3f}\n'
-            f'average disconnection time while _waiting: {self.avg_disconnected():.3f}\n'
-            f'disconnections while _waiting:             '
+            f'average disconnection time while waiting: {self.avg_disconnected():.3f}\n'
+            f'disconnections while waiting:             '
             f'{(self.n_disconnected/self.n_connected*100):.1f}%\n'
-            f'averate _waiting time before game:         {self.avg_started():.3f}\n'
+            f'averate waiting time before game:         {self.avg_started():.3f}\n'
             f'games currently running:                  {self.ongoing}')
         
     def reg_connect(self, timestamp):
@@ -342,11 +342,13 @@ def db_submit_game_started(conn, mapname: str, s: Settings):
 
 def _resolve_ended_games():
     games_running = []
-    dbconn = connect_to_db()
+    dbconn = None
     for g in _ongoing:
         if g.running:
             games_running.append(g)
             continue
+        if dbconn is None:
+            dbconn = connect_to_db()
         logger.debug(f'Resolving game {g.ID}')
         g.join()
         db_sumbit_game_finished(dbconn, g.ID, g.timefinish, g.replay)
@@ -357,8 +359,9 @@ def _resolve_ended_games():
         revised = revise_players([p.stats for p in g.players], g.scores)
         db_submit_players_rating(dbconn, revised)
 
-    dbconn.commit()
-    dbconn.close()
+    if dbconn is not None:
+        dbconn.commit()
+        dbconn.close()
     _ongoing[:] = games_running
 
 
