@@ -186,7 +186,10 @@ def gamestatistics(gameID):
                                 timespan=timefinish-timestart,
                                 playerperfs=playerlist)
     dbconn.close()
-    return flask.render_template('gamestatistics.html', game=gameinfo)
+    return flask.render_template(
+        'gamestatistics.html',
+        game=gameinfo,
+        replay=loaded_replay)
 
 
 # ----------------------------- AUXILIARY -------------------------------#
