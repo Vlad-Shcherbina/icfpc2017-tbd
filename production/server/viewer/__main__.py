@@ -203,20 +203,21 @@ def _playerperfomances(replay: dict, playerIDs):
         key = _movekey(move)
         punter = move[key]['punter']
         players[punter].moves[key] += 1
-        if 'timespan' in move[key]:
-            players[punter].sumtime += move[key]['timespan']
+        if 'timespan' in move:
+            players[punter].sumtime += move['timespan']
 
-        if 'error' in move[key]:
+        if 'error' in move:
+            assert key == 'pass'
             players[punter].forcedpasses += 1
-            if 'original' in move[key]:
+            if 'original' in move:
                 players[punter].illegalmoves += 1
-            elif move[key]['error'] == 'timeout':
+            elif move['error'] == 'timeout':
                 players[punter].timeouts += 1
-            elif move[key]['error'] == 'zombie':
-                pass
+            elif move['error'] == 'zombie':
+                assert players[punter].zombiereason     # assert already zombie
             else:
-                players[punter].zombiesince = move[key]['roundno']
-                players[punter].zombiereason = move[key]['error']
+                players[punter].zombiesince = move['roundno']
+                players[punter].zombiereason = move['error']
 
     for p in players:
         movesmade = sum(p.moves.values()) - p.forcedpasses

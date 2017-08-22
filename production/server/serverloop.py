@@ -77,7 +77,7 @@ class ServerStatistics():
     def log(self):
         logger.info(f'Server statistics:\n'
             f'total connections:                        {self.n_connected}\n'
-            f'average connection rate:                  {self.avg_connected():.3f}\n'
+            f'average time between connections:         {self.avg_connected():.3f}\n'
             f'average disconnection time while waiting: {self.avg_disconnected():.3f}\n'
             f'disconnections while waiting:             '
             f'{(self.n_disconnected/self.n_connected*100):.1f}%\n'
@@ -421,7 +421,7 @@ def serverloop():
         # if any game ended, clean up
         _resolve_ended_games()
 
-        _stats._ongoing = len(_ongoing)
+        _stats.ongoing = len(_ongoing)
     
 
 if __name__ == '__main__':

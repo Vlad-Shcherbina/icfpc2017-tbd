@@ -182,13 +182,13 @@ def format_move(m: Move, error=None, timespan=None, original=None, roundno=None)
         assert False, m
     
     if error is not None:
-        result[m.key()].update({'error': error})
+        result.update({'error': error})
     elif timespan is not None:
-        result[m.key()].update({'timespan': timespan})
+        result.update({'timespan': timespan})
     if original is not None:
-        result[m.key()].update({'original': format_move(original)})
+        result.update({'original': format_move(original)})
     if roundno is not None:
-        result[m.key()].update({'roundno' : roundno})
+        result.update({'roundno' : roundno})
     return result
 
 

@@ -15,19 +15,19 @@
 
         <h2>Changes in protocol:</h2>
 
-<p><b>1.</b> At handshake stage you send {"me": token} instead of {"me": name}. <br />
-You may receive {"you": name} or {"kicked": reason} in response.<br />
+<p><b>1.</b> At handshake stage you send <span class="json">{"me": token} instead of {"me": name}</span>. <br />
+You may receive <span class="json">{"you": name}</span> or <span class="json">{"kicked": reason}</span> in response.<br />
 In the first case you'll be send registered bot name.<br />
 The second may appear if server accepts no more players or if you bot has too many simultaneous connections.</p>
-<p><b>2.</b> If you timed out, you get {"timeout": 0} - without indicating time limit. Time limits are stated in protocols.</p>
-<p><b>3.</b> During the game if you are kicked due to invalid request, you'll be sent message: {"kicked": reason}.</p>
+<p><b>2.</b> If you timed out, you get <span class="json">{"timeout": 0</span> - without indicating time limit. Time limits are stated in protocols.</p>
+<p><b>3.</b> During the game if you are kicked due to invalid request, you'll be sent message: <span class="json">{"kicked": reason}</span>.</p>
 
 
         <h2>Replay format:</h2>
 
 <p><b>1.</b> Replay consists of four keys: "participants", "setup", "moves", "score".
 <p><b>2.</b> Handshakes are not recorded in replay. Instead there is a single key:
-        {"participants": [{"punter": number, "name": name }, ... ]}</p>
+        <span class="json">{"participants": [{"punter": number, "name": name }, ... ]}</span></p>
 <p><b>3.</b> Key "setup" holds one setup request (for punter 0), to provide map and settings, and all setup responses, to provide declared futures.</p>
 <p><b>4.</b> No gameplay requests from server are recorded</p>
 <p><b>5.</b> Gameplay responses from players are saved in the order they are send, every erroneous move is changed to pass. They have several additional fields:</p>
@@ -37,7 +37,11 @@ The second may appear if server accepts no more players or if you bot has too ma
     <li><i>error</i> - for forced passes, states the error that occured;</li>
     <li><i>original</i> - if move was valid, but illegal at given map (river already claimed or non-existent, extension absent, etc.), the originally declared move is recorded here.</li>
 </ul>
-<p><b>6.</b> Score record hasn't last moves, and is formatted: {"scores": [score_record]}, where:<br />
-score_record is {"punter": punter, "name": name, "score": score, "futures": [...]}</p>
+<p>So move may look like:</p>
+<p><span class="json">{"option": {"punter": 4, "source": 11, "targer": 12}, "roundno": 20, "timespan": 0.384571154}</span></p>
+<p>or</p>
+<p><span class="json">{"pass": {"punter": 4}, "error": "illegal move", "original": {"claim": {"punter": 5, "source": 12, "target": 11}}, "roundno": 20}</span></p>
+<p><b>6.</b> Score record hasn't last moves, and is formatted: <span class="json">{"scores": [score records]}</span>, where:<br />
+score record is <span class="json">{"punter": punter, "name": name, "score": score, "futures": [...]}</span></p>
 
 {% endblock %}
