@@ -21,7 +21,10 @@ def gameloop(m: Map,
     '''
     N = len(names)
     assert N == len(connections)
-    replay = [{'participants' : [{ 'punter' : i, 'name' : names[i]} for i in range(N)]}]
+    replay = {'participants' : [{ 'punter' : i, 'name' : names[i]} for i in range(N)],
+              'setup' : [],
+              'moves' : [],
+              'score' : None}
 
     connector, gameholder = setup_game(m, settings, connections, replay)
     turns = sum([len(a) for a in gameholder.board.adj.values()]) // 2
@@ -54,8 +57,8 @@ def gameloop(m: Map,
                                          error=error, 
                                          timespan=connresponse.timespan,
                                          original=original,
-                                         moveno=moveno)
-        replay.append(record)
+                                         roundno=moveno//N)
+        replay['moves'].append(record)
         ID = (ID + 1) % N
 
     score = gameholder.score()
@@ -66,7 +69,7 @@ def gameloop(m: Map,
                            name=names[i], 
                            score=score[i],
                            futures=gameholder.totals[i][1:]))
-    replay.append({ 'scores' : totals })
+    replay['score'] = totals
     connector.close_all()
     return replay, score
 
@@ -80,10 +83,10 @@ def setup_game(m: Map,
     N = len(connections)
 
     # add one setup request to replay, to provide map and settings
-    replay.append(dict(punter=0, 
-                       punters=N, 
-                       map=m.raw_map, 
-                       settings=json_format.format_settings(settings)))
+    replay['setup'].append(dict(punter=0, 
+                                punters=N, 
+                                map=m.raw_map, 
+                                settings=json_format.format_settings(settings)))
 
     board = Gameboard(adj=m.g, mines=m.mines, N=N, settings=settings)
     gameholder = GameHolder(board)
@@ -109,6 +112,6 @@ def setup_game(m: Map,
                 r = SetupResponse(ready=ID, state='', futures=[])
             else:
                 gameholder.process_futures(response=r)
-        replay.append(json_format.format_setup_response(r))
+        replay['setup'].append(json_format.format_setup_response(r))
             
     return connector, gameholder

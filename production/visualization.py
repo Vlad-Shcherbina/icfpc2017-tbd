@@ -213,7 +213,7 @@ class Visualization:
         elif isinstance(mv, ClaimMove): self.draw_claim(mv, m, me)
         elif isinstance(mv, OptionMove): self.draw_option(mv, m, me)
         elif isinstance(mv, SplurgeMove):
-            for u in mv.unpack(): self.draw_claim(u, m, me)
+            raise NotImplementedError
 
 
     def draw_claim(self, mv: ClaimMove, m: Map, me=False):
@@ -364,7 +364,18 @@ class Visualization:
         self.draw_legend(legend)
 
         for move in story.moves:
-            self.draw_move(move, story.map, me=move.punter==story.my_id)
+            if isinstance(move, SplurgeMove):
+                for source, target in zip(move.route, move.route[1:]):
+                    if board.claimed_by(pack[source], pack[target]) < 0:
+                        self.draw_move(OptionMove(move.punter, source, target),
+                                         story.map, 
+                                         me=move.punter==story.my_id)
+                    else:
+                        self.draw_move(ClaimMove(move.punter, source, target),
+                                         story.map, 
+                                         me=move.punter==story.my_id)
+            else:
+                self.draw_move(move, story.map, me=move.punter==story.my_id)
 
         for source, target in story.my_futures.items():
             color = (255, 0, 0)

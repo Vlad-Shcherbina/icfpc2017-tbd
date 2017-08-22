@@ -316,7 +316,7 @@ def _call_match_maker():
     players = list(compress(_waiting, match.participants))
 
     dbconn = connect_to_db()
-    gameID = db_submit_game_started(dbconn, match.mapname, match.settings, players)
+    gameID = db_submit_game_started(dbconn, match.mapname, match.settings)
     dbconn.commit()
     dbconn.close()
 
@@ -329,7 +329,7 @@ def _call_match_maker():
     _waiting[:] = list(compress(_waiting, (not x for x in match.participants)))
 
 
-def db_submit_game_started(conn, mapname: str, s: Settings, players):
+def db_submit_game_started(conn, mapname: str, s: Settings):
     with conn.cursor() as cursor:
         cursor.execute('''INSERT INTO icfpc2017_games(mapname, futures, 
                           options, splurges, timestart, status) 
@@ -337,11 +337,6 @@ def db_submit_game_started(conn, mapname: str, s: Settings, players):
                           (mapname, s.futures, s.options, s.splurges, 
                           datetime.fromtimestamp(time.time()), 'ongoing'))
         gameID = cursor.fetchone()[0]
-        for i, player in enumerate(players):
-            cursor.execute('''INSERT INTO icfpc2017_participation(game_id, 
-                              player_id, player_order) 
-                              VALUES (%s, %s, %s);''',
-                              (gameID, player.stats.ID, i))
     return gameID
 
 
@@ -376,11 +371,13 @@ def db_sumbit_game_finished(conn, gameID, timefinish, replay):
 
 
 def db_submit_players_scores(conn, gameID, players, scores):
+    assert len(players) == len(scores)
     with conn.cursor() as cursor:
-        for player, score in zip(players, scores):
-            cursor.execute('''UPDATE icfpc2017_participation SET score=%s 
-                              WHERE game_id=%s AND player_id=%s;''',
-                              (score, gameID, player.stats.ID))
+        for i in range(len(players)):
+            cursor.execute('''INSERT INTO icfpc2017_participation(game_id, 
+                              player_id, player_order, score) 
+                              VALUES (%s, %s, %s, %s);''',
+                              (gameID, players[i].stats.ID, i, scores[i]))
 
 
 def db_submit_players_rating(conn, players: List[PlayerStats]):
