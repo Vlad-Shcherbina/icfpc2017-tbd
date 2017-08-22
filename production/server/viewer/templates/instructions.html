@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block instactive %}class="active"{% endblock %}
+
+{% block content %}
+
+<!--<p>Пользователь заходит на сайт. Там есть три страницы: лидерборд, последние партии (с возможностью скачать риплей, но без визуализации), инструкции.</p>
+<p>На странице с инструкциями написано: пошлите нам письмо, где вы сообщаете желаемые имена ваших игроков (например, "Zzz lightning", "Zzz final", "Zzz experimental"). Мы вам для каждого имени выдадим секьюрити токен.</p>
+<p>С помощью этого токена вы сможете конектиться к серверу our.server.zz:12345 по стандартному онлайн протоколу, с единственной поправкой что при хэндшэйке надо посылать не</p>
+<p>{"me" : name},</p>
+<p>а</p>
+<p>{"me" : token}.</p>
+<p>Если хотите, можете открывать несколько параллельных соединений с одним и тем же токеном, но не более десяти.</p>
+<p>Кроме того, будьте готовы к тому что после хэндшэйка до setup придётся ждать до минуты, потому что у нас матчмэйкинг.</p>-->
+
+        <h2>Changes in protocol:</h2>
+
+<p><b>1.</b> At handshake stage you send {"me": token} instead of {"me": name}. <br />
+You may receive {"you": name} or {"kicked": reason} in response.<br />
+In the first case you'll be send registered bot name.<br />
+The second may appear if server accepts no more players or if you bot has too many simultaneous connections.</p>
+<p><b>2.</b> If you timed out, you get {"timeout": 0} - without indicating time limit. Time limits are stated in protocols.</p>
+<p><b>3.</b> During the game if you are kicked due to invalid request, you'll be sent message: {"kicked": reason}.</p>
+
+
+        <h2>Replay format:</h2>
+
+<p><b>1.</b> Replay consists of four keys: "participants", "setup", "moves", "score".
+<p><b>2.</b> Handshakes are not recorded in replay. Instead there is a single key:
+        {"participants": [{"punter": number, "name": name }, ... ]}</p>
+<p><b>3.</b> Key "setup" holds one setup request (for punter 0), to provide map and settings, and all setup responses, to provide declared futures.</p>
+<p><b>4.</b> No gameplay requests from server are recorded</p>
+<p><b>5.</b> Gameplay responses from players are saved in the order they are send, every erroneous move is changed to pass. They have several additional fields:</p>
+<ul>
+    <li><i>roundno</i> - round number, to additionally assert their order; one move from each player is pne round;</li>
+    <li><i>timespan</i> - answering time (measured at server). Not recorded for setup response and erroneous moves;</li>
+    <li><i>error</i> - for forced passes, states the error that occured;</li>
+    <li><i>original</i> - if move was valid, but illegal at given map (river already claimed or non-existent, extension absent, etc.), the originally declared move is recorded here.</li>
+</ul>
+<p><b>6.</b> Score record hasn't last moves, and is formatted: {"scores": [score_record]}, where:<br />
+score_record is {"punter": punter, "name": name, "score": score, "futures": [...]}</p>
+
+{% endblock %}

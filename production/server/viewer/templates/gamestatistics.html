@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+
+
+<h2>Game {{ game.ID }}</h2>
+<p><i>Map:</i> {{ game.mapname }}<br />
+<i>Settings:</i> {{ game.settings }}<br />
+<i>Moves:</i> {{ game.movecount }}<br />
+<i>Duration:</i> {{ game.timespan }}
+</p>
+
+
+<div style="overflow: hidden;">
+<button class="tablinks" style="display: none;" onclick="openTab(event, 'scores')">Show scores</button>
+<button class="tablinks" style="display: block;" onclick="openTab(event, 'errors')">Show errors</button>
+</div>
+
+<br />
+<div id="scores" class="tabcontent" style="display: block;">
+    <table>
+        <tr>
+            <th class="text">Name</th>
+            <th class="number">Place</th>
+            <th class="number">Score</th>
+            <th class="number">Futures</th>
+            <th class="number">Claims</th>
+            <th class="number">Options</th>
+            <th class="number">Splurges</th>
+            <th class="number">Passes</th>
+            <th class="number">Average time</th>
+        </tr>
+
+        {% for player in game.playerperfs %}
+        <tr>
+            <td class="text">{{ player.name }}</td>
+            <td class="number">{{ player.place }}</td>
+            <td class="number">{{ player.score }}</td>
+            <td class="number">{{ player.futures }}</td>
+            <td class="number">{{ player.moves.claim }}</td>
+            <td class="number">{{ player.moves.option }}</td>
+            <td class="number">{{ player.moves.splurge }}</td>
+            <td class="number">{{ player.moves.pass }}</td>
+            <td class="number">{{ player.averagetime | round(2, 'ceil') }}</td>
+        </tr>
+        {% endfor %}
+
+    </table>
+</div>
+    
+<div id="errors" class="tabcontent">
+    <table>
+        <tr>
+            <th class="text">Name</th>
+            <th class="number">Place</th>
+            <th class="number">Forced passes</th>
+            <th class="number">Illegal moves</th>
+            <th class="number">Timeouts</th>
+            <th class="number">Zombie since</th>
+            <th class="text">Reason</th>
+        </tr>
+
+        {% for player in game.playerperfs %}
+        <tr>
+            <td class="text">{{ player.name }}</td>
+            <td class="number">{{ player.place }}</td>
+            <td class="number">{{ player.forcedpasses }}</td>
+            <td class="number">{{ player.illegalmoves }}</td>
+            <td class="number">{{ player.timeouts }}</td>
+            <td class="number">{{ player.zombiesince }}</td>
+            <td class="text">{{ player.zombiereason }}</td>
+        </tr>
+        {% endfor %}
+
+    </table>
+</div>
+    
+
+<script>
+    function openTab(evt, tabname) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tabcontent");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+        }
+        tablinks = document.getElementsByClassName("tablinks");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].style.display = "block";
+        }
+        document.getElementById(tabname).style.display = "block";
+        evt.currentTarget.style.display = "none";
+    }
+</script>
+
+{% endblock %}

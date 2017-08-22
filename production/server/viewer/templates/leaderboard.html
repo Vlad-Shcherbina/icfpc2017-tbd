@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block leadactive %}class="active"{% endblock %}
+
+{% block content %}
+<br />
+<table>
+    <tr>
+        <th class="text">Nickname</th>
+        <th class="number">Games played</th>
+        <th class="number">Rating</th>
+        <th class="number"></th>
+    </tr>
+    {% for player in playerlist %}
+    <tr>
+        <td class="text">{{ player.name }}</td>
+        <td class="number">{{ player.games }}</td>
+        <td class="number">{{ player.rating }}</td>
+        <td class="name"><a href="/playerstatistics/{{ player.ID }}"> details </a></td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}

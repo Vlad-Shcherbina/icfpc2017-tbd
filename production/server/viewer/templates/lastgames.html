@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block lastactive %}class="active"{% endblock %}
+
+{% block content %}
+<div class="pagination">
+<!--
+    IN PROGRESS
+
+    {% for page in pages %}
+
+    {% endfor %}
+    <a href=#>&laquo;</a>
+    <a href=#1>1</a>
+    <a href=#2>2</a>
+    <a href=#3>3</a>
+    <a href=#4>4</a>
+    <a href=#5>5</a>
+    <a href=#>&raquo;</a>
+-->
+</div>
+<br />
+<table>
+    <br />
+    <tr>
+        <th class="text">Time (UTC)</th>
+        <th class="text">Map</th>
+        <th class="text">Settings</th>
+        <th class="text">Players (sorted by scores)</th>
+    </tr>
+    {% for game in gamelist %}
+        <tr>
+            <td class="text">{{ game.time }}</td>
+            <td class="text">{{ game.mapname }}</td>
+            <td class="text">{{ game.settings }}</td>
+            <td class="text">{{ game.players }}</td>
+            <td class="text"><a href="/gamestatistics/{{ game.ID }}">details</a></td>
+        </tr>
+    {% endfor %}
+</table>
+{% endblock %}
