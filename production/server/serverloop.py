@@ -23,7 +23,9 @@ logger = logging.getLogger(__name__)
 
 '''
 Local usage:
-serverloop()
+serverloop() <-- default ports (42424 for bots, 45454 for commands)
+or from cmd:
+serverloop.py 42424 45454
 
 from cmd:
 production\botscript.py zzz_julie random -c
@@ -392,10 +394,10 @@ def db_submit_players_rating(conn, players: List[PlayerStats]):
                               (p.mu, p.sigma, p.name))
 
 
-def serverloop():
+def serverloop(port, commandport):
     '''Main loop. Accept connections, gather players for match and start games.'''
-    server = connectserver(42424, timeout=5)
-    aux_server = connectserver(45454, timeout=.5)
+    server = connectserver(port, timeout=5)
+    aux_server = connectserver(commandport, timeout=.5)
     logger.info('Server started successfully')
     _close_pending_games()
     accept_players = True
@@ -429,5 +431,6 @@ if __name__ == '__main__':
             level=logging.DEBUG,
             stream=sys.stdout,
             format='%(levelname).1s %(module)10.10s:%(lineno)-4d %(message)s')
-    #logging.getLogger('production.server.connection').setLevel(logging.INFO)
-    serverloop()
+    mainport = sys.argv[1] if len(sys.argv) > 1 else 42424
+    commandport = sys.argv[2] if len(sys.argv) > 2 else 45454
+    serverloop(mainport, commandport)

@@ -2,11 +2,11 @@
 {% block content %}
 
 
-<h2>Game {{ game.ID }}</h2>
-<p><i>Map:</i> {{ game.mapname }}<br />
-<i>Settings:</i> {{ game.settings }}<br />
-<i>Moves:</i> {{ game.movecount }} ({{ (game.movecount / ( game.playerperfs | length )) | int}} rounds)<br />
-<i>Duration:</i> {{ game.timespan }}
+<h2>Game {{ gameID }}</h2>
+<p><i>Map:</i> {{ mapname }}<br />
+<i>Settings:</i> {{ settings }}<br />
+<i>Moves:</i> {{ movecount }} ({{ (movecount / ( playerperfs | length )) | int}} rounds)<br />
+<i>Duration:</i> {{ timespan }}
 </p>
 
 
@@ -22,7 +22,7 @@
             <th class="text">Name</th>
             <th class="number">Place</th>
             <th class="number">Score</th>
-            <th class="number">Futures</th>
+            <th class="text">Futures</th>
             <th class="number">Claims</th>
             <th class="number">Options</th>
             <th class="number">Splurges</th>
@@ -30,12 +30,12 @@
             <th class="number">Average time</th>
         </tr>
 
-        {% for player in game.playerperfs %}
+        {% for player in playerperfs %}
         <tr>
             <td class="text">{{ player.name }}</td>
             <td class="number">{{ player.place }}</td>
             <td class="number">{{ player.score }}</td>
-            <td class="number">{{ player.futures }}</td>
+            <td class="text">{{ player.futures }}</td>
             <td class="number">{{ player.moves.claim }}</td>
             <td class="number">{{ player.moves.option }}</td>
             <td class="number">{{ player.moves.splurge }}</td>
@@ -59,7 +59,7 @@
             <th class="text">Reason</th>
         </tr>
 
-        {% for player in game.playerperfs %}
+        {% for player in playerperfs %}
         <tr>
             <td class="text">{{ player.name }}</td>
             <td class="number">{{ player.place }}</td>
@@ -73,7 +73,10 @@
 
     </table>
 </div>
+
+<p><a id="downloadreplay" href="{{ url_for('downloadreplay', gameID=gameID) }}">open replay as text</a></p>
     
+
 
 <script>
     function openTab(evt, tabname) {
@@ -89,6 +92,7 @@
         document.getElementById(tabname).style.display = "block";
         evt.currentTarget.style.display = "none";
     }
+
 </script>
 
 {% endblock %}

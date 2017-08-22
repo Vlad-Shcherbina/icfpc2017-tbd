@@ -28,7 +28,7 @@ The second may appear if server accepts no more players or if you bot has too ma
 <p><b>1.</b> Replay consists of four keys: "participants", "setup", "moves", "score".
 <p><b>2.</b> Handshakes are not recorded in replay. Instead there is a single key:
         <span class="json">{"participants": [{"punter": number, "name": name }, ... ]}</span></p>
-<p><b>3.</b> Key "setup" holds one setup request (for punter 0), to provide map and settings, and all setup responses, to provide declared futures.</p>
+<p><b>3.</b> Key "setup" holds map, settings and all setup responses, to provide declared futures.</p>
 <p><b>4.</b> No gameplay requests from server are recorded</p>
 <p><b>5.</b> Gameplay responses from players are saved in the order they are send, every erroneous move is changed to pass. They have several additional fields:</p>
 <ul>

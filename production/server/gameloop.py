@@ -83,10 +83,8 @@ def setup_game(m: Map,
     N = len(connections)
 
     # add one setup request to replay, to provide map and settings
-    replay['setup'].append(dict(punter=0, 
-                                punters=N, 
-                                map=m.raw_map, 
-                                settings=json_format.format_settings(settings)))
+    replay['setup'] += [{'map' : m.raw_map},
+                        {'settings' : json_format.format_settings(settings)}]
 
     board = Gameboard(adj=m.g, mines=m.mines, N=N, settings=settings)
     gameholder = GameHolder(board)

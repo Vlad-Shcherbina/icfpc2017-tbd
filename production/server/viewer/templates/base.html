@@ -105,7 +105,7 @@
             }
 
             td.number, th.number {
-                text-align: center;
+                text-align: right;
             }
 
             tr:hover {
@@ -169,9 +169,9 @@
 
     <body>
         <ul class="navigation">
-            <li {% block leadactive %}{% endblock %}><a href="/leaderboard">Leaderboard</a></li>
-            <li {% block lastactive %}{% endblock %}><a href="/lastgames/0">Last games</a></li>
-            <li {% block instactive %}{% endblock %}><a href="/instructions">Instructions</a></li>
+            <li {% block leadactive %}{% endblock %}><a href="{{ url_for('leaderboard') }}">Leaderboard</a></li>
+            <li {% block lastactive %}{% endblock %}><a href="{{ url_for('lastgames', page=0) }}">Last games</a></li>
+            <li {% block instactive %}{% endblock %}><a href="{{ url_for('instructions') }}">Instructions</a></li>
             <!--<li {% block aboutactive %}{% endblock %} style="float: right;"><a href="/about">About</a></li>-->
         </ul>
         

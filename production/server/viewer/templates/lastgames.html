@@ -34,7 +34,7 @@
             <td class="text">{{ game.mapname }}</td>
             <td class="text">{{ game.settings }}</td>
             <td class="text">{{ game.players }}</td>
-            <td class="text"><a href="/gamestatistics/{{ game.ID }}">details</a></td>
+            <td class="text"><a href="{{ url_for('gamestatistics', gameID=game.ID) }}">details</a></td>
         </tr>
     {% endfor %}
 </table>

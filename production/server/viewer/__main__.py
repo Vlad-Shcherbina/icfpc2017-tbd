@@ -25,13 +25,6 @@ class PlayerBaseInfo(NamedTuple):
     rating: int
 
 
-class PlayerFullInfo(NamedTuple):
-    ID: int
-    name: str
-    games: str
-    rating: int
-
-
 class GameBaseInfo(NamedTuple):
     ID: int
     mapname: str
@@ -56,15 +49,6 @@ class PlayerPerfomanceInfo:
         self.zombiereason = ''
 
         self.sumtime = 0.0
-
-
-class GameFullInfo(NamedTuple):
-    ID: int
-    mapname: str
-    settings: str
-    movecount: int
-    timespan: str
-    playerperfs: List[PlayerPerfomanceInfo]
 
 
 # -------------------------- PAGE RENDERING -----------------------------#
@@ -159,8 +143,7 @@ def gamestatistics(gameID):
         cursor.execute('''SELECT replay FROM icfpc2017_replays
                           WHERE id=%s;''', (gameID, ))
         assert cursor.rowcount == 1
-        replay = bytes(cursor.fetchone()[0])
-        loaded_replay = json.loads(replay)
+        replay = json.loads(bytes(cursor.fetchone()[0]))
 
         playerIDs = []
         playerscores = []
@@ -170,18 +153,30 @@ def gamestatistics(gameID):
             playerIDs.append(row[0])
             playerscores.append(row[1])
         
-        playerlist = _playerperfomances(loaded_replay, playerIDs)
+        playerlist = _playerperfomances(replay, playerIDs)
         assert len(playerIDs) == len(playerlist)
         assert all(p.score == ps for p, ps in zip(playerlist, playerscores))
-        gameinfo = GameFullInfo(ID=gameID,
-                                mapname=mapname,
-                                settings=settings,
-                                movecount=len(loaded_replay['moves']),
-                                timespan=timefinish-timestart,
-                                playerperfs=playerlist)
+    
     dbconn.close()
-    return flask.render_template('gamestatistics.html', game=gameinfo)
+    return flask.render_template('gamestatistics.html',
+                                 gameID=gameID,
+                                 mapname=mapname,
+                                 settings=settings,
+                                 movecount=len(replay['moves']),
+                                 timespan=timefinish-timestart,
+                                 playerperfs=playerlist)
 
+
+@app.route('/replay<gameID>.json')
+def downloadreplay(gameID):
+    gameID = int(gameID)
+    dbconn = connect_to_db()
+    with dbconn.cursor() as cursor:
+        cursor.execute('SELECT replay from icfpc2017_replays WHERE id=%s;', (gameID,))
+        if not cursor.rowcount:
+            return flask.render_template('404.html')
+        raw_replay = bytes(cursor.fetchone()[0]).decode()
+        return flask.render_template_string('{{ replay }}', replay=raw_replay)
 
 # ----------------------------- AUXILIARY -------------------------------#
 
