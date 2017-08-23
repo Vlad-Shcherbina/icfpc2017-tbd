@@ -181,9 +181,11 @@ def downloadreplay(gameID):
     with dbconn.cursor() as cursor:
         cursor.execute('SELECT replay from icfpc2017_replays WHERE id=%s;', (gameID,))
         if not cursor.rowcount:
-            return flask.render_template('404.html')
-        raw_replay = bytes(cursor.fetchone()[0]).decode()
-        return flask.render_template_string('{{ replay }}', replay=raw_replay)
+            return flask.render_template('404.html'), 404
+        replay = json.loads(bytes(cursor.fetchone()[0]).decode())
+        return flask.Response(
+            json.dumps(replay, indent='  '),
+            mimetype='application/json')
 
 # ----------------------------- AUXILIARY -------------------------------#
 
