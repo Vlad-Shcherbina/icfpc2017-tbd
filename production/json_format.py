@@ -75,11 +75,11 @@ def format_settings(s: Settings) -> dict:
 def parse_handshake_response(d) -> str:
     # Got from player - check for any possible inconsistency
     if not isinstance(d, dict): 
-        raise InvalidResponseError('not a valid handshake response')
+        raise InvalidResponseError('not a valid json object in handshake')
     if (not 'me' in d):
-        raise InvalidResponseError('not a valid handshake response')
+        raise InvalidResponseError('no "me" key in handshake')
     if not isinstance(d['me'], str):
-        raise InvalidResponseError('not a valid handshake response')
+        raise InvalidResponseError('"me" value in handshake is not string')
     return d['me']
 
 
@@ -101,15 +101,15 @@ def parse_setup_request(d) -> SetupRequest:
 def parse_setup_response(d, ID=None) -> SetupResponse:
     # Got from player - check for any possible inconsistency
     if not isinstance(d, dict): 
-        raise InvalidResponseError('not a valid setup response')
+        raise InvalidResponseError('not a valid json object in setup')
     if (not 'ready' in d):
-        raise InvalidResponseError('not a valid setup response')
+        raise InvalidResponseError('no "ready" key in setup')
 
     if (not 'futures' in d):
-        return SetupResponse(ready=ID, state=None, futures={})
+        return SetupResponse(ready=ID, state=None, futures=[])
 
     if not isinstance(d['futures'], list):
-        raise InvalidResponseError('not a valid setup response')
+        raise InvalidResponseError('"futures" value in setup is not list')
     futures = {}
     for f in d['futures']:
         if (not isinstance(f, dict) 
@@ -117,7 +117,7 @@ def parse_setup_response(d, ID=None) -> SetupResponse:
                 or not 'target' in f
                 or not isinstance(f['source'], int)
                 or not isinstance(f['target'], int)):
-            raise InvalidResponseError('not a valid setup response')
+            raise InvalidResponseError('not enough keys in future request')
         futures[f['source']] = f['target']
     return SetupResponse(ready=ID, state=None, futures=futures)
 
@@ -132,19 +132,19 @@ def format_setup_response(r: SetupResponse):
 def parse_move(d, ID=None) -> Move:
     # Probably got from player - check for any possible inconsistency
     if not isinstance(d, dict):
-        raise InvalidResponseError('not a valid move')
+        raise InvalidResponseError('not a valid json object in move')
     for k in ('pass', 'claim', 'option', 'splurge'):
         if k in d: 
             key = k
             break
     else:
-        raise InvalidResponseError('not a valid move')
+        raise InvalidResponseError('unknown move type')
 
     d = copy.deepcopy(d)
     p = d.pop(key)
     if REPORT_UNKNOWN_FIELDS: assert not d, d
     if not isinstance(p, dict) or not 'punter' in p:
-        raise InvalidResponseError('not a valid move')
+        raise InvalidResponseError('not a valid move format')
 
     punter = p.pop('punter')
     if ID is not None: punter = ID
@@ -157,20 +157,20 @@ def parse_move(d, ID=None) -> Move:
         target = p.pop('target')
         if REPORT_UNKNOWN_FIELDS: assert not p, p
         if not isinstance(source, int) or not isinstance(target, int):
-            raise InvalidResponseError('not a valid move')
+            raise InvalidResponseError('not a valid move format')
         SomeMove = ClaimMove if key == 'claim' else OptionMove
         return SomeMove(punter=punter, source=source, target=target)
     elif key == 'splurge':
         route = p.pop('route')
         if REPORT_UNKNOWN_FIELDS: assert not p, p
         if not isinstance(route, list):
-            raise InvalidResponseError('not a valid move')
+            raise InvalidResponseError('"route" key is not an array')
         return SplurgeMove(punter=punter, route=route)
     else:
         assert False, key
 
 
-def format_move(m: Move, error=None, timespan=None, original=None, roundno=None):
+def format_move(m: Move, error=None, timespan=None, original=None):
     result = { m.key() : {'punter': m.punter}}
     if isinstance(m, PassMove):
         pass
@@ -187,8 +187,6 @@ def format_move(m: Move, error=None, timespan=None, original=None, roundno=None)
         result.update({'timespan': timespan})
     if original is not None:
         result.update({'original': format_move(original)})
-    if roundno is not None:
-        result.update({'roundno' : roundno})
     return result
 
 
@@ -207,7 +205,7 @@ def parse_gameplay_request(d) -> GameplayRequest:
 def parse_gameplay_response(d, ID=None) -> GameplayResponse:
     # Got from player - check for any possible inconsistency
     if not isinstance(d, dict) or not 'move' in d:
-        raise InvalidResponseError('not a valid move')
+        raise InvalidResponseError('not a valid move format')
     move = parse_move(d['move'], ID)
     return GameplayResponse(move=move, state='')
 

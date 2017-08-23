@@ -56,8 +56,7 @@ def gameloop(m: Map,
         record = json_format.format_move(move, 
                                          error=error, 
                                          timespan=connresponse.timespan,
-                                         original=original,
-                                         roundno=moveno//N)
+                                         original=original)
         replay['moves'].append(record)
         ID = (ID + 1) % N
 

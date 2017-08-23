@@ -68,17 +68,16 @@ def index():
 def leaderboard():
     dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
-        cursor.execute('''SELECT id, name, rating_mu, rating_sigma 
-                          FROM icfpc2017_players;''')
-                        # WHERE NOT name LIKE "zzz_%"
+        cursor.execute('''SELECT icfpc2017_players.id, name, rating_mu, rating_sigma,
+                          COUNT(game_id)
+                          FROM icfpc2017_players INNER JOIN icfpc2017_participation
+                          ON icfpc2017_players.id = icfpc2017_participation.player_id
+                          GROUP BY icfpc2017_players.id;''')
+                          # WHERE NOT name LIKE "zzz_%"
         playerlist = []
         for row in cursor.fetchall():
-            playerID, name, rating_mu, rating_sigma = row
+            playerID, name, rating_mu, rating_sigma, games = row
             rating = int(rating_mu - 3 * rating_sigma + 0.5)
-            cursor.execute('''SELECT id FROM icfpc2017_participation 
-                              WHERE player_id=%s;''', 
-                              (playerID,))
-            games = cursor.rowcount
             playerlist.append(PlayerBaseInfo(ID=playerID, name=name, rating=rating, games=games))
         playerlist.sort(key=lambda x: x.rating, reverse=True)
     return flask.render_template('leaderboard.html', playerlist=playerlist)
@@ -103,14 +102,13 @@ def lastgames(page):
             settings = (('futures, ' if futures else '')
                       + ('options, ' if options else '')
                       + ('splurges, ' if splurges else ''))[:-2]
-            cursor.execute('''SELECT player_id FROM icfpc2017_participation
+
+            cursor.execute('''SELECT name 
+                              FROM icfpc2017_players INNER JOIN icfpc2017_participation
+                              ON icfpc2017_players.id = icfpc2017_participation.player_id
                               WHERE game_id=%s ORDER BY score DESC;''',
                               (gameID,))
-            playerlist = []
-            for playerID in cursor.fetchall():
-                cursor.execute('SELECT name FROM icfpc2017_players WHERE id=%s', (playerID,))
-                playerlist.append(cursor.fetchone()[0])
-            players = ', '.join(playerlist)
+            players = ', '.join(x[0] for x in cursor.fetchall())
             gamelist.append(GameBaseInfo(ID=gameID, 
                                          mapname=mapname, 
                                          settings=settings, 
@@ -137,25 +135,24 @@ def gamestatistics(gameID):
     dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
         cursor.execute('''SELECT mapname, futures, options, splurges,
-                          timestart, timefinish FROM icfpc2017_games
-                          WHERE id=%s;''', (gameID, ))
+                          timestart, timefinish, replay
+                          FROM icfpc2017_games INNER JOIN icfpc2017_replays
+                          ON icfpc2017_games.id = icfpc2017_replays.id
+                          WHERE icfpc2017_games.id=%s;''', (gameID, ))
         if not cursor.rowcount:
             return flask.render_template('404.html')
-        mapname, futures, options, splurges, timestart, timefinish = cursor.fetchone()
+        mapname, futures, options, splurges, timestart, timefinish, replay = cursor.fetchone()
         settings = (('futures, ' if futures else '')
                   + ('options, ' if options else '')
                   + ('splurges, ' if splurges else ''))[:-2]
-        
-        cursor.execute('''SELECT replay FROM icfpc2017_replays
-                          WHERE id=%s;''', (gameID, ))
-        assert cursor.rowcount == 1
-        replay = json.loads(bytes(cursor.fetchone()[0]))
+        replay = json.loads(bytes(replay))
 
         playerIDs = []
         playerscores = []
         cursor.execute('''SELECT player_id, score FROM icfpc2017_participation
                           WHERE game_id=%s ORDER BY player_order;''', (gameID, ))
         for row in cursor.fetchall():
+            print(row)
             playerIDs.append(row[0])
             playerscores.append(row[1])
         
@@ -198,12 +195,14 @@ def _movekey(move: dict) -> str:
 
 def _playerperfomances(replay: dict, playerIDs):
     players = [PlayerPerfomanceInfo(ID) for ID in playerIDs]
+    print(playerIDs)
+    print(replay['participants'])
     for i, player in enumerate(replay['participants']):
         assert player['punter'] == i
         name = player['name']
         players[i].name = name
 
-    for move in replay['moves']:
+    for i, move in enumerate(replay['moves']):
         key = _movekey(move)
         punter = move[key]['punter']
         players[punter].moves[key] += 1
@@ -221,7 +220,7 @@ def _playerperfomances(replay: dict, playerIDs):
                 assert players[punter].zombiereason     # assert already zombie
                 pass
             else:
-                players[punter].zombiesince = move['roundno']
+                players[punter].zombiesince = i // len(players)
                 players[punter].zombiereason = move['error']
 
     for p in players:

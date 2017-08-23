@@ -5,7 +5,7 @@
 <h2>Game {{ gameID }}</h2>
 <p><i>Map:</i> {{ mapname }}<br />
 <i>Settings:</i> {{ settings }}<br />
-<i>Moves:</i> {{ movecount }} ({{ (movecount / ( playerperfs | length )) | int}} rounds)<br />
+<i>Moves:</i> {{ movecount }} ({{ (movecount / ( playerperfs | length )) | round (0, 'ceil') | int}} rounds)<br />
 <i>Duration:</i> {{ timespan }}
 </p>
 

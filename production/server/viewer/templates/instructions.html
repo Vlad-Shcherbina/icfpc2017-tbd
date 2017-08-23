@@ -32,15 +32,14 @@ The second may appear if server accepts no more players or if you bot has too ma
 <p><b>4.</b> No gameplay requests from server are recorded</p>
 <p><b>5.</b> Gameplay responses from players are saved in the order they are send, every erroneous move is changed to pass. They have several additional fields:</p>
 <ul>
-    <li><i>roundno</i> - round number, to additionally assert their order; one move from each player is pne round;</li>
     <li><i>timespan</i> - answering time (measured at server). Not recorded for setup response and erroneous moves;</li>
     <li><i>error</i> - for forced passes, states the error that occured;</li>
     <li><i>original</i> - if move was valid, but illegal at given map (river already claimed or non-existent, extension absent, etc.), the originally declared move is recorded here.</li>
 </ul>
 <p>So move may look like:</p>
-<p><span class="json">{"option": {"punter": 4, "source": 11, "targer": 12}, "roundno": 20, "timespan": 0.384571154}</span></p>
+<p><span class="json">{"option": {"punter": 4, "source": 11, "targer": 12}, "timespan": 0.384571154}</span></p>
 <p>or</p>
-<p><span class="json">{"pass": {"punter": 4}, "error": "illegal move", "original": {"claim": {"punter": 5, "source": 12, "target": 11}}, "roundno": 20}</span></p>
+<p><span class="json">{"pass": {"punter": 4}, "error": "illegal move", "original": {"claim": {"punter": 5, "source": 12, "target": 11}}</span></p>
 <p><b>6.</b> Score record hasn't last moves, and is formatted: <span class="json">{"scores": [score records]}</span>, where:<br />
 score record is <span class="json">{"punter": punter, "name": name, "score": score, "futures": [...]}</span></p>
 
