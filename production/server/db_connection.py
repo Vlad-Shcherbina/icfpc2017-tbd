@@ -54,7 +54,7 @@ def local_create_tables(conn):
                 );
 
             CREATE TABLE IF NOT EXISTS icfpc2017_replays(
-                id              integer REFERENCES icfpc2017_games (id),
+                id              integer REFERENCES icfpc2017_games (id) unique,
                 replay          bytea
                 );''')
 

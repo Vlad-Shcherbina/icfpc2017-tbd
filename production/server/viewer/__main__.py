@@ -219,6 +219,7 @@ def _playerperfomances(replay: dict, playerIDs):
                 players[punter].timeouts += 1
             elif move['error'] == 'zombie':
                 assert players[punter].zombiereason     # assert already zombie
+                pass
             else:
                 players[punter].zombiesince = move['roundno']
                 players[punter].zombiereason = move['error']

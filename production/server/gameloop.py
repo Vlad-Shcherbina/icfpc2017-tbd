@@ -22,7 +22,7 @@ def gameloop(m: Map,
     N = len(names)
     assert N == len(connections)
     replay = {'participants' : [{ 'punter' : i, 'name' : names[i]} for i in range(N)],
-              'setup' : [],
+              'setup' : {},
               'moves' : [],
               'score' : None}
 
@@ -83,8 +83,9 @@ def setup_game(m: Map,
     N = len(connections)
 
     # add one setup request to replay, to provide map and settings
-    replay['setup'] += [{'map' : m.raw_map},
-                        {'settings' : json_format.format_settings(settings)}]
+    replay['setup'].update({'map' : m.raw_map,
+                            'settings' : json_format.format_settings(settings),
+                            'responses' : []})
 
     board = Gameboard(adj=m.g, mines=m.mines, N=N, settings=settings)
     gameholder = GameHolder(board)
@@ -106,10 +107,10 @@ def setup_game(m: Map,
                 r = json_format.parse_setup_response(connresponse.message, ID)
             except InvalidResponseError as e:
                 assert connresponse.error is None, connresponse.error
-                connector.zombify(ID, e.msg)
+                connector.zombify(ID, e.msg, logged=False)
                 r = SetupResponse(ready=ID, state='', futures=[])
             else:
                 gameholder.process_futures(response=r)
-        replay['setup'].append(json_format.format_setup_response(r))
+        replay['setup']['responses'].append(json_format.format_setup_response(r))
             
     return connector, gameholder
