@@ -27,18 +27,23 @@ function drawMap(map, canvas) {
     function transformY(y) {
         return canvas.height * 0.5 + (y - (minY + maxY) * 0.5) * scale;
     }
-    for (var _b = 0, _c = map.rivers; _b < _c.length; _b++) {
-        var river = _c[_b];
-        var source = map.sites[river.source];
-        var target = map.sites[river.target];
+    var siteById = {};
+    for (var _b = 0, _c = map.sites; _b < _c.length; _b++) {
+        var site = _c[_b];
+        siteById[site.id] = site;
+    }
+    for (var _d = 0, _e = map.rivers; _d < _e.length; _d++) {
+        var river = _e[_d];
+        var source = siteById[river.source];
+        var target = siteById[river.target];
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(transformX(source.x), transformY(source.y));
         ctx.lineTo(transformX(target.x), transformY(target.y));
         ctx.stroke();
     }
-    for (var _d = 0, _e = map.sites; _d < _e.length; _d++) {
-        var site = _e[_d];
+    for (var _f = 0, _g = map.sites; _f < _g.length; _f++) {
+        var site = _g[_f];
         ctx.strokeStyle = 'black';
         ctx.fillStyle = 'white';
         ctx.beginPath();
@@ -46,9 +51,9 @@ function drawMap(map, canvas) {
         ctx.fill();
         ctx.stroke();
     }
-    for (var _f = 0, _g = map.mines; _f < _g.length; _f++) {
-        var mineIdx = _g[_f];
-        var mine = map.sites[mineIdx];
+    for (var _h = 0, _j = map.mines; _h < _j.length; _h++) {
+        var mineIdx = _j[_h];
+        var mine = siteById[mineIdx];
         ctx.strokeStyle = 'white';
         ctx.fillStyle = 'black';
         ctx.beginPath();

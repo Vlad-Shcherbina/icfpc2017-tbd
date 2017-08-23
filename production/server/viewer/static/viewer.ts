@@ -44,9 +44,12 @@ function drawMap(map: GameMap, canvas: HTMLCanvasElement) {
     function transformY(y: number) {
         return canvas.height * 0.5 + (y - (minY + maxY) * 0.5) * scale
     }
+    let siteById = {}
+    for (let site of map.sites)
+        siteById[site.id] = site
     for (let river of map.rivers) {
-        const source = map.sites[river.source]
-        const target = map.sites[river.target]
+        const source = siteById[river.source]
+        const target = siteById[river.target]
         ctx.lineWidth = 1.5
         ctx.beginPath()
         ctx.moveTo(transformX(source.x), transformY(source.y))
@@ -62,7 +65,7 @@ function drawMap(map: GameMap, canvas: HTMLCanvasElement) {
         ctx.stroke()
     }
     for (let mineIdx of map.mines) {
-        let mine = map.sites[mineIdx]
+        let mine = siteById[mineIdx]
         ctx.strokeStyle = 'white'
         ctx.fillStyle = 'black'
         ctx.beginPath()
