@@ -1,7 +1,5 @@
 {% extends "base.html" %}
 
-{% block instactive %}class="active"{% endblock %}
-
 {% block content %}
 
 <!--<p>Пользователь заходит на сайт. Там есть три страницы: лидерборд, последние партии (с возможностью скачать риплей, но без визуализации), инструкции.</p>
@@ -19,8 +17,7 @@
 You may receive <span class="json">{"you": name}</span> or <span class="json">{"kicked": reason}</span> in response.<br />
 In the first case you'll be send registered bot name.<br />
 The second may appear if server accepts no more players or if you bot has too many simultaneous connections.</p>
-<p><b>2.</b> If you timed out, you get <span class="json">{"timeout": 0</span> - without indicating time limit. Time limits are stated in protocols.</p>
-<p><b>3.</b> During the game if you are kicked due to invalid request, you'll be sent message: <span class="json">{"kicked": reason}</span>.</p>
+<p><b>2.</b> During the game if you are kicked due to invalid request, you'll be sent message: <span class="json">{"kicked": reason}</span>.</p>
 
 
         <h2>Replay format:</h2>

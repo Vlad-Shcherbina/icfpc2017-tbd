@@ -42,6 +42,10 @@
                 color: var(--darkcolor);
             }
 
+            span.hidden {
+                color: white;
+            }
+
             /* links */
 
             a:link {
@@ -92,6 +96,7 @@
             table {
                 border-spacing: 1px;
                 border: none;
+                border-bottom: 1px solid var(--lightcolor);
                 align-self: center;
             }
 
@@ -110,6 +115,10 @@
 
             tr:hover {
                background-color: var(--hovercolor); 
+            }
+
+            th {
+                border-bottom: 1px solid var(--lightcolor);
             }
 
             /* pagination for last games */
@@ -169,13 +178,14 @@
 
     <body>
         <ul class="navigation">
-            <li {% block leadactive %}{% endblock %}><a href="{{ url_for('leaderboard') }}">Leaderboard</a></li>
-            <li {% block lastactive %}{% endblock %}><a href="{{ url_for('lastgames', page=0) }}">Last games</a></li>
-            <li {% block instactive %}{% endblock %}><a href="{{ url_for('instructions') }}">Instructions</a></li>
+            <li {% if request.endpoint == 'leaderboard' %}class="active"{% endif %}><a href="{{ url_for('leaderboard') }}">Leaderboard</a></li>
+            <li {% if request.endpoint == 'lastgames' %}class="active"{% endif %}><a href="{{ url_for('lastgames', page=0) }}">Last games</a></li>
+            <li {% if request.endpoint == 'instructions' %}class="active"{% endif %}><a href="{{ url_for('instructions') }}">Instructions</a></li>
             <!--<li {% block aboutactive %}{% endblock %} style="float: right;"><a href="/about">About</a></li>-->
         </ul>
         
 
         {% block content %}{% endblock %}
+        {% block gamelist %}{% endblock %}
     </body>
 </html>

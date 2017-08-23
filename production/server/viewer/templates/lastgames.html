@@ -1,8 +1,6 @@
-{% extends "base.html" %}
+{% extends parentpage %}
 
-{% block lastactive %}class="active"{% endblock %}
-
-{% block content %}
+{% block gamelist %}
 <div class="pagination">
 <!--
     IN PROGRESS
@@ -27,6 +25,7 @@
         <th class="text">Map</th>
         <th class="text">Settings</th>
         <th class="text">Players (sorted by scores)</th>
+        <th class="text"></th>
     </tr>
     {% for game in gamelist %}
         <tr>

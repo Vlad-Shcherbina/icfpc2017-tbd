@@ -34,7 +34,7 @@ class Connector:
         bot.send(request)
 
 
-    def receive(self, ID, deadline) -> ConnMessage:
+    def receive(self, ID, deadline, timelimit) -> ConnMessage:
         '''Return message if player connected and sent valid json.
 
         If connection timed out or is considered dead, return pass move and
@@ -59,7 +59,7 @@ class Connector:
 
         if isinstance(response, Timeout):
             self.timeouts[ID] += 1
-            bot.send({'timeout': 0})   # ??? should we really send timelimit?
+            bot.send({'timeout': timelimit})
             if self.timeouts[ID] >= 10:
                 bot.reason_dead = 'timeouts limit exceeded'
             return ConnMessage(message={'pass': {'punter': ID}}, 

@@ -33,7 +33,7 @@ def gameloop(m: Map,
     ID = 0
     for moveno in range(turns):
         connector.send(ID, gameholder.get_gameplay_request())
-        connresponse = connector.receive(ID, time.time() + GAMELIMIT)
+        connresponse = connector.receive(ID, time.time() + GAMELIMIT, GAMELIMIT)
         error = connresponse.error
         try:
             move = json_format.parse_move(connresponse.message, ID)
@@ -98,7 +98,7 @@ def setup_game(m: Map,
         time.sleep(0.1)
 
     for ID in range(N):
-        connresponse = connector.receive(ID, deadlines[ID])
+        connresponse = connector.receive(ID, deadlines[ID], SETUPLIMIT)
         if 'pass' in connresponse.message:
             r = SetupResponse(ready=ID, state='', futures=[])
         else:
