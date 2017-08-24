@@ -96,12 +96,13 @@
 </script>
 
 <br>
-<canvas id='vis'></canvas>
+<canvas id='vis' width=600 height=400></canvas>
 
 <script src="{{ url_for('static', filename='viewer.js')}}">
 </script>
 
 <script>
+const replay = {{ replay | tojson | safe }}
 const mapUrl = {{ url_for('downloadmap', mapname=mapname) | tojson | safe }}
 fetch(new Request(mapUrl, {method: 'GET'}))
     .then(r => {
@@ -109,10 +110,7 @@ fetch(new Request(mapUrl, {method: 'GET'}))
         return r.json()
     })
     .then(map => {
-        const canvas = document.getElementById('vis')
-        const context = canvas.getContext('2d')
-        context.clearRect(0, 0, canvas.width, canvas.height)
-        drawMap(map, canvas)
+        runViewer(map, replay)
     })
 </script>
 
