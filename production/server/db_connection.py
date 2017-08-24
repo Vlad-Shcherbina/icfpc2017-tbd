@@ -26,13 +26,13 @@ def local_create_tables(conn):
     with conn.cursor() as cursor:
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS icfpc2017_maps(
-                mapname         text unique,
+                mapname         text primary key,
                 maptext         bytea
                 );
 
             CREATE TABLE IF NOT EXISTS icfpc2017_games(
                 id              serial primary key,
-                mapname         text REFERENCES icfpc2017_maps (mapname) not null,
+                mapname         text REFERENCES icfpc2017_maps not null,
                 futures         boolean,
                 options         boolean,
                 splurges        boolean,
@@ -52,14 +52,14 @@ def local_create_tables(conn):
 
             CREATE TABLE IF NOT EXISTS icfpc2017_participation(
                 id              serial primary key,
-                game_id         integer REFERENCES icfpc2017_games (id),
-                player_id       integer  REFERENCES icfpc2017_players (id),
+                game_id         integer REFERENCES icfpc2017_games,
+                player_id       integer  REFERENCES icfpc2017_players,
                 player_order    smallint,
                 score           integer
                 );
 
             CREATE TABLE IF NOT EXISTS icfpc2017_replays(
-                id              integer REFERENCES icfpc2017_games (id) unique,
+                id              integer REFERENCES icfpc2017_games unique,
                 replay          bytea
                 );
         ''')
@@ -102,7 +102,7 @@ def local_add_players(conn):
 if __name__ == '__main__':
     conn = connect_to_db()
     local_create_tables(conn)
-    #local_add_players(conn)
+    local_add_players(conn)
     upload_maps_from_folder(conn)
     conn.commit()
     conn.close()

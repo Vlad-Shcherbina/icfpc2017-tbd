@@ -183,7 +183,6 @@ class HandshakeThread(threading.Thread):
                               icfpc2017_players WHERE token=%s;''', (token,))
             if cursor.rowcount == 0:
                 return None
-            #print(cursor.fetchone())
             playerID, name, mu, sigma = cursor.fetchone()
             cursor.execute('''SELECT * FROM icfpc2017_participation 
                               WHERE player_id=%s''', (playerID, ))
@@ -457,6 +456,6 @@ if __name__ == '__main__':
     commandport = sys.argv[2] if len(sys.argv) > 2 else 45454
     try:
         serverloop(mainport, commandport)
-    except Error e:
+    except Error as e:
         logger.exception(e)
         raise e

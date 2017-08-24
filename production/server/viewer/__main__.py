@@ -23,6 +23,7 @@ GAMES_RANGE = 20   # TEMP! make 100 or somewhat
 app = flask.Flask(
     'webviewer',
     root_path=os.path.dirname(__file__))
+app.jinja_env.undefined = jnj.StrictUndefined
 
 
 class PlayerBaseInfo(NamedTuple):
@@ -141,25 +142,29 @@ def gamestatistics(gameID):
     gameID = int(gameID)
     dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
-        cursor.execute('''SELECT mapname, futures, options, splurges,
-                          timestart, timefinish, replay
-                          FROM icfpc2017_games INNER JOIN icfpc2017_replays
+        cursor.execute('''SELECT icfpc2017_games.mapname, futures, options, splurges,
+                          timestart, timefinish, replay, maptext
+                          FROM icfpc2017_games 
+                          INNER JOIN icfpc2017_replays
                           ON icfpc2017_games.id = icfpc2017_replays.id
+                          INNER JOIN icfpc2017_maps
+                          ON icfpc2017_games.mapname = icfpc2017_maps.mapname
                           WHERE icfpc2017_games.id=%s;''', (gameID, ))
         if not cursor.rowcount:
             return flask.render_template('404.html')
-        mapname, futures, options, splurges, timestart, timefinish, replay = cursor.fetchone()
+        mapname, futures, options, splurges, timestart, timefinish, replay, maptext = cursor.fetchone()
         settings = (('futures, ' if futures else '')
                   + ('options, ' if options else '')
                   + ('splurges, ' if splurges else ''))[:-2]
         replay = json.loads(bytes(replay))
+        print (bytes(maptext))
+        maptext = json.loads(bytes(maptext))
 
         playerIDs = []
         playerscores = []
         cursor.execute('''SELECT player_id, score FROM icfpc2017_participation
                           WHERE game_id=%s ORDER BY player_order;''', (gameID, ))
         for row in cursor.fetchall():
-            print(row)
             playerIDs.append(row[0])
             playerscores.append(row[1])
         
@@ -175,7 +180,8 @@ def gamestatistics(gameID):
                                  movecount=len(replay['moves']),
                                  timespan=timefinish-timestart,
                                  playerperfs=playerlist,
-                                 replay=replay)
+                                 replay=replay,
+                                 map=maptext)
 
 
 @app.route('/replay<gameID>.json')
@@ -215,8 +221,6 @@ def _movekey(move: dict) -> str:
 
 def _playerperfomances(replay: dict, playerIDs):
     players = [PlayerPerfomanceInfo(ID) for ID in playerIDs]
-    print(playerIDs)
-    print(replay['participants'])
     for i, player in enumerate(replay['participants']):
         assert player['punter'] == i
         name = player['name']
