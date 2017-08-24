@@ -344,7 +344,7 @@ def db_submit_game_started(conn, mapname: str, s: Settings):
     return gameID
 
 
-def _resolve_ended_games():
+def _resolve_finished_games():
     games_running = []
     dbconn = None
     for g in _ongoing:
@@ -423,16 +423,40 @@ def serverloop(port, commandport):
         _call_match_maker()
 
         # if any game ended, clean up
-        _resolve_ended_games()
+        _resolve_finished_games()
 
         _stats.ongoing = len(_ongoing)
-    
+
+
+#--------------------------- DUAL LOGGING ------------------------------#
+
+def setup_dual_logging():
+    logging.getLogger().setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(levelname).1s %(module)10.10s:%(lineno)-4d %(message)s')
+
+    handler = logging.FileHandler('server_debug.log')  # filepath for logging!
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(formatter)
+    logging.getLogger().addHandler(handler)
+
+#    handler = logging.FileHandler('server_info.log')   # filepath for logging!
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.INFO)
+    handler.setFormatter(formatter)
+    logging.getLogger().addHandler(handler)
+
+    # handler = logging.SMPTHandler(???)
+    # handler.setLevel(logging.INFO)
+    # handler.setFormatter(formatter)
+    # logging.getLogger().addHandler(handler)
+
 
 if __name__ == '__main__':
-    logging.basicConfig(
-            level=logging.DEBUG,
-            stream=sys.stdout,
-            format='%(levelname).1s %(module)10.10s:%(lineno)-4d %(message)s')
+    setup_dual_logging()
     mainport = sys.argv[1] if len(sys.argv) > 1 else 42424
     commandport = sys.argv[2] if len(sys.argv) > 2 else 45454
-    serverloop(mainport, commandport)
+    try:
+        serverloop(mainport, commandport)
+    except Error e:
+        logger.exception(e)
+        raise e
