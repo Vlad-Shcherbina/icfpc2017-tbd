@@ -61,6 +61,11 @@
                 color: var(--highlightercolor);
             }
 
+            div.tabbed {
+                display: inline-block;
+                margin: 12px;
+            }
+
             /* navigation bar */
 
             ul.navigation {
@@ -184,8 +189,7 @@
             <!--<li {% block aboutactive %}{% endblock %} style="float: right;"><a href="/about">About</a></li>-->
         </ul>
         
-
         {% block content %}{% endblock %}
-        {% block gamelist %}{% endblock %}
+        
     </body>
 </html>

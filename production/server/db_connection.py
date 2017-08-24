@@ -27,7 +27,7 @@ def local_create_tables(conn):
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS icfpc2017_games(
                 id              serial primary key,
-                mapname         text not null,
+                mapname         text REFERENCES icfpc2017_maps (mapname) not null,
                 futures         boolean,
                 options         boolean,
                 splurges        boolean,
@@ -56,8 +56,29 @@ def local_create_tables(conn):
             CREATE TABLE IF NOT EXISTS icfpc2017_replays(
                 id              integer REFERENCES icfpc2017_games (id) unique,
                 replay          bytea
+                );
+
+            CREATE TABLE IF NOT EXISTS icfpc2017_maps(
+                mapname         text unique,
+                maptext         bytea
                 );''')
 
+
+def upload_maps_from_folder(conn):
+    from production.utils import project_root
+    import os
+    mapdir = project_root() / 'maps' / 'official_map_samples'
+    with conn.cursor() as cursor:
+        for mapname in os.listdir(mapdir):
+            with open(mapdir / mapname, 'r') as mapfile:
+                with open(mapdir / mapname, 'r') as mapfile:
+                    m = json.load(mapfile)
+                for site in m['sites']:
+                    site['x'] = round(site['x'], 1)
+                    site['y'] = round(site['y'], 1)
+                cursor.execute('''INSERT INTO icfpc2017_maps(mapname, maptext) VALUES (%s, %s)''',
+                             (mapname, json.dumps(m)))
+            
 
 def local_add_players(conn):
     with conn.cursor() as cursor:
@@ -80,6 +101,7 @@ def local_add_players(conn):
 if __name__ == '__main__':
     conn = connect_to_db()
     local_create_tables(conn)
-    local_add_players(conn)
+    #local_add_players(conn)
+    upload_maps_from_folder(conn)
     conn.commit()
     conn.close()

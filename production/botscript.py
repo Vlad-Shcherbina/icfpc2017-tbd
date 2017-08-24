@@ -8,6 +8,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+'''
+Bots for inner playing.
+Bots that will connect to real server should have names starting with zzz_
+(thy will be not shown in leaderboard) and tokens that are MD5 of their names.
+For now bots look for their tokens directly in "server" database.
+'''
+
 
 def help():
     print('Usage:\n'

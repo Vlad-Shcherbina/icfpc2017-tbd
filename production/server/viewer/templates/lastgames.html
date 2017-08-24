@@ -1,6 +1,6 @@
-{% extends parentpage %}
+{% extends "base.html" %}
 
-{% block gamelist %}
+{% block content %}
 <div class="pagination">
 <!--
     IN PROGRESS
@@ -37,4 +37,6 @@
         </tr>
     {% endfor %}
 </table>
+
+{% if hasnext %}<p><a href="{{ url_for('lastgames', before=before) }}}">load more games</a></p> {% endif %}
 {% endblock %}

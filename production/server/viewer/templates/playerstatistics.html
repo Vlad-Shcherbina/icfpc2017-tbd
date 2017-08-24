@@ -2,6 +2,6 @@
 {% block content %}
 <h2>{{ name }}</h2>
 <p><i>Games played:</i> {{ games }}<br />
-<i>Rating:</i> {{ games }}<span class="hidden">, mu: {{ mu }}, sigma: {{ sigma }}</span></p>
-
+<i>Rating:</i> {{ rating }}<span class="hidden">, mu: {{ mu }}, sigma: {{ sigma }}</span></p>
+<p><a href="{{ url_for('lastgames', player_id=playerID) }}">List of games</a></p>
 {% endblock %}

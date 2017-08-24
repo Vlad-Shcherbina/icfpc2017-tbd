@@ -11,6 +11,7 @@ GAMELIMIT = 1
 SETUPLIMIT = 10
 
 def gameloop(m: Map, 
+             mapname: str,
              settings: Settings, 
              connections: List[NetworkConnection], 
              names: List[str]):
@@ -26,7 +27,7 @@ def gameloop(m: Map,
               'moves' : [],
               'score' : None}
 
-    connector, gameholder = setup_game(m, settings, connections, replay)
+    connector, gameholder = setup_game(m, mapname, settings, connections, replay)
     turns = sum([len(a) for a in gameholder.board.adj.values()]) // 2
 
     # Game starts!
@@ -74,6 +75,7 @@ def gameloop(m: Map,
 
 
 def setup_game(m: Map, 
+          mapname: str,
           settings: Settings, 
           connections: List[NetworkConnection], 
           replay: dict):
@@ -82,7 +84,7 @@ def setup_game(m: Map,
     N = len(connections)
 
     # add one setup request to replay, to provide map and settings
-    replay['setup'].update({'map' : m.raw_map,
+    replay['setup'].update({'mapname' : mapname,
                             'settings' : json_format.format_settings(settings),
                             'responses' : []})
 

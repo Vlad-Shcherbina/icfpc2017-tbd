@@ -11,6 +11,7 @@ from production.utils import project_root
 from production.bot_interface import Map, Settings
 from production.server.server_interface import *
 from production.json_format import parse_map
+from production.server.db_connection import connect_to_db
 
 import logging
 logger = logging.getLogger(__name__)
@@ -25,15 +26,19 @@ SMALL = 100
 #--------------------------- MAKE MATCH --------------------------------#
 
 def random_map() -> Tuple[Map, str, Settings]:
-    mapdir = project_root() / 'maps' / 'official_map_samples'
-    mapname = choice(os.listdir(mapdir))
-    with open(mapdir / mapname, 'r') as mapfile:
-        m = parse_map(json.load(mapfile))
+    dbconn = connect_to_db()
+    with dbconn.cursor() as cursor:
+        cursor.execute('''SELECT mapname FROM icfpc2017_maps;''')
+        mapnames = [m[0] for m in cursor.fetchall()]
+        mapname = choice(mapnames)
+        cursor.execute('''SELECT maptext FROM icfpc2017_maps WHERE mapname=%s;''', (mapname,))
+        m = parse_map(json.loads(bytes(cursor.fetchone()[0])))
+    dbconn.close()
 
     setts = Settings(options = True if random() > 0.5 else False,
-                     splurges = True if random() > 0.5 else False,
-                     futures = True if random() > 0.5 else False,
-                     raw_settings = {})
+                    splurges = True if random() > 0.5 else False,
+                    futures = True if random() > 0.5 else False,
+                    raw_settings = {})
 
     return (m, mapname, setts)
 
@@ -95,9 +100,9 @@ def makematch(players: List[WaitingPlayer], conn_rate) -> Optional[MatchInfo]:
 
     logger.debug('Making new match')
     return MatchInfo(participants=participants, 
-                     map=m, 
-                     mapname=mapname, 
-                     settings=settings)
+                    map=m, 
+                    mapname=mapname, 
+                    settings=settings)
 
 
 #------------------------- GET NEW RATINGS -----------------------------#
@@ -107,7 +112,7 @@ def revise_ratings(players: List[PlayerStats], scores):
     env = trueskill.TrueSkill(mu    = 50.0, 
                               sigma = 50.0/3, 
                               beta  = 50.0/6, 
-                              tau   = 50.0/3/100, 
+                              tau   = 50.0/3/50, 
                               draw_probability = 0.05)    # <-- or what?
     rates = [[trueskill.Rating(p.mu, p.sigma)] for p in players]
 

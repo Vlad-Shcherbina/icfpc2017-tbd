@@ -197,11 +197,13 @@ class GameThread(threading.Thread):
     def __init__(self, ID: int, 
                        players: List[ConnectedPlayer], 
                        m: Map, 
+                       mapname: str,
                        settings: Settings):
         threading.Thread.__init__(self)
         self.ID = ID
         self.players = players
         self.m = m
+        self.mapname = mapname
         self.settings = settings
 
         self.replay = None
@@ -213,7 +215,7 @@ class GameThread(threading.Thread):
         connections = [p.conn for p in self.players]
         names = [p.stats.name for p in self.players]
         logger.info(f'Game {self.ID} started with ' + str(names))
-        self.replay, self.scores = gameloop(self.m, self.settings, connections, names)
+        self.replay, self.scores = gameloop(self.m, self.mapname, self.settings, connections, names)
         logger.info(f'Game {self.ID} finished.')
         self.timefinish = datetime.fromtimestamp(time.time())
         self.running = False
@@ -322,7 +324,7 @@ def _call_match_maker():
     dbconn.commit()
     dbconn.close()
 
-    game = GameThread(gameID, players, match.map, match.settings)
+    game = GameThread(gameID, players, match.map, match.mapname, match.settings)
     for p in players:
         _stats.reg_start(p.deadline)
     game.running = True

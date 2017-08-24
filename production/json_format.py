@@ -106,7 +106,7 @@ def parse_setup_response(d, ID=None) -> SetupResponse:
         raise InvalidResponseError('no "ready" key in setup')
 
     if (not 'futures' in d):
-        return SetupResponse(ready=ID, state=None, futures=[])
+        return SetupResponse(ready=ID, state=None, futures={})
 
     if not isinstance(d['futures'], list):
         raise InvalidResponseError('"futures" value in setup is not list')
@@ -184,7 +184,7 @@ def format_move(m: Move, error=None, timespan=None, original=None):
     if error is not None:
         result.update({'error': error})
     elif timespan is not None:
-        result.update({'timespan': timespan})
+        result.update({'timespan': round(timespan, 4)})
     if original is not None:
         result.update({'original': format_move(original)})
     return result

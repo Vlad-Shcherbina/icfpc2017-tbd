@@ -3,6 +3,7 @@ import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
 from typing import NamedTuple, List
+import time
 import io
 import os
 import json
@@ -17,7 +18,7 @@ from production.server.db_connection import connect_to_db
 #from production.server.server_interface import *
 
 PORT = 5017
-GAMES_RANGE = 100
+GAMES_RANGE = 20   # TEMP! make 100 or somewhat
 
 app = flask.Flask(
     'webviewer',
@@ -84,21 +85,22 @@ def leaderboard():
     dbconn.close()
 
 
-@app.route('/lastgames/<page>')
-def lastgames(page):
-    page = int(page)
+@app.route('/lastgames')
+def lastgames():
     dbconn = connect_to_db()
-    gamelist = _get_games_conditioned(
-            conn = dbconn,
-            query = '''SELECT id, mapname, futures, options, splurges, timefinish
-                       FROM icfpc2017_games WHERE status='finished'
-                       ORDER BY timefinish DESC;''',
-            arguments = tuple(),
-            page = page)
+    gamelist = _get_games_conditioned(dbconn)
     dbconn.close()
+    if len(gamelist) > GAMES_RANGE:
+        before = gamelist[GAMES_RANGE].time
+        gamelist = gamelist[:GAMES_RANGE]
+        hasnext = True
+    else:
+        before = None
+        hasnext = False
     return flask.render_template('lastgames.html', 
-                                 gamelist=gamelist,
-                                 parentpage='base.html')
+                                  gamelist=gamelist, 
+                                  hasnext=hasnext,
+                                  before=before)
 
 
 @app.route('/instructions')
@@ -123,26 +125,15 @@ def playerstatistics(playerID):
                           ON icfpc2017_players.id = icfpc2017_participation.player_id
                           WHERE player_id = %s;''', (playerID, ))
         games = cursor.fetchone()[0]
-
-    gamelist = _get_games_conditioned(
-            conn = dbconn,
-            query = '''SELECT icfpc2017_games.id, mapname, futures, options, splurges, timefinish
-                       FROM icfpc2017_games INNER JOIN icfpc2017_participation
-                       ON icfpc2017_games.id = icfpc2017_participation.game_id
-                       WHERE status='finished' AND player_id=%s
-                       ORDER BY timefinish DESC;''',
-            arguments=(playerID, ),
-            page=0)
     dbconn.close()
 
-    return flask.render_template('lastgames.html', 
+    return flask.render_template('playerstatistics.html', 
                                  name=name,
-                                 rating=round(mu - 3*sigma + 0.5, 1),
+                                 playerID=playerID,
+                                 rating=round(mu - 3*sigma),
                                  mu=mu,
                                  sigma=sigma,
-                                 games=games,
-                                 gamelist=gamelist,
-                                 parentpage='playerstatistics.html')
+                                 games=games)
 
 
 @app.route('/gamestatistics/<gameID>')
@@ -198,6 +189,19 @@ def downloadreplay(gameID):
         replay = json.loads(bytes(cursor.fetchone()[0]).decode())
         return flask.Response(
             json.dumps(replay, indent='  '),
+            mimetype='application/json')
+
+
+@app.route('/replay/<mapname>')
+def downloadmap(mapname):
+    dbconn = connect_to_db()
+    with dbconn.cursor() as cursor:
+        cursor.execute('SELECT maptext from icfpc2017_maps WHERE mapname=%s;', (mapname,))
+        if not cursor.rowcount:
+            return flask.render_template('404.html'), 404
+        maptext = json.loads(bytes(cursor.fetchone()[0]))
+        return flask.Response(
+            json.dumps(maptext, indent='  '),
             mimetype='application/json')
 
 # ----------------------------- AUXILIARY -------------------------------#
@@ -259,15 +263,29 @@ def _playerperfomances(replay: dict, playerIDs):
     return players
 
 
-def _get_games_conditioned(conn, query, arguments, page) -> List[GameBaseInfo]:
+def _get_games_conditioned(conn) -> List[GameBaseInfo]:
+    requestargs = flask.request.args
+    arguments = tuple()
+    query = '''SELECT icfpc2017_games.id, mapname, futures, options, splurges, timefinish
+               FROM icfpc2017_games INNER JOIN icfpc2017_participation
+               ON icfpc2017_games.id = icfpc2017_participation.game_id
+               WHERE status='finished' '''
+
+    if 'player_id' in requestargs:
+        query += 'AND player_id=%s '
+        arguments += (requestargs['player_id'],)
+    if 'before' in requestargs:
+        query += 'AND timefinish < %s '
+        arguments += (requestargs['before'],)
+
+    query += 'GROUP BY icfpc2017_games.id ORDER BY timefinish DESC LIMIT %s;'
+    arguments += (GAMES_RANGE + 1,)
     with conn.cursor() as cursor:
         cursor.execute(query, arguments)
-        if cursor.rowcount < page * GAMES_RANGE:
-            page = (cursor.rowcount - 1) // GAMES_RANGE
-        cursor.scroll(page * GAMES_RANGE)
+        assert cursor.rowcount > 0
 
         gamelist = []
-        for row in cursor.fetchmany(GAMES_RANGE):
+        for row in cursor.fetchall():
             gameID, mapname, futures, options, splurges, timefinish = row
             settings = (('futures, ' if futures else '')
                       + ('options, ' if options else '')
@@ -284,6 +302,7 @@ def _get_games_conditioned(conn, query, arguments, page) -> List[GameBaseInfo]:
                                          settings=settings, 
                                          players=players,
                                          time=timefinish.replace(microsecond=0)))
+
     return gamelist
 
 
