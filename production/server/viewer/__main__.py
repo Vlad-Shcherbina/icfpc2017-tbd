@@ -143,22 +143,18 @@ def gamestatistics(gameID):
     dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
         cursor.execute('''SELECT icfpc2017_games.mapname, futures, options, splurges,
-                          timestart, timefinish, replay, maptext
+                          timestart, timefinish, replay
                           FROM icfpc2017_games 
                           INNER JOIN icfpc2017_replays
                           ON icfpc2017_games.id = icfpc2017_replays.id
-                          INNER JOIN icfpc2017_maps
-                          ON icfpc2017_games.mapname = icfpc2017_maps.mapname
                           WHERE icfpc2017_games.id=%s;''', (gameID, ))
         if not cursor.rowcount:
             return flask.render_template('404.html')
-        mapname, futures, options, splurges, timestart, timefinish, replay, maptext = cursor.fetchone()
+        mapname, futures, options, splurges, timestart, timefinish, replay = cursor.fetchone()
         settings = (('futures, ' if futures else '')
                   + ('options, ' if options else '')
                   + ('splurges, ' if splurges else ''))[:-2]
         replay = json.loads(bytes(replay))
-        print (bytes(maptext))
-        maptext = json.loads(bytes(maptext))
 
         playerIDs = []
         playerscores = []
@@ -180,8 +176,7 @@ def gamestatistics(gameID):
                                  movecount=len(replay['moves']),
                                  timespan=timefinish-timestart,
                                  playerperfs=playerlist,
-                                 replay=replay,
-                                 map=maptext)
+                                 replay=replay)
 
 
 @app.route('/replay<gameID>.json')
