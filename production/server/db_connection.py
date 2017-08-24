@@ -25,6 +25,11 @@ def connect_to_db():
 def local_create_tables(conn):
     with conn.cursor() as cursor:
         cursor.execute('''
+            CREATE TABLE IF NOT EXISTS icfpc2017_maps(
+                mapname         text unique,
+                maptext         bytea
+                );
+
             CREATE TABLE IF NOT EXISTS icfpc2017_games(
                 id              serial primary key,
                 mapname         text REFERENCES icfpc2017_maps (mapname) not null,
@@ -57,11 +62,7 @@ def local_create_tables(conn):
                 id              integer REFERENCES icfpc2017_games (id) unique,
                 replay          bytea
                 );
-
-            CREATE TABLE IF NOT EXISTS icfpc2017_maps(
-                mapname         text unique,
-                maptext         bytea
-                );''')
+        ''')
 
 
 def upload_maps_from_folder(conn):
