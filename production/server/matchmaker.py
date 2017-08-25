@@ -84,7 +84,7 @@ def makematch(players: List[WaitingPlayer], conn_rate) -> Optional[MatchInfo]:
     # any reason to wait longer?
     if (len(players) < MAX_PLAYERS * 2
         and players[0].deadline > time.time()
-        and poissonflow(conn_rate, 
+        and poissonflow(conn_rate,
                         (players[0].deadline - time.time()),
                         (MAX_PLAYERS * 2 - len(players))
                         ) > WAITING_THRESHOLD):
@@ -99,9 +99,9 @@ def makematch(players: List[WaitingPlayer], conn_rate) -> Optional[MatchInfo]:
         participants[i] = True
 
     logger.debug('Making new match')
-    return MatchInfo(participants=participants, 
-                    map=m, 
-                    mapname=mapname, 
+    return MatchInfo(participants=participants,
+                    map=m,
+                    mapname=mapname,
                     settings=settings)
 
 
@@ -109,10 +109,10 @@ def makematch(players: List[WaitingPlayer], conn_rate) -> Optional[MatchInfo]:
 
 def revise_ratings(players: List[PlayerStats], scores):
     # returns list of pairs (mu, sigma) in the corresponding order.
-    env = trueskill.TrueSkill(mu    = 50.0, 
-                              sigma = 50.0/3, 
-                              beta  = 50.0/6, 
-                              tau   = 50.0/3/100, 
+    env = trueskill.TrueSkill(mu    = 50.0,
+                              sigma = 50.0/3,
+                              beta  = 50.0/6,
+                              tau   = 50.0/3/100,
                               draw_probability = 0.05)    # <-- or what?
     rates = [[trueskill.Rating(p.mu, p.sigma)] for p in players]
 
@@ -144,7 +144,7 @@ def revise_players(players: List[PlayerStats], scores):
 if __name__ == '__main__':
     def rating_by_player(token: str):
         return PlayerStats(name=token,
-                          games=randrange(1000), 
+                          games=randrange(1000),
                           mu=random() * 100,
                           sigma=random() * 50 / 3,
                           )

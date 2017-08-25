@@ -3,6 +3,7 @@ import time
 import argparse
 from production.comms import online_mainloop
 from production.server.db_connection import connect_to_db
+from production.server import config
 
 import logging
 logger = logging.getLogger(__name__)
@@ -77,7 +78,10 @@ def main():
         level=logging.DEBUG,
         stream=sys.stdout,
         format='%(levelname).1s %(module)10.10s:%(lineno)-4d %(message)s')
-    run_bot(args.name, args.bot, args.cycle, '127.0.0.1', 42424)
+    run_bot(
+        args.name, args.bot, args.cycle,
+        config.GAME_SERVER_ADDRESS, config.GAME_SERVER_PORT)
+
 
 if __name__ == '__main__':
     main()

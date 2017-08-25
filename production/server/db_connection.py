@@ -5,6 +5,7 @@ import json
 
 from production.bot_interface import Settings
 from production.server.server_interface import PlayerStats
+from production.server import config
 
 import logging;
 logger = logging.getLogger(__name__)
@@ -12,11 +13,14 @@ logger = logging.getLogger(__name__)
 
 def connect_to_db():
     logger.debug('Connecting to database')
+
     conn = psycopg2.connect(
-            dbname='practice',
-            host='127.0.0.1',
-            port='5432',
-            user='postgres', password='sql9813')
+        dbname=config.DB_NAME,
+        host=config.DB_ADDRESS,
+        port=config.DB_PORT,
+        user=config.DB_USER,
+        password=config.DB_PASSWORD)
+
     return conn
 
 
@@ -81,9 +85,9 @@ def upload_maps_from_folder(conn):
                     site['x'] = round(site['x'], 1)
                     site['y'] = round(site['y'], 1)
                 max_players = max(2, min(16, len(m['mines'])))
-                cursor.execute('''INSERT INTO icfpc2017_maps(mapname, maptext, max_players) 
+                cursor.execute('''INSERT INTO icfpc2017_maps(mapname, maptext, max_players)
                                   VALUES (%s, %s, %s)''', (mapname, json.dumps(m), max_players))
-            
+        
 
 def local_add_players(conn):
     with conn.cursor() as cursor:

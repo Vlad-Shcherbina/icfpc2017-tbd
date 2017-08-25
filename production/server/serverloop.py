@@ -16,6 +16,7 @@ from production.server.server_interface import *
 from production.json_format import parse_handshake_response, InvalidResponseError
 from production.server.matchmaker import makematch, revise_players
 from production.server.db_connection import connect_to_db
+from production.server import config
 
 import logging
 logger = logging.getLogger(__name__)
@@ -23,9 +24,9 @@ logger = logging.getLogger(__name__)
 
 '''
 Local usage:
-serverloop() <-- default ports (42424 for bots, 45454 for commands)
+serverloop()
 or from cmd:
-serverloop.py 42424 45454
+serverloop.py
 
 from cmd:
 production\botscript.py zzz_julie random -c
@@ -170,9 +171,9 @@ class HandshakeThread(threading.Thread):
             conn.kick('unknown token')
             return None
         conn.send({'you': player.name})
-        return ConnectedPlayer(token=token, 
-                               stats=player, 
-                               conn=conn, 
+        return ConnectedPlayer(token=token,
+                               stats=player,
+                               conn=conn,
                                deadline=time.time() + 55)
 
 
@@ -193,9 +194,9 @@ class HandshakeThread(threading.Thread):
 
 class GameThread(threading.Thread):
     '''Start gameloop and return result.'''
-    def __init__(self, ID: int, 
-                       players: List[ConnectedPlayer], 
-                       m: Map, 
+    def __init__(self, ID: int,
+                       players: List[ConnectedPlayer],
+                       m: Map,
                        mapname: str,
                        settings: Settings):
         threading.Thread.__init__(self)
@@ -235,7 +236,7 @@ _conncount_lock = threading.Lock()
 
 def connectserver(port, timeout):
     '''Initial server connection. Return server socket.'''
-    address = '127.0.0.1', port
+    address = '', port
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(address)
     server.settimeout(timeout)
@@ -299,7 +300,7 @@ def _add_new_players():
 def _check_disconnected():
     for p in _waiting:
         p.conn.recheck()
-        if not p.conn.alive: 
+        if not p.conn.alive:
             _stats.reg_disconnect(p.deadline)
             _remove_from_conns(p.token)
     _waiting[:] = list(compress(_waiting, (p.conn.alive for p in _waiting)))
@@ -316,7 +317,7 @@ def _remove_from_conns(token):
 
 def _call_match_maker():
     match = makematch([p.conninfo() for p in _waiting], _stats.connection_rate())
-    if match is None: 
+    if match is None:
         return
     players = list(compress(_waiting, match.participants))
 
@@ -360,7 +361,7 @@ def _resolve_finished_games():
         for p in g.players:
             _remove_from_conns(p.token)
         revised = revise_players([p.stats for p in g.players], g.scores)
-        additional = [{ 'mu_before' : g.players[i].stats.mu, 
+        additional = [{ 'mu_before' : g.players[i].stats.mu,
                         'sigma_before' : g.players[i].stats.sigma,
                         'mu_after' : revised[i].mu,
                         'sigma_after' : revised[i].sigma }
@@ -391,7 +392,7 @@ def db_submit_players_scores(conn, gameID, players, scores, forcedmoves, additio
             cursor.execute('''INSERT INTO icfpc2017_participation(game_id, 
                               player_id, player_order, score, forcedmoves, additional) 
                               VALUES (%s, %s, %s, %s, %s, %s);''',
-                              (gameID, players[i].stats.ID, i, scores[i], 
+                              (gameID, players[i].stats.ID, i, scores[i],
                                forcedmoves[i], json.dumps(additional[i])))
 
 
@@ -404,10 +405,10 @@ def db_submit_players_rating(conn, players: List[PlayerStats]):
                               (p.mu, p.sigma, p.name))
 
 
-def serverloop(port, commandport):
+def serverloop():
     '''Main loop. Accept connections, gather players for match and start games.'''
-    server = connectserver(port, timeout=5)
-    aux_server = connectserver(commandport, timeout=.5)
+    server = connectserver(config.GAME_SERVER_PORT, timeout=5)
+    aux_server = connectserver(config.GAME_SERVER_COMMANDS_PORT, timeout=.5)
     logger.info('Server started successfully')
     _close_pending_games()
     accept_players = True
@@ -461,10 +462,8 @@ def setup_dual_logging():
 
 if __name__ == '__main__':
     setup_dual_logging()
-    mainport = sys.argv[1] if len(sys.argv) > 1 else 42424
-    commandport = sys.argv[2] if len(sys.argv) > 2 else 45454
     try:
-        serverloop(mainport, commandport)
+        serverloop()
     except Exception as e:
         logger.exception(e)
         raise e

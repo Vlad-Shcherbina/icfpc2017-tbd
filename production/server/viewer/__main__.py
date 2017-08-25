@@ -15,10 +15,9 @@ import jinja2 as jnj
 
 from production import json_format
 from production.server.db_connection import connect_to_db
+from production.server import config
 #from production.server.server_interface import *
 
-PORT = 5017
-GAMES_RANGE = 20   # TEMP! make 100 or somewhat
 
 app = flask.Flask(
     'webviewer',
@@ -96,9 +95,9 @@ def lastgames():
     dbconn = connect_to_db()
     gamelist = _get_games_conditioned(dbconn)
     dbconn.close()
-    if len(gamelist) > GAMES_RANGE:
-        before = gamelist[GAMES_RANGE].time
-        gamelist = gamelist[:GAMES_RANGE]
+    if len(gamelist) > config.GAMES_PER_PAGE:
+        before = gamelist[config.GAMES_PER_PAGE].time
+        gamelist = gamelist[:config.GAMES_PER_PAGE]
         hasnext = True
     else:
         before = None
@@ -291,7 +290,7 @@ def _get_games_conditioned(conn) -> List[GameBaseInfo]:
         query_args += (request_args['before'],)
 
     query += 'GROUP BY icfpc2017_games.id ORDER BY timefinish DESC LIMIT %s;'
-    query_args += (GAMES_RANGE + 1,)
+    query_args += (config.GAMES_PER_PAGE + 1,)
     with conn.cursor() as cursor:
         cursor.execute(query, query_args)
         rows = cursor.fetchall()
@@ -321,8 +320,8 @@ def _get_games_conditioned(conn) -> List[GameBaseInfo]:
 
 
 if __name__ == '__main__':
-    if '--debug' in sys.argv[1:]:
+    if config.FLASK_DEBUG:
         app.jinja_env.auto_reload = True
         app.debug = True
 
-    app.run(port=PORT)
+    app.run(port=config.WEB_SERVER_PORT)
