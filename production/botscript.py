@@ -1,9 +1,13 @@
+from production.server import config
+if config.USE_HINTCHECK and __name__ == '__main__':
+    import hintcheck
+    hintcheck.monkey_patch_named_tuple_constructors()
+
 import sys
 import time
 import argparse
 from production.comms import online_mainloop
 from production.server.db_connection import connect_to_db
-from production.server import config
 
 import logging
 logger = logging.getLogger(__name__)
@@ -85,4 +89,6 @@ def main():
 
 
 if __name__ == '__main__':
+    if config.USE_HINTCHECK:
+        hintcheck.hintcheck_all_functions()
     main()

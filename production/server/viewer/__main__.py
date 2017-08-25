@@ -2,6 +2,11 @@
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
+from production.server import config
+if config.USE_HINTCHECK and __name__ == '__main__':
+    import hintcheck
+    hintcheck.monkey_patch_named_tuple_constructors()
+
 from typing import NamedTuple, List
 import time
 import io
@@ -15,7 +20,6 @@ import jinja2 as jnj
 
 from production import json_format
 from production.server.db_connection import connect_to_db
-from production.server import config
 #from production.server.server_interface import *
 
 
@@ -330,6 +334,9 @@ def _get_games_conditioned(conn) -> List[GameBaseInfo]:
 
 
 if __name__ == '__main__':
+    if config.USE_HINTCHECK:
+        hintcheck.hintcheck_all_functions()
+
     if config.FLASK_DEBUG:
         app.jinja_env.auto_reload = True
         app.debug = True

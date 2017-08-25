@@ -1,3 +1,8 @@
+from production.server import config
+if config.USE_HINTCHECK and __name__ == '__main__':
+    import hintcheck
+    hintcheck.monkey_patch_named_tuple_constructors()
+
 from typing import NamedTuple, List, Optional
 from itertools import compress
 from collections import defaultdict
@@ -16,7 +21,6 @@ from production.server.server_interface import *
 from production.json_format import parse_handshake_response, InvalidResponseError
 from production.server.matchmaker import makematch, revise_players
 from production.server.db_connection import connect_to_db
-from production.server import config
 
 import logging
 logger = logging.getLogger(__name__)
@@ -463,6 +467,8 @@ def setup_dual_logging():
 
 if __name__ == '__main__':
     setup_dual_logging()
+    if config.USE_HINTCHECK:
+        hintcheck.hintcheck_all_functions()
     try:
         serverloop()
     except Exception as e:
