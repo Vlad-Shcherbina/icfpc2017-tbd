@@ -16,6 +16,7 @@ from production.server.server_interface import *
 from production.json_format import parse_handshake_response, InvalidResponseError
 from production.server.matchmaker import makematch, revise_players
 from production.server.db_connection import connect_to_db
+from production.server import config
 
 import logging
 logger = logging.getLogger(__name__)
@@ -23,9 +24,9 @@ logger = logging.getLogger(__name__)
 
 '''
 Local usage:
-serverloop() <-- default ports (42424 for bots, 45454 for commands)
+serverloop()
 or from cmd:
-serverloop.py 42424 45454
+serverloop.py
 
 from cmd:
 production\botscript.py zzz_julie random -c
@@ -233,7 +234,7 @@ _conncount_lock = threading.Lock()
 
 def connectserver(port, timeout):
     '''Initial server connection. Return server socket.'''
-    address = '127.0.0.1', port
+    address = '', port
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(address)
     server.settimeout(timeout)
@@ -395,10 +396,10 @@ def db_submit_players_rating(conn, players: List[PlayerStats]):
                               (p.mu, p.sigma, p.name))
 
 
-def serverloop(port, commandport):
+def serverloop():
     '''Main loop. Accept connections, gather players for match and start games.'''
-    server = connectserver(port, timeout=5)
-    aux_server = connectserver(commandport, timeout=.5)
+    server = connectserver(config.GAME_SERVER_PORT, timeout=5)
+    aux_server = connectserver(config.GAME_SERVER_COMMANDS_PORT, timeout=.5)
     logger.info('Server started successfully')
     _close_pending_games()
     accept_players = True
@@ -452,10 +453,8 @@ def setup_dual_logging():
 
 if __name__ == '__main__':
     setup_dual_logging()
-    mainport = sys.argv[1] if len(sys.argv) > 1 else 42424
-    commandport = sys.argv[2] if len(sys.argv) > 2 else 45454
     try:
-        serverloop(mainport, commandport)
+        serverloop()
     except Error as e:
         logger.exception(e)
         raise e

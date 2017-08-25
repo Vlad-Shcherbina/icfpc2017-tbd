@@ -5,6 +5,7 @@ import json
 
 from production.bot_interface import Settings
 from production.server.server_interface import PlayerStats
+from production.server import config
 
 import logging;
 logger = logging.getLogger(__name__)
@@ -12,11 +13,14 @@ logger = logging.getLogger(__name__)
 
 def connect_to_db():
     logger.debug('Connecting to database')
+
     conn = psycopg2.connect(
-            dbname='practice',
-            host='127.0.0.1',
-            port='5432',
-            user='postgres', password='sql9813')
+        dbname=config.DB_NAME,
+        host=config.DB_ADDRESS,
+        port=config.DB_PORT,
+        user=config.DB_USER,
+        password=config.DB_PASSWORD)
+
     return conn
 
 
