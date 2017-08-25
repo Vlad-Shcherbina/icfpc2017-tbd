@@ -1,5 +1,5 @@
 # hack to placate the restarter
-import sys, os
+import sys, os, datetime
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
 from production.server import config
@@ -43,7 +43,7 @@ class GameBaseInfo(NamedTuple):
     mapname: str
     settings: str
     players: str
-    time: str
+    time: datetime.datetime
 
 
 # used for a list of players in gamestatistics
@@ -216,6 +216,13 @@ def downloadmap(mapname):
             mimetype='application/json')
 
 
+def url_for_other_page(before):
+    args = flask.request.args.copy()
+    print(args)
+    args['before'] = before
+    return flask.url_for(flask.request.endpoint, **args)
+app.jinja_env.globals['url_for_other_page'] = url_for_other_page
+
 @app.template_filter('datetimeformat')
 def datetimeformat(value, format='%Y-%m-%d %H:%M:%S'):
     return value.strftime(format)
@@ -286,22 +293,8 @@ def _playerperfomances(replay: dict, playerIDs):
 
 def _get_games_conditioned(conn) -> List[GameBaseInfo]:
     '''Get a list of games with filters provided as string query_args.'''
-    request_args = flask.request.args
-    query_args = tuple()
-    query = '''SELECT games.id, mapname, futures, options, splurges, timefinish 
-               FROM games INNER JOIN participation 
-               ON games.id = participation.game_id 
-               WHERE status='finished' '''
+    query, query_args = _get_query_for_game_conditions(flask.request.args)
 
-    if 'player_id' in request_args:
-        query += 'AND player_id=%s '
-        query_args += (request_args['player_id'],)
-    if 'before' in request_args:
-        query += 'AND timefinish <= %s '
-        query_args += (request_args['before'],)
-
-    query += 'GROUP BY games.id ORDER BY timefinish DESC LIMIT %s;'
-    query_args += (config.GAMES_PER_PAGE + 1,)
     with conn.cursor() as cursor:
         cursor.execute(query, query_args)
         if cursor.rowcount == 0:
@@ -331,6 +324,29 @@ def _get_games_conditioned(conn) -> List[GameBaseInfo]:
                                          players=players, 
                                          time=timefinish))
     return gamelist
+
+
+def _get_query_for_game_conditions(request_args):
+    query_args = tuple()
+    query = '''SELECT games.id, mapname, futures, options, splurges, timefinish 
+               FROM games INNER JOIN participation 
+               ON games.id = participation.game_id 
+               WHERE status='finished' '''
+
+    if 'player_id' in request_args:
+        query += 'AND player_id=%s '
+        query_args += (request_args['player_id'],)
+    if 'before' in request_args:
+        query += 'AND timefinish <= %s '
+        query_args += (request_args['before'],)
+    if 'errors' in request_args:
+        query += 'AND forcedmoves=%s '
+        query_args += (request_args['errors'],)
+    
+
+    query += 'GROUP BY games.id ORDER BY timefinish DESC LIMIT %s;'
+    query_args += (config.GAMES_PER_PAGE + 1,)
+    return query, query_args
 
 
 if __name__ == '__main__':

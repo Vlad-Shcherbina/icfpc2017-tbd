@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 MAX_PLAYERS = 3 #16
-WAITING_THRESHOLD = 0.9
+WAITING_THRESHOLD = 0.95
 LARGE = 1000
 SMALL = 100
 
@@ -49,10 +49,11 @@ def poissonflow(rate, t, N):
     '''
     L = rate * t
     S = P = 1
-    for i in range(1, N + 1):
+    for i in range(1, N - 1):
         P *= (L / i)
         S += P
-    return S * exp(-rate * t)
+    logger.debug(f'Estimated probability: {1 - S * exp(-rate * t)} for {rate}')
+    return 1 - S * exp(-rate * t)
 
 
 def _player_priority(player: WaitingPlayer, conncount: int) -> float:

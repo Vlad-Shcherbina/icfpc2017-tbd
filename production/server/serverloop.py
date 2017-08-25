@@ -55,7 +55,7 @@ class ConnectedPlayer(NamedTuple):
     token: str
     stats: PlayerStats
     conn: NetworkConnection
-    deadline: int
+    deadline: float
 
     def conninfo(self):
         '''Shorter version for matchmaker.'''
@@ -111,8 +111,7 @@ class ServerStatistics():
 
     def connection_rate(self):
         N = self.STATRANGE if self.connected_at[-1] is not None else self.c_ind
-        if N == 0: return 1e-6
-        return N / sum(self.connected_at[:N])
+        return (N + 1) / (sum(self.connected_at[:N]) + (time.time() - self.last_connection))
 
     def avg_connected(self):
         N = self.STATRANGE if self.connected_at[-1] is not None else self.c_ind

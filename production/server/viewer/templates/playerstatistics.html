@@ -3,5 +3,7 @@
 <h2>{{ name }}</h2>
 <p><i>Games played:</i> {{ games }}<br />
 <i>Rating:</i> {{ rating | round }}<span class="hidden">, mu: {{ mu }}, sigma: {{ sigma }}</span></p>
-<p><a href="{{ url_for('lastgames', player_id=playerID) }}">List of games</a></p>
+
+<div class="tabbed"><a href="{{ url_for('lastgames', player_id=playerID) }}">list of games</a></div><div class="tabbed">|</div><div class="tabbed"><a href="{{ url_for('lastgames', player_id=playerID, errors=true) }}">list of games with error</a></div>
+
 {% endblock %}
