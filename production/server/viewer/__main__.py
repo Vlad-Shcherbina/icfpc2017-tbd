@@ -73,11 +73,11 @@ def leaderboard():
     '''Show all players sorted by rating.'''
     dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
-        cursor.execute('''SELECT icfpc2017_players.id, name, rating_mu, rating_sigma,
+        cursor.execute('''SELECT players.id, name, rating_mu, rating_sigma,
                           COUNT(game_id)
-                          FROM icfpc2017_players INNER JOIN icfpc2017_participation
-                          ON icfpc2017_players.id = icfpc2017_participation.player_id
-                          GROUP BY icfpc2017_players.id;''')
+                          FROM players INNER JOIN participation
+                          ON players.id = participation.player_id
+                          GROUP BY players.id;''')
                           # WHERE NOT name LIKE "zzz_%"
         playerlist = []
         for row in cursor.fetchall():
@@ -121,15 +121,15 @@ def playerstatistics(playerID):
     dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
         cursor.execute('''SELECT name, rating_mu, rating_sigma
-                          FROM icfpc2017_players WHERE id = %s''', 
+                          FROM players WHERE id = %s''',
                           (playerID, ))
         if cursor.rowcount == 0:
             return flask.render_template('404.html'), 404
         name, mu, sigma = cursor.fetchone()
 
         cursor.execute('''SELECT COUNT(game_id)
-                          FROM icfpc2017_players INNER JOIN icfpc2017_participation
-                          ON icfpc2017_players.id = icfpc2017_participation.player_id
+                          FROM players INNER JOIN participation
+                          ON players.id = participation.player_id
                           WHERE player_id = %s;''', (playerID, ))
         games = cursor.fetchone()[0]
     dbconn.close()
@@ -149,12 +149,12 @@ def gamestatistics(gameID):
     gameID = int(gameID)
     dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
-        cursor.execute('''SELECT icfpc2017_games.mapname, futures, options, splurges,
+        cursor.execute('''SELECT games.mapname, futures, options, splurges,
                           timestart, timefinish, replay
-                          FROM icfpc2017_games 
-                          INNER JOIN icfpc2017_replays
-                          ON icfpc2017_games.id = icfpc2017_replays.id
-                          WHERE icfpc2017_games.id=%s;''', (gameID, ))
+                          FROM games
+                          INNER JOIN replays
+                          ON games.id = replays.id
+                          WHERE games.id=%s;''', (gameID, ))
         if not cursor.rowcount:
             return flask.render_template('404.html')
         mapname, futures, options, splurges, timestart, timefinish, replay = cursor.fetchone()
@@ -165,7 +165,7 @@ def gamestatistics(gameID):
 
         playerIDs = []
         playerscores = []
-        cursor.execute('''SELECT player_id, score FROM icfpc2017_participation
+        cursor.execute('''SELECT player_id, score FROM participation
                           WHERE game_id=%s ORDER BY player_order;''', (gameID, ))
         for row in cursor.fetchall():
             playerIDs.append(row[0])
@@ -192,7 +192,7 @@ def downloadreplay(gameID):
     gameID = int(gameID)
     dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
-        cursor.execute('SELECT replay from icfpc2017_replays WHERE id=%s;', (gameID,))
+        cursor.execute('SELECT replay from replays WHERE id=%s;', (gameID,))
         if not cursor.rowcount:
             return flask.render_template('404.html'), 404
         replay = json.loads(bytes(cursor.fetchone()[0]).decode())
@@ -206,7 +206,7 @@ def downloadmap(mapname):
     '''Create link for downloading map in json format.'''
     dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
-        cursor.execute('SELECT maptext from icfpc2017_maps WHERE mapname=%s;', (mapname,))
+        cursor.execute('SELECT maptext from maps WHERE mapname=%s;', (mapname,))
         if not cursor.rowcount:
             return flask.render_template('404.html'), 404
         maptext = json.loads(bytes(cursor.fetchone()[0]))
@@ -277,9 +277,9 @@ def _get_games_conditioned(conn) -> List[GameBaseInfo]:
     '''Get a list of games with filters provided as string query_args.'''
     request_args = flask.request.args
     query_args = tuple()
-    query = '''SELECT icfpc2017_games.id, mapname, futures, options, splurges, timefinish
-               FROM icfpc2017_games INNER JOIN icfpc2017_participation
-               ON icfpc2017_games.id = icfpc2017_participation.game_id
+    query = '''SELECT games.id, mapname, futures, options, splurges, timefinish
+               FROM games INNER JOIN participation
+               ON games.id = participation.game_id
                WHERE status='finished' '''
 
     if 'player_id' in request_args:
@@ -289,15 +289,15 @@ def _get_games_conditioned(conn) -> List[GameBaseInfo]:
         query += 'AND timefinish <= %s '
         query_args += (request_args['before'],)
 
-    query += 'GROUP BY icfpc2017_games.id ORDER BY timefinish DESC LIMIT %s;'
+    query += 'GROUP BY games.id ORDER BY timefinish DESC LIMIT %s;'
     query_args += (config.GAMES_PER_PAGE + 1,)
     with conn.cursor() as cursor:
         cursor.execute(query, query_args)
         rows = cursor.fetchall()
         participants = { r[0] : [] for r in rows }
         cursor.execute('''SELECT game_id, name 
-                          FROM icfpc2017_participation INNER JOIN icfpc2017_players
-                          ON icfpc2017_participation.player_id = icfpc2017_players.id
+                          FROM participation INNER JOIN players
+                          ON participation.player_id = players.id
                           WHERE game_id IN %s;''', (tuple(participants.keys()), ))
         for gameID, name in cursor.fetchall():
             participants[gameID].append(name)

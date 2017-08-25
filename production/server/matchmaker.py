@@ -28,10 +28,10 @@ SMALL = 100
 def random_map() -> Tuple[Map, str, Settings]:
     dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
-        cursor.execute('''SELECT mapname FROM icfpc2017_maps;''')
+        cursor.execute('''SELECT mapname FROM maps;''')
         mapnames = [m[0] for m in cursor.fetchall()]
         mapname = choice(mapnames)
-        cursor.execute('''SELECT maptext FROM icfpc2017_maps WHERE mapname=%s;''', (mapname,))
+        cursor.execute('''SELECT maptext FROM maps WHERE mapname=%s;''', (mapname,))
         m = parse_map(json.loads(bytes(cursor.fetchone()[0])))
     dbconn.close()
 

@@ -39,7 +39,7 @@ def run_bot(name, bot, cycled, ip, port):
 
     dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
-        cursor.execute('SELECT token FROM icfpc2017_players WHERE name=%s', (name,))
+        cursor.execute('SELECT token FROM players WHERE name=%s', (name,))
         if cursor.rowcount == 0:
             logger.warning(f'name {name} is not registered')
             return

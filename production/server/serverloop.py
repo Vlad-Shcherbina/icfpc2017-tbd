@@ -181,11 +181,11 @@ class HandshakeThread(threading.Thread):
         dbconn = connect_to_db()
         with dbconn.cursor() as cursor:
             cursor.execute('''SELECT id, name, rating_mu, rating_sigma FROM 
-                              icfpc2017_players WHERE token=%s;''', (token,))
+                              players WHERE token=%s;''', (token,))
             if cursor.rowcount == 0:
                 return None
             playerID, name, mu, sigma = cursor.fetchone()
-            cursor.execute('''SELECT * FROM icfpc2017_participation 
+            cursor.execute('''SELECT * FROM participation
                               WHERE player_id=%s''', (playerID, ))
             games = cursor.rowcount
             return PlayerStats(ID=playerID, name=name, games=games, mu=mu, sigma=sigma)
@@ -247,7 +247,7 @@ def connectserver(port, timeout):
 def _close_pending_games():
     dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
-        cursor.execute('''UPDATE icfpc2017_games SET status='aborted'
+        cursor.execute('''UPDATE games SET status='aborted'
                           WHERE status='ongoing';''')
     dbconn.commit()
     dbconn.close()
@@ -337,7 +337,7 @@ def _call_match_maker():
 
 def db_submit_game_started(conn, mapname: str, s: Settings):
     with conn.cursor() as cursor:
-        cursor.execute('''INSERT INTO icfpc2017_games(mapname, futures, 
+        cursor.execute('''INSERT INTO games(mapname, futures,
                           options, splurges, timestart, status) 
                           VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;''',
                           (mapname, s.futures, s.options, s.splurges, 
@@ -379,9 +379,9 @@ def _resolve_finished_games():
 
 def db_sumbit_game_finished(conn, gameID, timefinish, replay):
     with conn.cursor() as cursor:
-        cursor.execute('UPDATE icfpc2017_games SET status=%s, timefinish=%s WHERE id=%s;', 
+        cursor.execute('UPDATE games SET status=%s, timefinish=%s WHERE id=%s;',
                                 ('finished', timefinish, gameID))
-        cursor.execute('INSERT INTO icfpc2017_replays(id, replay) VALUES(%s, %s);', 
+        cursor.execute('INSERT INTO replays(id, replay) VALUES(%s, %s);',
                                 (gameID, json.dumps(replay)))
 
 
@@ -389,7 +389,7 @@ def db_submit_players_scores(conn, gameID, players, scores, forcedmoves, additio
     assert len(players) == len(scores)
     with conn.cursor() as cursor:
         for i in range(len(players)):
-            cursor.execute('''INSERT INTO icfpc2017_participation(game_id, 
+            cursor.execute('''INSERT INTO participation(game_id,
                               player_id, player_order, score, forcedmoves, additional) 
                               VALUES (%s, %s, %s, %s, %s, %s);''',
                               (gameID, players[i].stats.ID, i, scores[i],
@@ -399,7 +399,7 @@ def db_submit_players_scores(conn, gameID, players, scores, forcedmoves, additio
 def db_submit_players_rating(conn, players: List[PlayerStats]):
     with conn.cursor() as cursor:
         for p in players:
-            cursor.execute('''UPDATE icfpc2017_players 
+            cursor.execute('''UPDATE players
                               SET rating_mu=%s, rating_sigma=%s 
                               WHERE name=%s;''',
                               (p.mu, p.sigma, p.name))
