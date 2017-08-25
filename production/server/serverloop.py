@@ -305,7 +305,7 @@ def _check_disconnected():
         if not p.conn.alive:
             _stats.reg_disconnect(p.deadline)
             _remove_from_conns(p.token)
-    _waiting[:] = [p for p in waiting if p.conn.alive]
+    _waiting[:] = [p for p in _waiting if p.conn.alive]
 
 
 def _remove_from_conns(token):
