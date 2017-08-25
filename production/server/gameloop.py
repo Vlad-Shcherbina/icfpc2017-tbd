@@ -29,6 +29,7 @@ def gameloop(m: Map,
 
     connector, gameholder = setup_game(m, mapname, settings, connections, replay)
     turns = sum([len(a) for a in gameholder.board.adj.values()]) // 2
+    forcedpasses = [False] * N
 
     # Game starts!
     ID = 0
@@ -54,6 +55,7 @@ def gameloop(m: Map,
             original = move
             move = PassMove(punter=ID)
 
+        if error is not None: forcedpasses[ID] = True
         record = json_format.format_move(move, 
                                          error=error, 
                                          timespan=connresponse.timespan,
@@ -71,7 +73,7 @@ def gameloop(m: Map,
                            futures=gameholder.totals[i][1:]))
     replay['score'] = totals
     connector.close_all()
-    return replay, score
+    return replay, score, forcedpasses
 
 
 def setup_game(m: Map, 
@@ -112,6 +114,8 @@ def setup_game(m: Map,
                 r = SetupResponse(ready=ID, state='', futures=[])
             else:
                 gameholder.process_futures(response=r)
-        replay['setup']['responses'].append(json_format.format_setup_response(r))
+        d = json_format.format_setup_response(r)
+        if 'state' in d: d.pop('state')
+        replay['setup']['responses'].append(d)
             
     return connector, gameholder

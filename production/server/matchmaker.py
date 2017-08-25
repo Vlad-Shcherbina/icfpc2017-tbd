@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 MAX_PLAYERS = 3 #16
-WAITING_THRESHOLD = 0.95
+WAITING_THRESHOLD = 0.9
 LARGE = 1000
 SMALL = 100
 
@@ -112,7 +112,7 @@ def revise_ratings(players: List[PlayerStats], scores):
     env = trueskill.TrueSkill(mu    = 50.0, 
                               sigma = 50.0/3, 
                               beta  = 50.0/6, 
-                              tau   = 50.0/3/50, 
+                              tau   = 50.0/3/100, 
                               draw_probability = 0.05)    # <-- or what?
     rates = [[trueskill.Rating(p.mu, p.sigma)] for p in players]
 

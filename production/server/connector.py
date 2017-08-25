@@ -53,6 +53,7 @@ class Connector:
         timespan = time.time() - timestart
 
         if isinstance(response, Dead):
+            bot.reason_dead = 'zombie'
             return ConnMessage(message={'pass': {'punter': ID}}, 
                                error=response.reason,
                                timespan=0)

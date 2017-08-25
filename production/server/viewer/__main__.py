@@ -26,6 +26,7 @@ app = flask.Flask(
 app.jinja_env.undefined = jnj.StrictUndefined
 
 
+# used for a list of players in leaderboard
 class PlayerBaseInfo(NamedTuple):
     ID: int
     name: str
@@ -33,6 +34,7 @@ class PlayerBaseInfo(NamedTuple):
     rating: int
 
 
+# used for a list of games in lastgames
 class GameBaseInfo(NamedTuple):
     ID: int
     mapname: str
@@ -41,6 +43,7 @@ class GameBaseInfo(NamedTuple):
     time: str
 
 
+# used for a list of players in gamestatistics
 class PlayerPerfomanceInfo:
     def __init__(self, playerID):
         self.ID = playerID
@@ -68,6 +71,7 @@ def index():
 
 @app.route('/leaderboard')
 def leaderboard():
+    '''Show all players sorted by rating.'''
     dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
         cursor.execute('''SELECT icfpc2017_players.id, name, rating_mu, rating_sigma,
@@ -88,6 +92,7 @@ def leaderboard():
 
 @app.route('/lastgames')
 def lastgames():
+    '''Show a page of games, filters provided as string arguments.'''
     dbconn = connect_to_db()
     gamelist = _get_games_conditioned(dbconn)
     dbconn.close()
@@ -106,11 +111,13 @@ def lastgames():
 
 @app.route('/instructions')
 def instructions():
+    '''Show page with instructions.'''
     return flask.render_template('instructions.html')
 
 
 @app.route('/playerstatistics/<playerID>')
 def playerstatistics(playerID):
+    '''Show summary statistics for a given player.'''
     playerID = int(playerID)
     dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
@@ -139,6 +146,7 @@ def playerstatistics(playerID):
 
 @app.route('/gamestatistics/<gameID>')
 def gamestatistics(gameID):
+    '''Show summary statistics and replay for a given game.'''
     gameID = int(gameID)
     dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
@@ -181,6 +189,7 @@ def gamestatistics(gameID):
 
 @app.route('/replay<gameID>.json')
 def downloadreplay(gameID):
+    '''Create link for downloading replay in json format.'''
     gameID = int(gameID)
     dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
@@ -193,8 +202,9 @@ def downloadreplay(gameID):
             mimetype='application/json')
 
 
-@app.route('/replay/<mapname>')
+@app.route('/<mapname>')
 def downloadmap(mapname):
+    '''Create link for downloading map in json format.'''
     dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
         cursor.execute('SELECT maptext from icfpc2017_maps WHERE mapname=%s;', (mapname,))
@@ -208,6 +218,7 @@ def downloadmap(mapname):
 # ----------------------------- AUXILIARY -------------------------------#
 
 def _movekey(move: dict) -> str:
+    '''Determine type of move in dictionary.'''
     for key in ['pass', 'claim', 'option', 'splurge']:
         if key in move: 
             return key
@@ -215,6 +226,7 @@ def _movekey(move: dict) -> str:
 
 
 def _playerperfomances(replay: dict, playerIDs):
+    '''Gather players' statistics for one replay: moves, time, errors, etc.'''
     players = [PlayerPerfomanceInfo(ID) for ID in playerIDs]
     for i, player in enumerate(replay['participants']):
         assert player['punter'] == i
@@ -239,7 +251,7 @@ def _playerperfomances(replay: dict, playerIDs):
                 assert players[punter].zombiereason     # assert already zombie
                 pass
             else:
-                players[punter].zombiesince = i // len(players)
+                players[punter].zombiesince = i // len(players) + 1
                 players[punter].zombiereason = move['error']
 
     for p in players:
@@ -263,39 +275,42 @@ def _playerperfomances(replay: dict, playerIDs):
 
 
 def _get_games_conditioned(conn) -> List[GameBaseInfo]:
-    requestargs = flask.request.args
-    arguments = tuple()
+    '''Get a list of games with filters provided as string query_args.'''
+    request_args = flask.request.args
+    query_args = tuple()
     query = '''SELECT icfpc2017_games.id, mapname, futures, options, splurges, timefinish
                FROM icfpc2017_games INNER JOIN icfpc2017_participation
                ON icfpc2017_games.id = icfpc2017_participation.game_id
                WHERE status='finished' '''
 
-    if 'player_id' in requestargs:
+    if 'player_id' in request_args:
         query += 'AND player_id=%s '
-        arguments += (requestargs['player_id'],)
-    if 'before' in requestargs:
-        query += 'AND timefinish < %s '
-        arguments += (requestargs['before'],)
+        query_args += (request_args['player_id'],)
+    if 'before' in request_args:
+        query += 'AND timefinish <= %s '
+        query_args += (request_args['before'],)
 
     query += 'GROUP BY icfpc2017_games.id ORDER BY timefinish DESC LIMIT %s;'
-    arguments += (GAMES_RANGE + 1,)
+    query_args += (GAMES_RANGE + 1,)
     with conn.cursor() as cursor:
-        cursor.execute(query, arguments)
-        assert cursor.rowcount > 0
+        cursor.execute(query, query_args)
+        rows = cursor.fetchall()
+        participants = { r[0] : [] for r in rows }
+        cursor.execute('''SELECT game_id, name 
+                          FROM icfpc2017_participation INNER JOIN icfpc2017_players
+                          ON icfpc2017_participation.player_id = icfpc2017_players.id
+                          WHERE game_id IN %s;''', (tuple(participants.keys()), ))
+        for gameID, name in cursor.fetchall():
+            participants[gameID].append(name)
 
         gamelist = []
-        for row in cursor.fetchall():
+        for row in rows:
             gameID, mapname, futures, options, splurges, timefinish = row
             settings = (('futures, ' if futures else '')
                       + ('options, ' if options else '')
                       + ('splurges, ' if splurges else ''))[:-2]
 
-            cursor.execute('''SELECT name 
-                              FROM icfpc2017_players INNER JOIN icfpc2017_participation
-                              ON icfpc2017_players.id = icfpc2017_participation.player_id
-                              WHERE game_id=%s ORDER BY score DESC;''',
-                              (gameID,))
-            players = ', '.join(x[0] for x in cursor.fetchall())
+            players = ', '.join(participants[gameID])
             gamelist.append(GameBaseInfo(ID=gameID, 
                                          mapname=mapname, 
                                          settings=settings, 

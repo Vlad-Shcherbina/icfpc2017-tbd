@@ -207,6 +207,7 @@ class GameThread(threading.Thread):
 
         self.replay = None
         self.scores = None
+        self.forcedmoves = None
         self.running = False
         self.timefinish = None
 
@@ -214,7 +215,8 @@ class GameThread(threading.Thread):
         connections = [p.conn for p in self.players]
         names = [p.stats.name for p in self.players]
         logger.info(f'Game {self.ID} started with ' + str(names))
-        self.replay, self.scores = gameloop(self.m, self.mapname, self.settings, connections, names)
+        result = gameloop(self.m, self.mapname, self.settings, connections, names)
+        self.replay, self.scores, self.forcedmoves = result
         logger.info(f'Game {self.ID} finished.')
         self.timefinish = datetime.fromtimestamp(time.time())
         self.running = False
@@ -354,12 +356,18 @@ def _resolve_finished_games():
             dbconn = connect_to_db()
         logger.debug(f'Resolving game {g.ID}')
         g.join()
-        db_sumbit_game_finished(dbconn, g.ID, g.timefinish, g.replay)
-        db_submit_players_scores(dbconn, g.ID, g.players, g.scores)
 
         for p in g.players:
             _remove_from_conns(p.token)
         revised = revise_players([p.stats for p in g.players], g.scores)
+        additional = [{ 'mu_before' : g.players[i].stats.mu, 
+                        'sigma_before' : g.players[i].stats.sigma,
+                        'mu_after' : revised[i].mu,
+                        'sigma_after' : revised[i].sigma }
+                      for i in range(len(g.players))]
+
+        db_sumbit_game_finished(dbconn, g.ID, g.timefinish, g.replay)
+        db_submit_players_scores(dbconn, g.ID, g.players, g.scores, g.forcedmoves, additional)
         db_submit_players_rating(dbconn, revised)
 
     if dbconn is not None:
@@ -376,14 +384,15 @@ def db_sumbit_game_finished(conn, gameID, timefinish, replay):
                                 (gameID, json.dumps(replay)))
 
 
-def db_submit_players_scores(conn, gameID, players, scores):
+def db_submit_players_scores(conn, gameID, players, scores, forcedmoves, additional):
     assert len(players) == len(scores)
     with conn.cursor() as cursor:
         for i in range(len(players)):
             cursor.execute('''INSERT INTO icfpc2017_participation(game_id, 
-                              player_id, player_order, score) 
-                              VALUES (%s, %s, %s, %s);''',
-                              (gameID, players[i].stats.ID, i, scores[i]))
+                              player_id, player_order, score, forcedmoves, additional) 
+                              VALUES (%s, %s, %s, %s, %s, %s);''',
+                              (gameID, players[i].stats.ID, i, scores[i], 
+                               forcedmoves[i], json.dumps(additional[i])))
 
 
 def db_submit_players_rating(conn, players: List[PlayerStats]):
@@ -456,6 +465,6 @@ if __name__ == '__main__':
     commandport = sys.argv[2] if len(sys.argv) > 2 else 45454
     try:
         serverloop(mainport, commandport)
-    except Error as e:
+    except Exception as e:
         logger.exception(e)
         raise e
