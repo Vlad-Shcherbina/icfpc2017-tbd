@@ -2,6 +2,7 @@ from typing import NamedTuple, List, Optional
 from datetime import datetime
 import psycopg2
 import json
+import secrets
 
 from production.bot_interface import Settings
 from production.server.server_interface import PlayerStats
@@ -81,8 +82,8 @@ def upload_maps_from_folder(conn):
             with open(mapdir / mapname, 'r') as mapfile:
                 with open(mapdir / mapname, 'r') as mapfile:
                     m = json.load(mapfile)
-                diff_x = max(s['x'] for s in m['sites']) - min(s['x'] for s in m['sites']) 
-                diff_y = max(s['y'] for s in m['sites']) - min(s['y'] for s in m['sites']) 
+                diff_x = max(s['x'] for s in m['sites']) - min(s['x'] for s in m['sites'])
+                diff_y = max(s['y'] for s in m['sites']) - min(s['y'] for s in m['sites'])
                 if diff_x < 100 or diff_y < 100:
                     coeff = 100 / min(diff_x, diff_y)
                 else:
@@ -96,22 +97,21 @@ def upload_maps_from_folder(conn):
                                   VALUES (%s, %s, %s);''', (mapname, json.dumps(m), max_players))
 
 
-def local_add_players(conn):
+def add_player(name, contact):
+    token = secrets.token_urlsafe(10)
     with conn.cursor() as cursor:
         cursor.execute('''
             INSERT INTO players(token, name, rating_mu, rating_sigma, contact)
-            VALUES 
-            ('5ccdcda942c53fa5edff6b9a49eff231', 
-                'zzz_julie', 50, 16.6666666666667, 'j@mail.com'),
-            ('299c78a33d868f859e0536493219556a', 
-                'zzz_meee', 50, 16.6666666666667, 'me@hehe.he'),
-            ('36f94b07397d25040528808da4fcb4db', 
-                'zzz_yahoo', 50, 16.6666666666667, 'ya@hoo.oo'),
-            ('d4d15906a8ad1f9b16ab727b38b3f39f', 
-                'zzz_smb', 50, 16.6666666666667, 'smb@smwhr.hz'),
-            ('e8b2cb9ac3844a4eb85bfca5d729c37e', 
-                'zzz_nevermore', 50, 16.6666666666667, 'a@b.c')
-            ''')
+            VALUES (%s, %s, %s, %s, %s)''',
+            (token, name, 50, 50/3, contact))
+
+
+def local_add_players(conn):
+    add_player('zzz_julie', 'j@mail.com')
+    add_player('zzz_mee', 'me@hehe.he')
+    add_player('zzz_yahoo', 'ya@hoo.oo')
+    add_player('zzz_smb', 'smb@smwhr.hz')
+    add_player('zzz_nevermore', 'a@b.c')
 
 
 if __name__ == '__main__':
