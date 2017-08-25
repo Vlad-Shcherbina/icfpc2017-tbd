@@ -1,0 +1,15 @@
+# Copy to config.py and edit as necessary.
+
+DB_ADDRESS = '127.0.0.1'
+DB_PORT = '5432'
+DB_NAME = 'my_db'
+DB_USER = 'postgres'
+DB_PASSWORD = 'password'
+
+GAME_SERVER_ADDRESS = '127.0.0.1'
+GAME_SERVER_PORT = 42349
+GAME_SERVER_COMMANDS_PORT = 42350  # TODO: replace with Ctrl-C handling
+
+WEB_SERVER_PORT = 5017
+FLASK_DEBUG = True
+GAMES_PER_PAGE = 5
