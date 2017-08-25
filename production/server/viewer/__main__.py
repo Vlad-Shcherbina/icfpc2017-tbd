@@ -73,12 +73,11 @@ def leaderboard():
     '''Show all players sorted by rating.'''
     dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
-        cursor.execute('''SELECT players.id, name, rating_mu, rating_sigma,
-                          COUNT(game_id)
-                          FROM players INNER JOIN participation
-                          ON players.id = participation.player_id
+        cursor.execute('''SELECT players.id, name, rating_mu, rating_sigma, 
+                          COUNT(game_id) FROM players INNER JOIN participation 
+                          ON players.id = participation.player_id 
                           GROUP BY players.id;''')
-                          # WHERE NOT name LIKE "zzz_%"
+                        # WHERE NOT name LIKE "zzz_%"
         playerlist = []
         for row in cursor.fetchall():
             playerID, name, rating_mu, rating_sigma, games = row
@@ -103,9 +102,9 @@ def lastgames():
         before = None
         hasnext = False
     return flask.render_template('lastgames.html', 
-                                  gamelist=gamelist, 
-                                  hasnext=hasnext,
-                                  before=before)
+                                gamelist=gamelist, 
+                                hasnext=hasnext, 
+                                before=before)
 
 
 @app.route('/instructions')
@@ -120,27 +119,26 @@ def playerstatistics(playerID):
     playerID = int(playerID)
     dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
-        cursor.execute('''SELECT name, rating_mu, rating_sigma
-                          FROM players WHERE id = %s''',
-                          (playerID, ))
+        cursor.execute('''SELECT name, rating_mu, rating_sigma 
+                          FROM players WHERE id = %s''', (playerID, ))
         if cursor.rowcount == 0:
             return flask.render_template('404.html'), 404
         name, mu, sigma = cursor.fetchone()
 
-        cursor.execute('''SELECT COUNT(game_id)
-                          FROM players INNER JOIN participation
-                          ON players.id = participation.player_id
+        cursor.execute('''SELECT COUNT(game_id) 
+                          FROM players INNER JOIN participation 
+                          ON players.id = participation.player_id 
                           WHERE player_id = %s;''', (playerID, ))
         games = cursor.fetchone()[0]
     dbconn.close()
 
-    return flask.render_template('playerstatistics.html', 
-                                 name=name,
-                                 playerID=playerID,
-                                 rating=round(mu - 3*sigma),
-                                 mu=mu,
-                                 sigma=sigma,
-                                 games=games)
+    return flask.render_template('playerstatistics.html',  
+                                name=name, 
+                                playerID=playerID, 
+                                rating=mu-3*sigma,
+                                mu=mu, 
+                                sigma=sigma, 
+                                games=games)
 
 
 @app.route('/gamestatistics/<gameID>')
@@ -149,24 +147,23 @@ def gamestatistics(gameID):
     gameID = int(gameID)
     dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
-        cursor.execute('''SELECT games.mapname, futures, options, splurges,
-                          timestart, timefinish, replay
-                          FROM games
-                          INNER JOIN replays
-                          ON games.id = replays.id
+        cursor.execute('''SELECT games.mapname, futures, options, splurges, 
+                          timestart, timefinish, replay 
+                          FROM games INNER JOIN replays ON games.id = replays.id 
                           WHERE games.id=%s;''', (gameID, ))
         if not cursor.rowcount:
             return flask.render_template('404.html')
         mapname, futures, options, splurges, timestart, timefinish, replay = cursor.fetchone()
-        settings = (('futures, ' if futures else '')
-                  + ('options, ' if options else '')
-                  + ('splurges, ' if splurges else ''))[:-2]
+        settings = (('futures, ' if futures else '') 
+                    + ('options, ' if options else '')
+                    + ('splurges, ' if splurges else ''))[:-2]
         replay = json.loads(bytes(replay))
 
         playerIDs = []
         playerscores = []
-        cursor.execute('''SELECT player_id, score FROM participation
-                          WHERE game_id=%s ORDER BY player_order;''', (gameID, ))
+        cursor.execute('''SELECT player_id, score FROM participation 
+                          WHERE game_id=%s ORDER BY player_order;''', 
+                          (gameID, ))
         for row in cursor.fetchall():
             playerIDs.append(row[0])
             playerscores.append(row[1])
@@ -176,14 +173,14 @@ def gamestatistics(gameID):
         assert all(p.score == ps for p, ps in zip(playerlist, playerscores))
     
     dbconn.close()
-    return flask.render_template('gamestatistics.html',
-                                 gameID=gameID,
-                                 mapname=mapname,
-                                 settings=settings,
-                                 movecount=len(replay['moves']),
-                                 timespan=timefinish-timestart,
-                                 playerperfs=playerlist,
-                                 replay=replay)
+    return flask.render_template('gamestatistics.html', 
+                                gameID=gameID, 
+                                mapname=mapname, 
+                                settings=settings, 
+                                movecount=len(replay['moves']), 
+                                timespan=timefinish-timestart, 
+                                playerperfs=playerlist, 
+                                replay=replay)
 
 
 @app.route('/replay<gameID>.json')
@@ -197,7 +194,7 @@ def downloadreplay(gameID):
             return flask.render_template('404.html'), 404
         replay = json.loads(bytes(cursor.fetchone()[0]).decode())
         return flask.Response(
-            json.dumps(replay, indent='  '),
+            json.dumps(replay, indent='  '), 
             mimetype='application/json')
 
 
@@ -211,8 +208,18 @@ def downloadmap(mapname):
             return flask.render_template('404.html'), 404
         maptext = json.loads(bytes(cursor.fetchone()[0]))
         return flask.Response(
-            json.dumps(maptext, indent='  '),
+            json.dumps(maptext, indent='  '), 
             mimetype='application/json')
+
+
+@app.template_filter('datetimeformat')
+def datetimeformat(value, format='%Y-%m-%d %H:%M:%S'):
+    return value.strftime(format)
+
+@app.template_filter('timedeltaformat')
+def timedeltaformat(value, format='%H:%M:%S'):
+    s = value.total_seconds()
+    return '{:02}:{:02}:{:02}'.format(int(s // 3600), int(s % 3600 // 60), int(s % 60))
 
 # ----------------------------- AUXILIARY -------------------------------#
 
@@ -277,9 +284,9 @@ def _get_games_conditioned(conn) -> List[GameBaseInfo]:
     '''Get a list of games with filters provided as string query_args.'''
     request_args = flask.request.args
     query_args = tuple()
-    query = '''SELECT games.id, mapname, futures, options, splurges, timefinish
-               FROM games INNER JOIN participation
-               ON games.id = participation.game_id
+    query = '''SELECT games.id, mapname, futures, options, splurges, timefinish 
+               FROM games INNER JOIN participation 
+               ON games.id = participation.game_id 
                WHERE status='finished' '''
 
     if 'player_id' in request_args:
@@ -293,29 +300,32 @@ def _get_games_conditioned(conn) -> List[GameBaseInfo]:
     query_args += (config.GAMES_PER_PAGE + 1,)
     with conn.cursor() as cursor:
         cursor.execute(query, query_args)
+        if cursor.rowcount == 0:
+            return []
         rows = cursor.fetchall()
         participants = { r[0] : [] for r in rows }
         cursor.execute('''SELECT game_id, name 
-                          FROM participation INNER JOIN players
-                          ON participation.player_id = players.id
-                          WHERE game_id IN %s;''', (tuple(participants.keys()), ))
+                          FROM participation INNER JOIN players 
+                          ON participation.player_id = players.id 
+                          WHERE game_id IN %s 
+                          ORDER BY score DESC;''', 
+                          (tuple(participants.keys()), ))
         for gameID, name in cursor.fetchall():
             participants[gameID].append(name)
 
         gamelist = []
         for row in rows:
             gameID, mapname, futures, options, splurges, timefinish = row
-            settings = (('futures, ' if futures else '')
-                      + ('options, ' if options else '')
-                      + ('splurges, ' if splurges else ''))[:-2]
+            settings = (('futures, ' if futures else '') 
+                        + ('options, ' if options else '') 
+                        + ('splurges, ' if splurges else ''))[:-2]
 
             players = ', '.join(participants[gameID])
             gamelist.append(GameBaseInfo(ID=gameID, 
                                          mapname=mapname, 
                                          settings=settings, 
-                                         players=players,
-                                         time=timefinish.replace(microsecond=0)))
-
+                                         players=players, 
+                                         time=timefinish))
     return gamelist
 
 

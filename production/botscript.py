@@ -44,6 +44,7 @@ def run_bot(name, bot, cycled, ip, port):
             logger.warning(f'name {name} is not registered')
             return
         token = cursor.fetchone()[0]
+    dbconn.close()
 
     while True:
         logger.info(f'bot {name} is connecting to the game')

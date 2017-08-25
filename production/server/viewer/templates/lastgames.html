@@ -13,7 +13,7 @@
     </tr>
     {% for game in gamelist %}
         <tr>
-            <td class="text">{{ game.time }}</td>
+            <td class="text">{{ game.time | datetimeformat('%Y-%m-%d %H:%M:%S') }}</td>
             <td class="text">{{ game.mapname }}</td>
             <td class="text">{{ game.settings }}</td>
             <td class="text">{{ game.players }}</td>

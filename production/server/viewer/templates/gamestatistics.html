@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base.html" %}   
 {% block content %}
 
 
@@ -6,7 +6,7 @@
 <p><i>Map:</i> {{ mapname }}<br />
 <i>Settings:</i> {{ settings }}<br />
 <i>Moves:</i> {{ movecount }} ({{ (movecount / ( playerperfs | length )) | round (0, 'ceil') | int}} rounds)<br />
-<i>Duration:</i> {{ timespan }}
+<i>Duration:</i> {{ timespan | timedeltaformat }}
 </p>
 
 

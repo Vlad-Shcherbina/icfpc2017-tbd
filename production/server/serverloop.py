@@ -38,6 +38,8 @@ production\botscript.py zzz_nevermore cpp -c
 
 HANDSHAKE_TIMELIMIT = 1
 CONNECTIONS_PER_TOKEN = 10
+PLAYER_WAITING_TIME = 60
+NEW_CONN_WAITING_TIME = 5
 
 SC_STOP = 'stop server'
 SERVER_COMMANDS = (SC_STOP, )
@@ -158,23 +160,23 @@ class HandshakeThread(threading.Thread):
             conn.kick('Server is about to reboot. Try again later.')
             return None
 
-        _conncount_lock.acquire()
-        if _conns_by_token[token] >= CONNECTIONS_PER_TOKEN:
-            _conncount_lock.release()
-            conn.kick('connections limit exceeded')
-            return None
+        with _conncount_lock:
+            if _conns_by_token[token] >= CONNECTIONS_PER_TOKEN:
+                conn.kick('connections limit exceeded')
+                return None
 
-        _conns_by_token[token] += 1
-        _conncount_lock.release()
         player = self.db_load_player_by_token(token)
         if player is None:
             conn.kick('unknown token')
             return None
+
+        with _conncount_lock:
+            _conns_by_token[token] += 1
         conn.send({'you': player.name})
         return ConnectedPlayer(token=token,
                                stats=player,
                                conn=conn,
-                               deadline=time.time() + 55)
+                               deadline=time.time() + PLAYER_WAITING_TIME)
 
 
     def db_load_player_by_token(self, token) -> Optional[PlayerStats]:
@@ -303,16 +305,15 @@ def _check_disconnected():
         if not p.conn.alive:
             _stats.reg_disconnect(p.deadline)
             _remove_from_conns(p.token)
-    _waiting[:] = list(compress(_waiting, (p.conn.alive for p in _waiting)))
+    _waiting[:] = [p for p in waiting if p.conn.alive]
 
 
 def _remove_from_conns(token):
     # Player disconnected; if no connections are open, delete from dictionary
-    _conncount_lock.acquire()
-    _conns_by_token[token] -= 1
-    if _conns_by_token[token] <= 0:
-        del _conns_by_token[token]
-    _conncount_lock.release()
+    with _conncount_lock:
+        _conns_by_token[token] -= 1
+        if _conns_by_token[token] <= 0:
+            del _conns_by_token[token]
 
 
 def _call_match_maker():
@@ -407,7 +408,7 @@ def db_submit_players_rating(conn, players: List[PlayerStats]):
 
 def serverloop():
     '''Main loop. Accept connections, gather players for match and start games.'''
-    server = connectserver(config.GAME_SERVER_PORT, timeout=5)
+    server = connectserver(config.GAME_SERVER_PORT, timeout=NEW_CONN_WAITING_TIME)
     aux_server = connectserver(config.GAME_SERVER_COMMANDS_PORT, timeout=.5)
     logger.info('Server started successfully')
     _close_pending_games()

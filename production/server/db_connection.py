@@ -81,13 +81,20 @@ def upload_maps_from_folder(conn):
             with open(mapdir / mapname, 'r') as mapfile:
                 with open(mapdir / mapname, 'r') as mapfile:
                     m = json.load(mapfile)
+                diff_x = max(s['x'] for s in m['sites']) - min(s['x'] for s in m['sites']) 
+                diff_y = max(s['y'] for s in m['sites']) - min(s['y'] for s in m['sites']) 
+                if diff_x < 100 or diff_y < 100:
+                    coeff = 100 / min(diff_x, diff_y)
+                else:
+                    coeff = 1
+
                 for site in m['sites']:
-                    site['x'] = round(site['x'], 1)
-                    site['y'] = round(site['y'], 1)
+                    site['x'] = round(site['x'] * coeff, 1)
+                    site['y'] = round(site['y'] * coeff, 1)
                 max_players = max(2, min(16, len(m['mines'])))
                 cursor.execute('''INSERT INTO maps(mapname, maptext, max_players)
-                                  VALUES (%s, %s, %s)''', (mapname, json.dumps(m), max_players))
-        
+                                  VALUES (%s, %s, %s);''', (mapname, json.dumps(m), max_players))
+
 
 def local_add_players(conn):
     with conn.cursor() as cursor:
@@ -110,7 +117,7 @@ def local_add_players(conn):
 if __name__ == '__main__':
     conn = connect_to_db()
     local_create_tables(conn)
-    local_add_players(conn)
-    upload_maps_from_folder(conn)
+    #local_add_players(conn)
+    #upload_maps_from_folder(conn)
     conn.commit()
     conn.close()
