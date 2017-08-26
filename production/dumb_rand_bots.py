@@ -43,7 +43,7 @@ class RandMoveBot(Bot):
                     if len(unclaimed_adj) >= 2:
                         v1, v2, *_ = unclaimed_adj
                         move = SplurgeMove(punter=story.my_id,
-                                route=(board.unpack[v1], board.unpack[u], board.unpack[v2]))
+                                route=[board.unpack[v1], board.unpack[u], board.unpack[v2]])
                         state['debug_last_move'] = 'splurge'
                         break
             elif last_move == 'claim':

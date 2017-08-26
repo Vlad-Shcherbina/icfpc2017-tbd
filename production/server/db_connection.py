@@ -3,6 +3,7 @@ from datetime import datetime
 import psycopg2
 import json
 import secrets
+import zlib
 
 from production.bot_interface import Settings
 from production.server.server_interface import PlayerStats
@@ -93,8 +94,9 @@ def upload_maps_from_folder(conn):
                     site['x'] = round(site['x'] * coeff, 1)
                     site['y'] = round(site['y'] * coeff, 1)
                 max_players = max(2, min(16, len(m['mines'])))
+                m = zlib.compress(bytes(json.dumps(m), 'utf-8'))
                 cursor.execute('''INSERT INTO maps(mapname, maptext, max_players)
-                                  VALUES (%s, %s, %s);''', (mapname, json.dumps(m), max_players))
+                                  VALUES (%s, %s, %s);''', (mapname, m, max_players))
 
 
 def add_player(name, contact):
@@ -108,7 +110,7 @@ def add_player(name, contact):
 
 def local_add_players(conn):
     add_player('zzz_julie', 'j@mail.com')
-    add_player('zzz_mee', 'me@hehe.he')
+    add_player('zzz_meee', 'me@hehe.he')
     add_player('zzz_yahoo', 'ya@hoo.oo')
     add_player('zzz_smb', 'smb@smwhr.hz')
     add_player('zzz_nevermore', 'a@b.c')
@@ -117,7 +119,7 @@ def local_add_players(conn):
 if __name__ == '__main__':
     conn = connect_to_db()
     local_create_tables(conn)
-    #local_add_players(conn)
-    #upload_maps_from_folder(conn)
+    local_add_players(conn)
+    upload_maps_from_folder(conn)
     conn.commit()
     conn.close()

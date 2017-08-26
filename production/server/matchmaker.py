@@ -6,6 +6,7 @@ import trueskill
 import json
 import os
 import time
+import zlib
 
 from production.utils import project_root
 from production.bot_interface import Map, Settings
@@ -32,7 +33,7 @@ def random_map() -> Tuple[Map, str, Settings]:
         mapnames = [m[0] for m in cursor.fetchall()]
         mapname = choice(mapnames)
         cursor.execute('''SELECT maptext FROM maps WHERE mapname=%s;''', (mapname,))
-        m = parse_map(json.loads(bytes(cursor.fetchone()[0])))
+        m = parse_map(json.loads(zlib.decompress(bytes(cursor.fetchone()[0]))))
     dbconn.close()
 
     setts = Settings(options = True if random() > 0.5 else False,

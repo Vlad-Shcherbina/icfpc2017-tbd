@@ -12,6 +12,7 @@ import time
 import threading
 import sys
 import json
+import zlib
 from random import randrange, random
 
 from production.server.connection import NetworkConnection, Timeout, Dead
@@ -386,7 +387,7 @@ def db_sumbit_game_finished(conn, gameID, timefinish, replay):
         cursor.execute('UPDATE games SET status=%s, timefinish=%s WHERE id=%s;',
                                 ('finished', timefinish, gameID))
         cursor.execute('INSERT INTO replays(id, replay) VALUES(%s, %s);',
-                                (gameID, json.dumps(replay)))
+                                (gameID, zlib.compress(bytes(json.dumps(replay), 'utf-8'))))
 
 
 def db_submit_players_scores(conn, gameID, players, scores, forcedmoves, additional):

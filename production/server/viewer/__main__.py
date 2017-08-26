@@ -1,5 +1,6 @@
 # hack to placate the restarter
 import sys, os, datetime
+import zlib
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
 from production.server import config
@@ -126,7 +127,7 @@ def playerstatistics(playerID):
         cursor.execute('''SELECT name, rating_mu, rating_sigma 
                           FROM players WHERE id = %s''', (playerID, ))
         if cursor.rowcount == 0:
-            return flask.render_template('404.html'), 404
+            return flask.render_template('404.html', notfound='player'), 404
         name, mu, sigma = cursor.fetchone()
 
         cursor.execute('''SELECT COUNT(game_id) 
@@ -156,12 +157,12 @@ def gamestatistics(gameID):
                           FROM games INNER JOIN replays ON games.id = replays.id 
                           WHERE games.id=%s;''', (gameID, ))
         if not cursor.rowcount:
-            return flask.render_template('404.html')
+            return flask.render_template('404.html', notfound='game'), 404
         mapname, futures, options, splurges, timestart, timefinish, replay = cursor.fetchone()
         settings = (('futures, ' if futures else '') 
                     + ('options, ' if options else '')
                     + ('splurges, ' if splurges else ''))[:-2]
-        replay = json.loads(bytes(replay))
+        replay = json.loads(zlib.decompress(bytes(replay)))
 
         playerIDs = []
         playerscores = []
@@ -195,8 +196,8 @@ def downloadreplay(gameID):
     with dbconn.cursor() as cursor:
         cursor.execute('SELECT replay from replays WHERE id=%s;', (gameID,))
         if not cursor.rowcount:
-            return flask.render_template('404.html'), 404
-        replay = json.loads(bytes(cursor.fetchone()[0]).decode())
+            return flask.render_template('404.html', notfound='replay'), 404
+        replay = json.loads(zlib.decompress(bytes(cursor.fetchone()[0])))
         return flask.Response(
             json.dumps(replay, indent='  '), 
             mimetype='application/json')
@@ -209,8 +210,8 @@ def downloadmap(mapname):
     with dbconn.cursor() as cursor:
         cursor.execute('SELECT maptext from maps WHERE mapname=%s;', (mapname,))
         if not cursor.rowcount:
-            return flask.render_template('404.html'), 404
-        maptext = json.loads(bytes(cursor.fetchone()[0]))
+            return flask.render_template('404.html', notfound='map'), 404
+        maptext = json.loads(zlib.decompress(bytes(cursor.fetchone()[0])))
         return flask.Response(
             json.dumps(maptext, indent='  '), 
             mimetype='application/json')
