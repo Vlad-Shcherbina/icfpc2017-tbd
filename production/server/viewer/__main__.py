@@ -84,7 +84,7 @@ def index():
 @app.route('/leaderboard')
 def leaderboard():
     '''Show all players sorted by rating.'''
-    dbconn = connect_to_db()
+    dbconn = connect_to_db('r')
     with dbconn.cursor() as cursor:
         cursor.execute('''SELECT players.id, name, rating_mu, rating_sigma, 
                           COUNT(game_id) FROM players INNER JOIN participation 
@@ -104,7 +104,7 @@ def leaderboard():
 @app.route('/lastgames')
 def lastgames():
     '''Show a page of games, filters provided as string arguments.'''
-    dbconn = connect_to_db()
+    dbconn = connect_to_db('r')
     gamelist = _get_games_conditioned(dbconn)
     dbconn.close()
     if len(gamelist) > config.GAMES_PER_PAGE:
@@ -130,7 +130,7 @@ def instructions():
 def playerstatistics(playerID):
     '''Show summary statistics for a given player.'''
     playerID = int(playerID)
-    dbconn = connect_to_db()
+    dbconn = connect_to_db('r')
     with dbconn.cursor() as cursor:
         cursor.execute('''SELECT name, rating_mu, rating_sigma 
                           FROM players WHERE id = %s''', (playerID, ))
@@ -157,7 +157,7 @@ def playerstatistics(playerID):
 @app.route('/playerrating')
 def playerrating():
     playerID = int(flask.request.args.get('playerID', 0))
-    dbconn = connect_to_db()
+    dbconn = connect_to_db('r')
     before = flask.request.args.get('before', datetime.datetime.fromtimestamp(time.time()))
 
     with dbconn.cursor() as cursor:
@@ -207,7 +207,7 @@ def playerrating():
 def gamestatistics(gameID):
     '''Show summary statistics and replay for a given game.'''
     gameID = int(gameID)
-    dbconn = connect_to_db()
+    dbconn = connect_to_db('r')
     with dbconn.cursor() as cursor:
         cursor.execute('''SELECT games.mapname, futures, options, splurges, 
                           timestart, timefinish, replay 
@@ -249,7 +249,7 @@ def gamestatistics(gameID):
 def downloadreplay(gameID):
     '''Create link for downloading replay in json format.'''
     gameID = int(gameID)
-    dbconn = connect_to_db()
+    dbconn = connect_to_db('r')
     with dbconn.cursor() as cursor:
         cursor.execute('SELECT replay from replays WHERE id=%s;', (gameID,))
         if not cursor.rowcount:
@@ -263,7 +263,7 @@ def downloadreplay(gameID):
 @app.route('/<mapname>')
 def downloadmap(mapname):
     '''Create link for downloading map in json format.'''
-    dbconn = connect_to_db()
+    dbconn = connect_to_db('r')
     with dbconn.cursor() as cursor:
         cursor.execute('SELECT maptext from maps WHERE mapname=%s;', (mapname,))
         if not cursor.rowcount:

@@ -27,7 +27,7 @@ SMALL = 100
 #--------------------------- MAKE MATCH --------------------------------#
 
 def random_map() -> Tuple[Map, str, Settings]:
-    dbconn = connect_to_db()
+    dbconn = connect_to_db('r')
     with dbconn.cursor() as cursor:
         cursor.execute('''SELECT mapname FROM maps;''')
         mapnames = [m[0] for m in cursor.fetchall()]

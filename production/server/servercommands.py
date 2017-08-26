@@ -16,7 +16,7 @@ SERVER_COMMANDS = (SC_STOP, )
 
 def main(command):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(('127.0.0.1', 45454))
+    s.connect(('127.0.0.1', 42350))
     msg = '{"command": "' + command + '"}'
     s.sendall(f'{len(msg)}:{msg}'.encode())
     s.close()

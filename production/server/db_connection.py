@@ -13,20 +13,48 @@ import logging;
 logger = logging.getLogger(__name__)
 
 
-def connect_to_db():
-    logger.debug('Connecting to database')
+def connect_to_db(mode):
+    logger.debug('Connecting to database with mode ' + mode)
+    if mode == 'r':
+        user = config.DB_READ_USER
+        password = config.DB_READ_PASSWORD
+    elif mode == 'w':
+        user = config.DB_WRITE_USER
+        password = config.DB_WRITE_PASSWORD
+    else:
+        raise ValueError('only r and w modes are allowed')
 
     conn = psycopg2.connect(
         dbname=config.DB_NAME,
         host=config.DB_ADDRESS,
         port=config.DB_PORT,
-        user=config.DB_USER,
-        password=config.DB_PASSWORD)
+        user=user,
+        password=password)
 
     return conn
 
 
 #----------------------- CREATE DEV DATABASE ---------------------------#
+
+def set_reader_user(conn):
+    # https://gist.github.com/oinopion/4a207726edba8b99fd0be31cb28124d0
+    with conn.cursor() as cursor:
+        cursor.execute(f'''
+            GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO {config.DB_WRITE_USER};
+            GRANT ALL PRIVILEGES ON ALL FUNCITONS IN SCHEMA public TO {config.DB_WRITE_USER};
+            GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO {config.DB_WRITE_USER};
+
+            CREATE ROLE readaccess;
+
+            GRANT USAGE ON SCHEMA public TO readaccess;
+            GRANT SELECT ON ALL TABLES IN SCHEMA public TO readaccess;
+
+            ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO readaccess;
+
+            CREATE USER {config.DB_READ_USER} WITH PASSWORD %s;
+            GRANT readaccess TO {config.DB_READ_USER};
+        ''', (config.DB_READ_USER, ))
+
 
 def local_create_tables(conn):
     with conn.cursor() as cursor:
@@ -117,7 +145,7 @@ def local_add_players(conn):
 
 
 if __name__ == '__main__':
-    conn = connect_to_db()
+    conn = connect_to_db('w')
     local_create_tables(conn)
     local_add_players(conn)
     upload_maps_from_folder(conn)
