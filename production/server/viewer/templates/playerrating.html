@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ name }}</h2>
+<p>
+    <i>Current rating:</i> {{ (mu-3*sigma) | round(2) }} <br />
+    &nbsp;&nbsp;&nbsp;&nbsp;<i>average:</i> {{ mu | round(2) }} <br />
+    &nbsp;&nbsp;&nbsp;&nbsp;<i>deviation:</i> {{ sigma | round(2) }}
+</p>
+
+<table>
+    <tr>
+        <th class="text">Time (UTC)</th>
+        <th class="number">Change of rating</th>
+        <th class="number">Change of average</th>
+        <th class="number">Change of deviation</th>
+        <th class="text"></th>
+    </tr>
+    {% for game in gamelist %}
+        <tr>
+            <td class="text">{{ game.time | datetimeformat('%Y-%m-%d %H:%M:%S') }}</td>
+            <td class="number">{{ '%+.2f' % (game.mu_diff - 3 * game.sigma_diff) }}</td>
+            <td class="number">{{ '%+.2f' % game.mu_diff }}</td>
+            <td class="number">{{ '%+.2f' % game.sigma_diff }}</td>
+            <td class="text"><a href="{{ url_for('gamestatistics', gameID=game.ID) }}">details</a></td>
+        </tr>
+    {% endfor %}
+</table>
+{% if hasnext %}<p><a href="{{ url_for_other_page(before=before) }}">load more games</a></p> {% endif %}
+
+{% endblock %}

@@ -77,7 +77,7 @@ class NetworkConnection:
             if colon_pos >= 0:
                 break
             if len(buf) > 9:
-                self.kick('message length is too long', True)
+                self.kick('message length is too long')
                 return Dead(reason=self.reason_dead)
             self.socket.settimeout(max(1e-3, deadline - time.time()))
             msg = self.socket.recv(4096)
@@ -87,11 +87,11 @@ class NetworkConnection:
             buf.extend(msg)
 
         if colon_pos > 9:
-            self.kick('message length is too long', True)
+            self.kick('message length is too long')
             return Dead(reason=self.reason_dead)
 
         if not re.match(b'\d+$', buf[:colon_pos]):
-            self.kick('message length is not a number', True)
+            self.kick('message length is not a number')
             return Dead(reason=self.reason_dead)
 
         msg_len = int(buf[:colon_pos].decode())
@@ -110,11 +110,11 @@ class NetworkConnection:
         try:
             res = json.loads(buf[colon_pos + 1 : msg_end])
         except json.JSONDecodeError:
-            self.kick('not a valid JSON', True)
+            self.kick('not a valid JSON')
             return Dead(reason=self.reason_dead)
 
         if not isinstance(res, dict):
-            self.kick('not a valid move', True)  # not a dict
+            self.kick('not a valid move')  # not a dict
             return Dead(reason=self.reason_dead)
 
         del buf[:msg_end]
@@ -170,13 +170,11 @@ class NetworkConnection:
             self.reason_dead = 'peer disconnected'
         self.buf.extend(data)
 
-    def kick(self, reason, inner=False):
+    def kick(self, reason):
         if not self.alive:
             return
 
-        if inner:   self.reason_dead = reason
-        else:       self.reason_dead = f'kicked ({reason})'
-
+        self.reason_dead = reason
         try:
             msg = '{"kicked": "' + str(reason) + '"}'
             self.socket.sendall((f'%d:%s' % (len(msg), msg)).encode())

@@ -47,6 +47,14 @@ class GameBaseInfo(NamedTuple):
     time: datetime.datetime
 
 
+# used for a list of games in playerrating
+class GameRatingInfo(NamedTuple):
+    ID: int
+    time: datetime.datetime
+    mu_diff: float
+    sigma_diff: float
+
+
 # used for a list of players in gamestatistics
 class PlayerPerfomanceInfo:
     def __init__(self, playerID):
@@ -104,7 +112,7 @@ def lastgames():
         gamelist = gamelist[:config.GAMES_PER_PAGE]
         hasnext = True
     else:
-        before = None
+        before = time.time()
         hasnext = False
     return flask.render_template('lastgames.html', 
                                 gamelist=gamelist, 
@@ -144,6 +152,55 @@ def playerstatistics(playerID):
                                 mu=mu, 
                                 sigma=sigma, 
                                 games=games)
+
+
+@app.route('/playerrating')
+def playerrating():
+    playerID = int(flask.request.args.get('playerID', 0))
+    dbconn = connect_to_db()
+    before = flask.request.args.get('before', datetime.datetime.fromtimestamp(time.time()))
+
+    with dbconn.cursor() as cursor:
+        cursor.execute('''SELECT name, rating_mu, rating_sigma from players
+                          WHERE id=%s''', (playerID, ))
+        if cursor.rowcount == 0:
+            return render_template('404.html', notfound='player'), 404
+
+        name, mu, sigma = cursor.fetchone()
+        cursor.execute('''SELECT game_id, timefinish, additional
+                          FROM participation INNER JOIN games
+                          ON games.id = participation.game_id
+                          WHERE player_id = %s AND timefinish <= %s
+                          ORDER BY timefinish DESC
+                          LIMIT %s;''',
+                          (playerID, before, config.GAMES_PER_PAGE + 1))
+        rows = cursor.fetchall()
+
+    dbconn.close()
+    gamelist = []
+    for row in rows[:config.GAMES_PER_PAGE]:
+        gameID, timefinish, add = row
+        #add = json.loads(add)
+        mu_diff = add['mu_after']-add['mu_before']
+        sigma_diff = add['sigma_after']-add['sigma_before']
+        gamelist.append(GameRatingInfo(
+                            ID=gameID,
+                            time=timefinish,
+                            mu_diff=mu_diff,
+                            sigma_diff=sigma_diff))
+    if len(rows) > config.GAMES_PER_PAGE:
+        before = rows[config.GAMES_PER_PAGE][1]
+        hasnext = True
+    else:
+        hasnext = False
+    return flask.render_template('playerrating.html',
+                                playerID=playerID,
+                                name=name,
+                                mu=mu,
+                                sigma=sigma,
+                                gamelist=gamelist,
+                                hasnext=hasnext,
+                                before=before)
 
 
 @app.route('/gamestatistics/<gameID>')
@@ -219,7 +276,6 @@ def downloadmap(mapname):
 
 def url_for_other_page(before):
     args = flask.request.args.copy()
-    print(args)
     args['before'] = before
     return flask.url_for(flask.request.endpoint, **args)
 app.jinja_env.globals['url_for_other_page'] = url_for_other_page
@@ -334,9 +390,9 @@ def _get_query_for_game_conditions(request_args):
                ON games.id = participation.game_id 
                WHERE status='finished' '''
 
-    if 'player_id' in request_args:
+    if 'playerID' in request_args:
         query += 'AND player_id=%s '
-        query_args += (request_args['player_id'],)
+        query_args += (request_args['playerID'],)
     if 'before' in request_args:
         query += 'AND timefinish <= %s '
         query_args += (request_args['before'],)

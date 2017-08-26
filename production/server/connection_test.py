@@ -103,13 +103,13 @@ def test_kick(connect):
 
     conn.send({'hi': 1})
     msg = conn.receive(deadline=time.time() + 1)
-    assert msg == Dead(reason='kicked (test)')
+    assert msg == Dead(reason='test')
     assert not conn.alive
 
     conn.kick('again')
 
     msg = conn.receive(deadline=time.time() + 1)
-    assert msg == Dead(reason='kicked (test)')
+    assert msg == Dead(reason='test')
     assert not conn.alive
 
 
