@@ -33,3 +33,6 @@ class MatchInfo(NamedTuple):
     map: Map
     mapname: str
     settings: Settings
+
+class ServerInterrupt(KeyboardInterrupt):
+    pass

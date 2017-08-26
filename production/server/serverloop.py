@@ -13,6 +13,7 @@ import threading
 import sys
 import json
 import zlib
+import signal
 from random import randrange, random
 
 from production.server.connection import NetworkConnection, Timeout, Dead
@@ -45,10 +46,6 @@ HANDSHAKE_TIMELIMIT = 1
 CONNECTIONS_PER_TOKEN = 10
 PLAYER_WAITING_TIME = 60
 NEW_CONN_WAITING_TIME = 5
-
-SC_STOP = 'stop server'
-SERVER_COMMANDS = (SC_STOP, )
-
 
 #------------------------ AUXILIARY CLASSES ----------------------------#
 
@@ -133,18 +130,15 @@ class ServerStatistics():
 
 class HandshakeThread(threading.Thread):
     '''Accept and check handshake'''
-    def __init__(self, conn: socket.socket, accept):
+    def __init__(self, conn: socket.socket):
         threading.Thread.__init__(self)
         self.conn = conn
-        self.accept = accept
         self.player = None
         self.timestamp = None
-        self.running = True
 
     def run(self):
         self.player = self.handshake()
         self.timestamp = time.time()
-        self.running = False
 
     def handshake(self) -> Optional[ConnectedPlayer]:
         '''Handshake phase. Exchange messages and get player stats from DB.
@@ -160,7 +154,8 @@ class HandshakeThread(threading.Thread):
         except InvalidResponseError as e:
             conn.kick(e.msg)
             return None
-        if not self.accept:
+
+        if _shuttingdown:
             conn.kick('Server is about to reboot. Try again later.')
             return None
 
@@ -215,18 +210,20 @@ class GameThread(threading.Thread):
         self.replay = None
         self.scores = None
         self.forcedmoves = None
-        self.running = False
         self.timefinish = None
 
     def run(self):
         connections = [p.conn for p in self.players]
         names = [p.stats.name for p in self.players]
         logger.info(f'Game {self.ID} started with ' + str(names))
-        result = gameloop(self.m, self.mapname, self.settings, connections, names)
+        try:
+            result = gameloop(self.m, self.mapname, self.settings, connections, names, _shutdownthreads)
+        except ServerInterrupt:
+            logger.warning(f'Game {self.ID} stopped preliminary.')
+            return
         self.replay, self.scores, self.forcedmoves = result
         logger.info(f'Game {self.ID} finished.')
         self.timefinish = datetime.fromtimestamp(time.time())
-        self.running = False
 
 
 #--------------------------- SERVER LOOP -------------------------------#
@@ -238,6 +235,29 @@ _conns_by_token = defaultdict(int)
 _stats = ServerStatistics()
 
 _conncount_lock = threading.Lock()
+
+_shuttingdown = False
+_shutdownthreads = threading.Event()
+
+def sigint_handler(signum, frame):
+    '''Catch Ctrl+C signal
+
+    Shut down gracefully after first pressing: stop accepting players, wait for
+    ongoing games to finish;
+    force threads to break mainloops after second;
+    exit without further waiting (with threads stil running) after third.
+    '''
+    global _shuttingdown
+    if not _shuttingdown:
+        logger.warning('Server shuts down gracefully.')
+        _shuttingdown = True
+    elif not _shutdownthreads.is_set():
+        logger.warning('Server shuts down forcefully.')
+        _shutdownthreads.set()
+    else:
+        logger.warning('Server shuts down without stopping threads.')
+        sys.exit(0)
+signal.signal(signal.SIGINT, sigint_handler)
 
 
 def connectserver(port, timeout):
@@ -259,27 +279,13 @@ def _close_pending_games():
     dbconn.close()
 
 
-def _get_command(server):
-    '''Send technical commands to operate server.'''
-    try:
-        conn, addr = server.accept()
-    except socket.timeout:
-        return
-    conn = NetworkConnection(conn)
-    r = conn.receive(time.time() + 0.5)
-    # !!! Add password
-    if isinstance(r, dict) and 'command' in r:
-        conn.kick('accepted')
-        return r['command']
-
-
-def _accept_new_connection(server, accept):
+def _accept_new_connection(server):
     try:
         conn, addr = server.accept()
     except socket.timeout:
         logger.debug('timed out')
         return
-    h = HandshakeThread(conn, accept)
+    h = HandshakeThread(conn)
     h.start()
     _handshaking.append(h)
 
@@ -288,7 +294,8 @@ def _add_new_players():
     h_running = []
     times = []
     for h in _handshaking:
-        if h.running:
+        #if h.running:
+        if h.is_alive():
             h_running.append(h)
             continue
 
@@ -334,7 +341,6 @@ def _call_match_maker():
     game = GameThread(gameID, players, match.map, match.mapname, match.settings)
     for p in players:
         _stats.reg_start(p.deadline)
-    game.running = True
     game.start()
     _ongoing.append(game)
     _waiting[:] = list(compress(_waiting, (not x for x in match.participants)))
@@ -355,8 +361,11 @@ def _resolve_finished_games():
     games_running = []
     dbconn = None
     for g in _ongoing:
-        if g.running:
+        if g.is_alive():
             games_running.append(g)
+            continue
+        elif g.replay is None:
+            # game is aborted due to server stop. Abandon for now.
             continue
         if dbconn is None:
             dbconn = connect_to_db('w')
@@ -413,19 +422,12 @@ def db_submit_players_rating(conn, players: List[PlayerStats]):
 def serverloop():
     '''Main loop. Accept connections, gather players for match and start games.'''
     server = connectserver(config.GAME_SERVER_PORT, timeout=NEW_CONN_WAITING_TIME)
-    aux_server = connectserver(config.GAME_SERVER_COMMANDS_PORT, timeout=.5)
     logger.info('Server started successfully')
     _close_pending_games()
-    accept_players = True
 
-    while accept_players or _ongoing:
-        # get technical commands
-        command = _get_command(aux_server)
-        if command == SC_STOP:
-            accept_players = False
-
+    while not _shuttingdown or _ongoing:
         # if there is new connection request, accept it
-        _accept_new_connection(server, accept_players)
+        _accept_new_connection(server)
 
         # add players that finished handshake
         _add_new_players()
@@ -440,6 +442,7 @@ def serverloop():
         _resolve_finished_games()
 
         _stats.ongoing = len(_ongoing)
+    logger.warning('Server stopped work.')
 
 
 #--------------------------- DUAL LOGGING ------------------------------#

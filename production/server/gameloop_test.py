@@ -76,7 +76,7 @@ def gameloop_from_file(N, testfiles, settings, m, mapname, result=None):
         conns.append(conn)
         bots[i].start()
 
-    _, t, _ = gameloop(m, mapname, settings, conns, [str(i) for i in range(N)])
+    _, t, _ = gameloop(m, mapname, settings, conns, [str(i) for i in range(N)], threading.Event())
     for bot in bots: bot.join()
     assert result is None or t == result
 
