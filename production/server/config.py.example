@@ -3,10 +3,8 @@
 DB_ADDRESS = '127.0.0.1'
 DB_PORT = '5432'
 DB_NAME = 'my_db'
-DB_WRITE_USER = 'postgres'
-DB_WRITE_PASSWORD = 'password'
-DB_READ_USER = 'reader'
-DB_READ_PASSWORD = 'readpassword'
+DB_USER = 'postgres'
+DB_PASSWORD = 'password'
 
 GAME_SERVER_ADDRESS = '127.0.0.1'
 GAME_SERVER_PORT = 42349

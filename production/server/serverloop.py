@@ -179,7 +179,7 @@ class HandshakeThread(threading.Thread):
 
 
     def db_load_player_by_token(self, token) -> Optional[PlayerStats]:
-        dbconn = connect_to_db('r')
+        dbconn = connect_to_db()
         with dbconn.cursor() as cursor:
             cursor.execute('''SELECT id, name, rating_mu, rating_sigma FROM 
                               players WHERE token=%s;''', (token,))
@@ -271,7 +271,7 @@ def connectserver(port, timeout):
 
 
 def _close_pending_games():
-    dbconn = connect_to_db('w')
+    dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
         cursor.execute('''UPDATE games SET status='aborted'
                           WHERE status='ongoing';''')
@@ -333,7 +333,7 @@ def _call_match_maker():
         return
     players = list(compress(_waiting, match.participants))
 
-    dbconn = connect_to_db('w')
+    dbconn = connect_to_db()
     gameID = db_submit_game_started(dbconn, match.mapname, match.settings)
     dbconn.commit()
     dbconn.close()
@@ -368,7 +368,7 @@ def _resolve_finished_games():
             # game is aborted due to server stop. Abandon for now.
             continue
         if dbconn is None:
-            dbconn = connect_to_db('w')
+            dbconn = connect_to_db()
         logger.debug(f'Resolving game {g.ID}')
         g.join()
 

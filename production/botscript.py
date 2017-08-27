@@ -41,7 +41,7 @@ def run_bot(name, bot, cycled, ip, port):
         return
     bot = Bot()
 
-    dbconn = connect_to_db('r')
+    dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
         cursor.execute('SELECT token FROM players WHERE name=%s', (name,))
         if cursor.rowcount == 0:
