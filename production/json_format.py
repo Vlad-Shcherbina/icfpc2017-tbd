@@ -77,9 +77,9 @@ def parse_handshake_response(d) -> str:
     if not isinstance(d, dict): 
         raise InvalidResponseError('not a valid json object in handshake')
     if (not 'me' in d):
-        raise InvalidResponseError('no "me" key in handshake')
+        raise InvalidResponseError('no me key in handshake')
     if not isinstance(d['me'], str):
-        raise InvalidResponseError('"me" value in handshake is not string')
+        raise InvalidResponseError('me value in handshake is not string')
     return d['me']
 
 
@@ -103,13 +103,13 @@ def parse_setup_response(d, ID=None) -> SetupResponse:
     if not isinstance(d, dict): 
         raise InvalidResponseError('not a valid json object in setup')
     if (not 'ready' in d):
-        raise InvalidResponseError('no "ready" key in setup')
+        raise InvalidResponseError('no ready key in setup')
 
     if (not 'futures' in d):
         return SetupResponse(ready=ID, state=None, futures={})
 
     if not isinstance(d['futures'], list):
-        raise InvalidResponseError('"futures" value in setup is not list')
+        raise InvalidResponseError('futures value in setup is not list')
     futures = {}
     for f in d['futures']:
         if (not isinstance(f, dict) 
@@ -164,7 +164,7 @@ def parse_move(d, ID=None) -> Move:
         route = p.pop('route')
         if REPORT_UNKNOWN_FIELDS: assert not p, p
         if not isinstance(route, list):
-            raise InvalidResponseError('"route" key is not an array')
+            raise InvalidResponseError('route key is not an array')
         return SplurgeMove(punter=punter, route=route)
     else:
         assert False, key

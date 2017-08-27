@@ -176,7 +176,7 @@ class NetworkConnection:
 
         self.reason_dead = reason
         try:
-            msg = '{"kicked": "' + str(reason) + '"}'
+            msg = json.dumps({'kicked': reason})
             self.socket.sendall((f'%d:%s' % (len(msg), msg)).encode())
         except socket.timeout:
             pass
