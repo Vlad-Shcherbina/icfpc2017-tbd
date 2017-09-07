@@ -75,9 +75,9 @@ class Connector:
         assert False, response
 
 
-    def zombify(self, ID: int, msg: str, logged=True):
+    def zombify(self, ID: int, msg: str):
         self.bots[ID].kick(reason=msg)
-        if logged: self.bots[ID].reason_dead = 'zombie'
+        self.bots[ID].reason_dead = 'zombie'
         self.bots[ID].close()
 
 

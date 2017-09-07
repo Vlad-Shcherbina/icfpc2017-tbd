@@ -307,6 +307,12 @@ def _playerperfomances(replay: dict, playerIDs):
         name = player['name']
         players[i].name = name
 
+    for i, response in enumerate(replay['setup']['responses']):
+        assert response['ready'] == i
+        if 'error' in response:
+            players[i].zombiesince = 'setup'
+            players[i].zombiereason = response['error']
+
     for i, move in enumerate(replay['moves']):
         key = _movekey(move)
         punter = move[key]['punter']

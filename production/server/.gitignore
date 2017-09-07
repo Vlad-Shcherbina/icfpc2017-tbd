@@ -4,5 +4,4 @@ build/
 *tmp
 _my_*
 *.log
-
 config.py

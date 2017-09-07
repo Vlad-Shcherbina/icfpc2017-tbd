@@ -6,7 +6,7 @@ from production.server.connector import *
 from production.bot_interface import *
 from production import json_format
 from production.json_format import InvalidResponseError
-from production.server.server_interface import ServerInterrupt
+from production.server.server_interface import ServerInterrupt, Estimation
 
 GAMELIMIT = 1
 SETUPLIMIT = 10
@@ -16,6 +16,7 @@ def gameloop(m: Map,
              settings: Settings, 
              connections: List[NetworkConnection], 
              names: List[str],
+             time_estimation: Estimation,
              shutdown):
     '''Main loop for single game. Connects players and gamestate.
 
@@ -32,6 +33,7 @@ def gameloop(m: Map,
     connector, gameholder = setup_game(m, mapname, settings, connections, replay, shutdown)
     turns = sum([len(a) for a in gameholder.board.adj.values()]) // 2
     forcedpasses = [False] * N
+    time_estimation.start(N, turns)
 
     # Game starts!
     ID = 0
@@ -65,6 +67,7 @@ def gameloop(m: Map,
                                          timespan=connresponse.timespan,
                                          original=original)
         replay['moves'].append(record)
+        time_estimation.set(moveno)
         ID = (ID + 1) % N
 
     score = gameholder.score()
@@ -110,19 +113,23 @@ def setup_game(m: Map,
         if shutdown.is_set():
             raise ServerInterrupt()
         connresponse = connector.receive(ID, deadlines[ID], SETUPLIMIT)
+        error = connresponse.error
         if 'pass' in connresponse.message:
             r = SetupResponse(ready=ID, state='', futures={})
         else:
             try:
                 r = json_format.parse_setup_response(connresponse.message, ID)
             except InvalidResponseError as e:
-                assert connresponse.error is None, connresponse.error
-                connector.zombify(ID, e.msg, logged=False)
+                assert error is None, error
+                connector.zombify(ID, e.msg)
+                error = e.msg
                 r = SetupResponse(ready=ID, state='', futures={})
             else:
                 gameholder.process_futures(response=r)
         d = json_format.format_setup_response(r)
         if 'state' in d: d.pop('state')
+        if error is not None:
+            d['error'] = error
         replay['setup']['responses'].append(d)
             
     return connector, gameholder

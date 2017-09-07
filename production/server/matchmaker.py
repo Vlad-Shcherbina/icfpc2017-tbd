@@ -1,6 +1,6 @@
 from random import random, randrange, choice
 from typing import NamedTuple, List, Optional, Dict, Tuple
-from math import exp, factorial
+from math import exp, factorial, sqrt, erf
 from collections import defaultdict
 import trueskill
 import json
@@ -26,14 +26,16 @@ SMALL = 100
 
 #--------------------------- MAKE MATCH --------------------------------#
 
-def random_map() -> Tuple[Map, str, Settings]:
+def random_map() -> Tuple[Map, str, int, Settings]:
     dbconn = connect_to_db()
     with dbconn.cursor() as cursor:
         cursor.execute('''SELECT mapname FROM maps;''')
         mapnames = [m[0] for m in cursor.fetchall()]
         mapname = choice(mapnames)
-        cursor.execute('''SELECT maptext FROM maps WHERE mapname=%s;''', (mapname,))
-        m = parse_map(json.loads(zlib.decompress(bytes(cursor.fetchone()[0]))))
+        cursor.execute('''SELECT maptext, max_players FROM maps WHERE mapname=%s;''', 
+                       (mapname,))
+        text, playernum = cursor.fetchone()
+        m = parse_map(json.loads(zlib.decompress(text)))
     dbconn.close()
 
     setts = Settings(options = True if random() > 0.5 else False,
@@ -41,64 +43,50 @@ def random_map() -> Tuple[Map, str, Settings]:
                     futures = True if random() > 0.5 else False,
                     raw_settings = {})
 
-    return (m, mapname, setts)
+    return (m, mapname, playernum, setts)
 
 
-def poissonflow(rate, t, N):
-    '''Given rate (number of connections per second), return probability that
-    at least N connections will be made in next t seconds.
-    '''
-    L = rate * t
-    S = P = 1
-    for i in range(1, N - 1):
-        P *= (L / i)
-        S += P
-    logger.debug(f'Estimated probability: {1 - S * exp(-rate * t)} for {rate}')
-    return 1 - S * exp(-rate * t)
+def win_probability(mu1, sigma1, mu2, sigma2):
+    # never used
+    mu = m2 - mu1
+    s = sigma1 ** 2 + sigma2 ** 2
+    return 0.5 * (1 + erf(mu / (2 * s)))
 
 
-def _player_priority(player: WaitingPlayer, conncount: int) -> float:
-    return max(0, player.deadline - time.time()) * player.stats.games * conncount
-
-def players_priority(players: List[WaitingPlayer]):
-    '''Return list of pairs (priority, index) sorted by priority.
-
-    Priority is an arbitrary number, less is better, 0 if deadline has passed.
-    Index is player's index number in the initial list.
-    '''
-    conncounts = defaultdict(list)
-    for i, p_info in enumerate(players):
-        conncounts[p_info.stats.name].append(i)
-    
-    priorities = []
-    for i, p_info in enumerate(players):
-        r = _player_priority(p_info, len(conncounts[p_info.stats.name]))
-        priorities.append((r, i))
-    priorities.sort(key=lambda x: x[0])
-    return priorities
-
-
-def makematch(players: List[WaitingPlayer], conn_rate) -> Optional[MatchInfo]:
-    if len(players) < MAX_PLAYERS:
-        logger.debug('Not enought players')
-        return None
-
+def postpone_match_making(players: List[Player]) -> bool:
     # any reason to wait longer?
+    if sum(1 for p in players if p.waiting) < MAX_PLAYERS:
+        logger.debug('Not enought players')
+        return True
+
+    first_deadline = min(p.first_deadline() for p in players)
+    first_finish = min(p.first_finish() for p in players)
     if (len(players) < MAX_PLAYERS * 2
-        and players[0].deadline > time.time()
-        and poissonflow(conn_rate,
-                        (players[0].deadline - time.time()),
-                        (MAX_PLAYERS * 2 - len(players))
-                        ) > WAITING_THRESHOLD):
+                and first_deadline > time()
+                and first_finish < first_deadline):
         logger.debug('Waiting for a better player')
+        return True
+
+    return False
+
+
+def playersSet(players: List[Player], n) -> List[str]:
+    subset = list(range(len(players)))
+    assigned = []
+    for i in range(n):
+        j = randrange(i, n)
+        assigned.append(players[subset[j]].stats.token)
+        subset[i], subset[j] = subset[j], subset[i]
+    return assigned
+
+
+def makematch(players: List[Player]) -> Optional[MatchInfo]:
+    if postpone_match_making(players):
         return None
 
-    m, mapname, settings = random_map()
-    priorities = players_priority(players)
-    participants = [False] * len(players)
-    N = min(len(m.mines), MAX_PLAYERS)
-    for r, i in priorities[:N]:
-        participants[i] = True
+    m, mapname, playernum, settings = random_map()
+    playernum = min(MAX_PLAYERS, playernum)    # TEMP!!!
+    participants = playersSet(players, playernum)
 
     logger.debug('Making new match')
     return MatchInfo(participants=participants,
@@ -135,6 +123,7 @@ def revise_players(players: List[PlayerStats], scores):
     for i, p in enumerate(players):
         revised.append(PlayerStats(ID=p.ID,
                                    name = p.name,
+                                   token = p.token,
                                    games = p.games + 1,
                                    mu = new_ratings[i][0],
                                    sigma = new_ratings[i][1],
@@ -144,15 +133,4 @@ def revise_players(players: List[PlayerStats], scores):
 #-----------------------------------------------------------------------#
 
 if __name__ == '__main__':
-    def rating_by_player(token: str):
-        return PlayerStats(name=token,
-                          games=randrange(1000),
-                          mu=random() * 100,
-                          sigma=random() * 50 / 3,
-                          )
-
-    p1 = WaitingPlayer(rating_by_player('julie'), 1)
-    p2 = WaitingPlayer(rating_by_player('me'), 2)
-    print(p1.stats.name, p1.stats.mu, p1.stats.sigma)
-    print(p2.stats.name, p2.stats.mu, p2.stats.sigma)
-    print(recalc_rating([p1.stats, p2.stats], [50, -10]))
+    pass

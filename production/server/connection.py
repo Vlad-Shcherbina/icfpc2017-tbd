@@ -114,7 +114,7 @@ class NetworkConnection:
             return Dead(reason=self.reason_dead)
 
         if not isinstance(res, dict):
-            self.kick('not a valid move')  # not a dict
+            self.kick('not a valid request')
             return Dead(reason=self.reason_dead)
 
         del buf[:msg_end]
