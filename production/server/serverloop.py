@@ -247,7 +247,7 @@ def sigint_handler(signum, frame):
         logger.warning('Server shuts down gracefully.')
         _shuttingdown = True
         with _players_lock:
-            for c in chain(_waiting_conns_by_token.values()):
+            for c in chain(*_waiting_conns_by_token.values()):
                 c[0].kick('Server is about to reboot. Try again later.')
                 c[0].close()
         for h in _handshakers:
@@ -261,6 +261,31 @@ def sigint_handler(signum, frame):
         sys.exit(0)
 
 signal.signal(signal.SIGINT, sigint_handler)
+
+
+def print_info():
+    print('----------------------------------------------------------------\n'
+          f'time: {datetime.fromtimestamp(time())}\n\n'
+          f'+-----------------------------+---------------+---------------+\n'
+          f'| Player                      | waiting conns | ongoing conns |\n'
+          f'+-----------------------------+---------------+---------------+')
+    for p in _players.values():
+        print(f'| {p.stats.name:27} |'
+              f'      {len(p.waiting):2}       |'
+              f'      {len(p.ongoing):2}       |')
+    print(f'+-----------------------------+---------------+---------------+\n')
+    for g in _ongoing:
+        estimation = datetime.fromtimestamp(g.estimation.get()).strftime('%H:%M:%S')
+        d = g.estimation.get() - time()
+        delta = '{} min {} sec'.format(int(d // 60), int(d % 60))
+
+        print(f'Game at {g.mapname} :\n'
+              f'    estimated finish at {estimation} (in {delta})\n'
+              f'    players: {g.names}\n')
+    print (f'\n   OVERALL:\nPlayers: {len(_players)}\n'
+           f'Waiting connections: {sum(len(p.waiting) for p in _players.values())}\n'
+           f'Games: {len(_ongoing)}\nPlaying connections: '
+           f'{sum(len(p.ongoing) for p in _players.values())}\n\n')
 
 
 def connectserver(port, timeout):
@@ -467,6 +492,8 @@ def serverloop():
         _resolve_finished_games()
 
         _statistics.ongoing = len(_ongoing)
+
+        print_info()
     logger.warning('Server stopped work.')
 
 
