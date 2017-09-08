@@ -1,8 +1,8 @@
-from typing import NamedTuple, List
+from typing import NamedTuple, List, Dict
 from datetime import datetime
 from time import time
 
-from production.bot_interface import Map, Settings, Dict
+from production.bot_interface import Map, Settings
 INFINITY = 3600
 
 class PlayerStats(NamedTuple):

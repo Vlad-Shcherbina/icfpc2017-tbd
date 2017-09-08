@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 MAX_PLAYERS = 3 #16
 WAITING_THRESHOLD = 0.95
+LAST_GAMES_SPAN = 60 * 60 * 2
+TRY_TO_MAKE_NEW_SET = 10
 LARGE = 1000
 SMALL = 100
 
@@ -55,7 +57,7 @@ def win_probability(mu1, sigma1, mu2, sigma2):
 
 def postpone_match_making(players: List[Player]) -> bool:
     # any reason to wait longer?
-    if sum(1 for p in players if p.waiting) < MAX_PLAYERS:
+    if sum(1 for p in players if p.waiting) < 2:
         logger.debug('Not enought players')
         return True
 
@@ -64,19 +66,23 @@ def postpone_match_making(players: List[Player]) -> bool:
     if (len(players) < MAX_PLAYERS * 2
                 and first_deadline > time()
                 and first_finish < first_deadline):
-        logger.debug('Waiting for a better player')
+        logger.debug('Waiting for new players')
         return True
 
     return False
 
 
-def playersSet(players: List[Player], n) -> List[str]:
-    subset = list(range(len(players)))
-    assigned = []
-    for i in range(n):
-        j = randrange(i, n)
-        assigned.append(players[subset[j]].stats.token)
-        subset[i], subset[j] = subset[j], subset[i]
+def players_set(players: List[Player], n, lastgamesets) -> List[str]:
+    available = list(p.stats.token for p in players if p.waiting)
+    n = min(n, len(available))
+    for _ in range(TRY_TO_MAKE_NEW_SET):
+        assigned = []
+        for i in range(n):
+            j = randrange(i, n)
+            assigned.add(available[j])
+            available[i], available[j] = available[j], available[i]
+        if set(assigned) not in lastgamesets:
+            break
     return assigned
 
 
@@ -84,11 +90,23 @@ def makematch(players: List[Player]) -> Optional[MatchInfo]:
     if postpone_match_making(players):
         return None
 
-    m, mapname, playernum, settings = random_map()
-    playernum = min(MAX_PLAYERS, playernum)    # TEMP!!!
-    participants = playersSet(players, playernum)
-
     logger.debug('Making new match')
+    dbconn = connect_to_db()
+    with dbconn.cursor() as cursor:
+        cursor.execute('''SELECT game_id, token FROM participation
+                          INNER JOIN games ON participation.game_id = games.id
+                          INNER JOIN players ON participation.players_id = players.id
+                          WHERE timefinish > %s''',
+                          time() - LAST_GAMES_SPAN)
+        gamesets = defaultdict(set)
+        for gameID, token in cursor.fetchall():
+            gamesets[gameID].add(token)
+    dbconn.close()
+    m, mapname, playernum, settings = random_map()
+
+    playernum = min(MAX_PLAYERS, playernum)    # TEMP!!!
+    participants = players_set(players, playernum, set(gamesets.values()))
+
     return MatchInfo(participants=participants,
                     map=m,
                     mapname=mapname,
