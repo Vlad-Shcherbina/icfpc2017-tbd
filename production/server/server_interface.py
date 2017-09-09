@@ -38,7 +38,7 @@ class ServerInterrupt(KeyboardInterrupt):
 
 class Estimation:
     def __init__(self):
-        self.estimation = time() + INFINITY
+        self.estimation = time()
         pass
 
     def start(self, N, turns):

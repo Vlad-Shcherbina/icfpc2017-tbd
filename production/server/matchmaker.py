@@ -26,6 +26,11 @@ TRY_TO_MAKE_NEW_SET = 10
 LARGE = 1000
 SMALL = 100
 
+MIN_SIGMA_ADD = 0.1
+MAX_SIGMA_ADD = 1
+MIN_ABSENCE_TIME = 60 * 60 * 5
+MAX_ABSENCE_TIME = 60 * 60 * 24 * 2
+
 
 #--------------------------- MAKE MATCH --------------------------------#
 
@@ -117,6 +122,16 @@ def makematch(players: List[Player]) -> Optional[MatchInfo]:
 
 #------------------------- GET NEW RATINGS -----------------------------#
 
+def sigma_time_correction(sigma, lastgame):
+    delta = time() - lastgame.timestamp()
+    if delta < MIN_ABSENCE_TIME:
+        return MIN_SIGMA_ADD
+    if delta > MAX_ABSENCE_TIME:
+        return MAX_SIGMA_ADD
+    return (delta / (MAX_ABSENCE_TIME - MIN_ABSENCE_TIME)
+            * (MAX_SIGMA_ADD - MIN_SIGMA_ADD) + MIN_SIGMA_ADD)
+
+
 def revise_ratings(players: List[PlayerStats], scores):
     # returns list of pairs (mu, sigma) in the corresponding order.
     env = trueskill.TrueSkill(mu    = 50.0,
@@ -124,7 +139,20 @@ def revise_ratings(players: List[PlayerStats], scores):
                               beta  = 50.0/6,
                               tau   = 50.0/3/100,
                               draw_probability = 0.05)    # <-- or what?
-    rates = [[trueskill.Rating(p.mu, p.sigma)] for p in players]
+    rates = []
+    dbconn = connect_to_db()
+    for p in players:
+        with dbconn.cursor() as cursor:
+            mu, sigma = p.mu, p.sigma
+            cursor.execute('''SELECT timefinish FROM games INNER JOIN participation
+                              ON games.id = participation.game_id
+                              WHERE player_id=%s
+                              ORDER BY timefinish DESC;''', (p.ID, ))
+            if cursor.rowcount > 0:
+                lastgame = cursor.fetchone()[0]
+                sigma += sigma_time_correction(p.sigma, lastgame)
+            rates.append([trueskill.Rating(mu, sigma)])
+    dbconn.close()
 
     d = { s : i for i, s in enumerate(sorted(scores, reverse=True)) }
     # Luckily this means [10, 10, 0] <-- first two players share 2nd place.

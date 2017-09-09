@@ -370,32 +370,40 @@ def _check_disconnected():
 
 
 def _call_match_maker():
-    with _players_lock:
-        playerslist = [p.copy() for p in _players.values()]
-    m = makematch(playerslist)
-    if m is None:
-        return
+    while True:
+        with _players_lock:
+            playerslist = [p.copy() for p in _players.values()]
+        m = makematch(playerslist)
+        if m is None:
+            return
 
-    dbconn = connect_to_db()
-    gameID = db_submit_game_started(dbconn, m.mapname, m.settings)
-    dbconn.commit()
-    dbconn.close()
+        dbconn = connect_to_db()
+        gameID = db_submit_game_started(dbconn, m.mapname, m.settings)
+        dbconn.commit()
+        dbconn.close()
 
-    time_estimation = Estimation()
-    conns = []
-    names = []
-    with _players_lock:
-        for token in m.participants:
-            conn, deadline = _waiting_conns_by_token[token].pop(0)
-            _players[token].waiting.remove(deadline)
-            _players[token].ongoing.append(time_estimation)
-            names.append(_players[token].stats.name)
-            conns.append(conn)
-            _statistics.reg_start(deadline)
-    _trim_dictionaries()
-    game = GameThread(gameID, conns, names, m.participants, m.map, m.mapname, m.settings, time_estimation)
-    game.start()
-    _ongoing.append(game)
+        time_estimation = Estimation()
+        conns = []
+        names = []
+        with _players_lock:
+            for token in m.participants:
+                conn, deadline = _waiting_conns_by_token[token].pop(0)
+                _players[token].waiting.remove(deadline)
+                _players[token].ongoing.append(time_estimation)
+                names.append(_players[token].stats.name)
+                conns.append(conn)
+                _statistics.reg_start(deadline)
+        _trim_dictionaries()
+        game = GameThread(gameID,
+                          conns,
+                          names,
+                          m.participants,
+                          m.map,
+                          m.mapname,
+                          m.settings,
+                          time_estimation)
+        game.start()
+        _ongoing.append(game)
 
 
 def db_submit_game_started(conn, mapname: str, s: Settings):
@@ -416,7 +424,7 @@ def _resolve_finished_games():
         if g.is_alive():
             games_running.append(g)
             continue
-        elif g.replay is None:
+        if g.replay is None:
             # game is aborted due to server stop. Abandon for now.
             continue
         if dbconn is None:
