@@ -2,6 +2,7 @@ from random import random, randrange, choice
 from typing import NamedTuple, List, Optional, Dict, Tuple
 from math import exp, factorial, sqrt, erf
 from collections import defaultdict
+from datetime import datetime, timedelta
 import trueskill
 import json
 import os
@@ -79,7 +80,7 @@ def players_set(players: List[Player], n, lastgamesets) -> List[str]:
         assigned = []
         for i in range(n):
             j = randrange(i, n)
-            assigned.add(available[j])
+            assigned.append(available[j])
             available[i], available[j] = available[j], available[i]
         if set(assigned) not in lastgamesets:
             break
@@ -95,9 +96,9 @@ def makematch(players: List[Player]) -> Optional[MatchInfo]:
     with dbconn.cursor() as cursor:
         cursor.execute('''SELECT game_id, token FROM participation
                           INNER JOIN games ON participation.game_id = games.id
-                          INNER JOIN players ON participation.players_id = players.id
+                          INNER JOIN players ON participation.player_id = players.id
                           WHERE timefinish > %s''',
-                          time() - LAST_GAMES_SPAN)
+                          (datetime.utcnow() - timedelta(LAST_GAMES_SPAN),))
         gamesets = defaultdict(set)
         for gameID, token in cursor.fetchall():
             gamesets[gameID].add(token)
@@ -105,7 +106,7 @@ def makematch(players: List[Player]) -> Optional[MatchInfo]:
     m, mapname, playernum, settings = random_map()
 
     playernum = min(MAX_PLAYERS, playernum)    # TEMP!!!
-    participants = players_set(players, playernum, set(gamesets.values()))
+    participants = players_set(players, playernum, list(gamesets.values()))
 
     return MatchInfo(participants=participants,
                     map=m,

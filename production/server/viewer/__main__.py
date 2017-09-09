@@ -158,7 +158,7 @@ def playerstatistics(playerID):
 def playerrating():
     playerID = int(flask.request.args.get('playerID', 0))
     dbconn = connect_to_db()
-    before = flask.request.args.get('before', datetime.datetime.fromtimestamp(time.time()))
+    before = flask.request.args.get('before', datetime.datetime.utcnow())
 
     with dbconn.cursor() as cursor:
         cursor.execute('''SELECT name, rating_mu, rating_sigma from players

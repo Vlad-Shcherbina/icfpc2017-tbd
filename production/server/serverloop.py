@@ -217,7 +217,7 @@ class GameThread(threading.Thread):
             return
         self.replay, self.scores, self.forcedmoves = result
         logger.info(f'Game {self.ID} finished.')
-        self.timefinish = datetime.fromtimestamp(time())
+        self.timefinish = datetime.utcnow()
 
 
 #--------------------------- SERVER LOOP -------------------------------#
@@ -275,9 +275,9 @@ def print_info():
               f'      {len(p.ongoing):2}       |')
     print(f'+-----------------------------+---------------+---------------+\n')
     for g in _ongoing:
-        estimation = datetime.fromtimestamp(g.estimation.get()).strftime('%H:%M:%S')
-        d = g.estimation.get() - time()
-        delta = '{} min {} sec'.format(int(d // 60), int(d % 60))
+        estimation = datetime.utcfromtimestamp(g.estimation.get()).strftime('%H:%M:%S')
+        delta = g.estimation.get() - time()
+        delta = '{} min {} sec'.format(int(delta // 60), int(delta % 60))
 
         print(f'Game at {g.mapname} :\n'
               f'    estimated finish at {estimation} (in {delta})\n'
@@ -400,7 +400,7 @@ def db_submit_game_started(conn, mapname: str, s: Settings):
                           options, splurges, timestart, status) 
                           VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;''',
                           (mapname, s.futures, s.options, s.splurges, 
-                          datetime.fromtimestamp(time()), 'ongoing'))
+                          datetime.utcnow(), 'ongoing'))
         gameID = cursor.fetchone()[0]
     return gameID
 
