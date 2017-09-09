@@ -245,6 +245,7 @@ def sigint_handler(signum, frame):
     global _shuttingdown
     if not _shuttingdown:
         logger.warning('Server shuts down gracefully.')
+        print('Server shuts down gracefully.')
         _shuttingdown = True
         with _players_lock:
             for c in chain(*_waiting_conns_by_token.values()):
@@ -252,12 +253,15 @@ def sigint_handler(signum, frame):
                 c[0].close()
         for h in _handshakers:
             h.join()
+            h.conn.kick('Server is about to reboot. Try again later.')
     elif not _shutdownthreads.is_set():
         logger.warning('Server shuts down forcefully.')
+        print('Server shuts down forcefully.')
         _shutdownthreads.set()
         # join game- and handshake threads
     else:
         logger.warning('Server shuts down without stopping threads.')
+        print('Server shuts down without stopping threads.')
         sys.exit(0)
 
 signal.signal(signal.SIGINT, sigint_handler)
@@ -265,7 +269,7 @@ signal.signal(signal.SIGINT, sigint_handler)
 
 def print_info():
     print('----------------------------------------------------------------\n'
-          f'time: {datetime.fromtimestamp(time())}\n\n'
+          f'time: {datetime.utcnow()}\n\n'
           f'+-----------------------------+---------------+---------------+\n'
           f'| Player                      | waiting conns | ongoing conns |\n'
           f'+-----------------------------+---------------+---------------+')
@@ -424,11 +428,14 @@ def _resolve_finished_games():
             for token in g.tokens:
                 _players[token].ongoing.remove(g.estimation)
             revised = revise_players([_players[token].stats for token in g.tokens], g.scores)
-            additional = [{ 'mu_before' : _players[token].stats.mu,
-                            'sigma_before' : _players[token].stats.sigma,
-                            'mu_after' : r.mu,
-                            'sigma_after' : r.sigma }
-                          for token, r in zip(g.tokens, revised)]
+            additional = []
+            for token, r in zip(g.tokens, revised):
+                additional.append({ 'mu_before' : _players[token].stats.mu,
+                                    'sigma_before' : _players[token].stats.sigma,
+                                    'mu_after' : r.mu,
+                                    'sigma_after' : r.sigma })
+                _players[token].stats = _players[token].stats._replace(mu=r.mu, sigma=r.sigma)
+                
 
         db_sumbit_game_finished(dbconn, g.ID, g.timefinish, g.replay)
         db_submit_players_scores(dbconn, g.ID, g.tokens, g.scores, g.forcedmoves, additional)
@@ -508,9 +515,8 @@ def setup_dual_logging():
     handler.setFormatter(formatter)
     logging.getLogger().addHandler(handler)
 
-#    handler = logging.FileHandler('server_info.log')   # filepath for logging!
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.DEBUG)      #INFO)
+    handler = logging.FileHandler('server_info.log')   # filepath for logging!
+    handler.setLevel(logging.INFO)
     handler.setFormatter(formatter)
     logging.getLogger().addHandler(handler)
 

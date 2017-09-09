@@ -114,6 +114,7 @@ def local_add_players(conn):
     add_player('zzz_yahoo', 'ya@hoo.oo')
     add_player('zzz_smb', 'smb@smwhr.hz')
     add_player('zzz_nevermore', 'a@b.c')
+    add_player('zzz_wannacry', 'mali@cio.us')
 
 
 if __name__ == '__main__':

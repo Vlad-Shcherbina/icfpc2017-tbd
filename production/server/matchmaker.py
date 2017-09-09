@@ -58,13 +58,14 @@ def win_probability(mu1, sigma1, mu2, sigma2):
 
 def postpone_match_making(players: List[Player]) -> bool:
     # any reason to wait longer?
-    if sum(1 for p in players if p.waiting) < 2:
+    waiting_players = sum(1 for p in players if p.waiting)
+    if waiting_players < 2:
         logger.debug('Not enought players')
         return True
 
     first_deadline = min(p.first_deadline() for p in players)
     first_finish = min(p.first_finish() for p in players)
-    if (len(players) < MAX_PLAYERS * 2
+    if (waiting_players < MAX_PLAYERS * 2
                 and first_deadline > time()
                 and first_finish < first_deadline):
         logger.debug('Waiting for new players')
@@ -135,7 +136,7 @@ def revise_ratings(players: List[PlayerStats], scores):
     #leaderboard = sorted(ratings, key=env.expose, reverse=True)
 
 
-def revise_players(players: List[PlayerStats], scores):
+def revise_players(players: List[PlayerStats], scores) -> List[PlayerStats]:
     names = set(p.name for p in players)
     revised = []
     new_ratings = revise_ratings(players, scores)
