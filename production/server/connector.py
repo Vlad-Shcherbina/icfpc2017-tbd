@@ -2,11 +2,10 @@ from typing import NamedTuple, Optional
 import time
 from production.server.connection import *
 
+CONN_TOLERANCE = 2
+
 import logging;
 logger = logging.getLogger(__name__)
-
-
-CONN_TOLERANCE = 0
 
 
 class ConnMessage(NamedTuple):

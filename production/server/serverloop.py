@@ -42,7 +42,7 @@ production\botscript.py zzz_nevermore cpp -c
 '''
 
 
-HANDSHAKE_TIMELIMIT = 1
+HANDSHAKE_TIMELIMIT = 5
 CONNECTIONS_PER_TOKEN = 10
 PLAYER_WAITING_TIME = 60
 SERVER_TICK_TIME = 5

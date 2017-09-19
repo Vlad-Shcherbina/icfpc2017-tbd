@@ -24,6 +24,7 @@ botname = 'zzz_wannacry'   # add it to database before launching!
 #--------------------------- AUXILIARY ---------------------------------#
 
 def connect(host, port):
+    print(host, port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((host, port))
     s.settimeout(15)
@@ -92,7 +93,7 @@ def inspect_bad_handshake():
 
     conn = connect(config.GAME_SERVER_ADDRESS, config.GAME_SERVER_PORT)
     conn.send({ 'me' : botname })
-    response = conn.receive(time.time() + 1)
+    response = conn.receive(time.time() + 10)
     assert isinstance(response, dict) and 'kicked' in response, response
     conn.close()
     logger.info('bad handshakes: PASSED')
