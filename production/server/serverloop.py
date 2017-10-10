@@ -268,28 +268,35 @@ signal.signal(signal.SIGINT, sigint_handler)
 
 
 def print_info():
-    print('----------------------------------------------------------------\n'
-          f'time: {datetime.utcnow()}\n\n'
-          f'+-----------------------------+---------------+---------------+\n'
-          f'| Player                      | waiting conns | ongoing conns |\n'
-          f'+-----------------------------+---------------+---------------+')
+    text = (f'----------------------------------------------------------------\n'
+            f'time: {datetime.utcnow()}\n\n'
+            f'+-----------------------------+---------------+---------------+\n'
+            f'| Player                      | waiting conns | ongoing conns |\n'
+            f'+-----------------------------+---------------+---------------+\n')
     for p in _players.values():
-        print(f'| {p.stats.name:27} |'
-              f'      {len(p.waiting):2}       |'
-              f'      {len(p.ongoing):2}       |')
-    print(f'+-----------------------------+---------------+---------------+\n')
+        text += (f'| {p.stats.name:27} |'
+                 f'      {len(p.waiting):2}       |'
+                 f'      {len(p.ongoing):2}       |\n')
+    text += f'+-----------------------------+---------------+---------------+\n'
     for g in _ongoing:
         estimation = datetime.utcfromtimestamp(g.estimation.get()).strftime('%H:%M:%S')
         delta = g.estimation.get() - time()
         delta = '{} min {} sec'.format(int(delta // 60), int(delta % 60))
 
-        print(f'Game at {g.mapname} :\n'
-              f'    estimated finish at {estimation} (in {delta})\n'
-              f'    players: {g.names}\n')
-    print (f'\n   OVERALL:\nPlayers: {len(_players)}\n'
-           f'Waiting connections: {sum(len(p.waiting) for p in _players.values())}\n'
-           f'Games: {len(_ongoing)}\nPlaying connections: '
-           f'{sum(len(p.ongoing) for p in _players.values())}\n\n')
+        text += (f'Game at {g.mapname} :\n'
+                 f'    estimated finish at {estimation} (in {delta})\n'
+                 f'    players: {g.names}\n\n')
+    text += (f'\n   OVERALL:\nPlayers: {len(_players)}\n'
+             f'Waiting connections: {sum(len(p.waiting) for p in _players.values())}\n'
+             f'Games: {len(_ongoing)}\nPlaying connections: '
+             f'{sum(len(p.ongoing) for p in _players.values())}\n\n')
+    print(text)
+    try:
+        f = open('server_state.log', 'w')
+        f.write(text)
+        f.close()
+    except IOError:
+        logger.error('Unable to open server state file.')
 
 
 def connectserver(port, timeout):
