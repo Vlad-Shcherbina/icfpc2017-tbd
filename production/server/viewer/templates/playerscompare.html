@@ -1,0 +1,43 @@
+{% extends "base.html" %}   
+{% block content %}
+
+
+<h2>
+    {% for p in players[:-1] %}
+        {{ p['name'] }} <span class="shaded">vs</span>
+    {% endfor %}
+    {{ players[-1]['name'] }}
+</h2>
+
+<p>
+    {% for p in players %}
+        <div class="tabbed">
+            <a href={{ url_for('playerstatistics', playerID=p['ID']) }}>{{ p['name'] }}</a>: 
+        </div>
+        <div class="tabbed"><i>rating:</i> {{ (p['mu'] - 3 * p['sigma']) | round(2) }} </div>
+        <div class="tabbed"><i>average:</i> {{ p['mu'] | round(2) }} </div>
+        <div class="tabbed"><i>deviation:</i> {{ p['sigma'] | round(2) }}</div>
+        <div class="tabbed"><i>games:</i> {{ p['gamelist'] | length }}</div>
+        <br />
+    {% endfor %}
+</p>
+<p><br />
+    Estimated probability of winning: <br /><br />
+    {% for p in players %}
+        &nbsp;&nbsp;&nbsp;&nbsp;{{ (p['win_probability']*100) | round | int }}% <span class="shaded">for</span> {{ p['name'] }} <br />
+    {% endfor %}
+</p>
+<p><br />
+    {% if gamecount > 0 %}
+    Common games: {{ gamecount }} <br /><br />
+        {% for p in players %}
+            &nbsp;&nbsp;&nbsp;&nbsp;{{ p['won_games'] }} ({{ (p['won_games'] / gamecount * 100) | round | int }}%) <span class="shaded">won by</span> {{ p['name'] }} <br />
+        {% endfor %}
+        <br />
+        <a href={{ url_for('lastgames', commonfor=IDs) }}>list of common games</a>
+    {% else %}
+    No common games
+    {% endif %}
+</p>
+<p></p>
+{% endblock %}

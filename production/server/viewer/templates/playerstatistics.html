@@ -16,4 +16,10 @@
     <a href="{{ url_for('playerrating', playerID=playerID) }}">rating changes</a>
 </div>
 
+<br /><br />
+<hr align="left" />
+<div>Compare to: <br /></div>
+{% for p in others %}
+    <div class="tabbed"><a href={{ url_for('playerscompare', player=[playerID, p[0]])}}>{{ p[1] }}</a></div>
+{% endfor %}
 {% endblock %}

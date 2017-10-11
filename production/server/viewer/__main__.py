@@ -1,4 +1,5 @@
 # hack to placate the restarter
+from math import erf
 import sys, os, datetime
 import zlib
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
@@ -143,6 +144,10 @@ def playerstatistics(playerID):
                           ON players.id = participation.player_id 
                           WHERE player_id = %s;''', (playerID, ))
         games = cursor.fetchone()[0]
+
+        cursor.execute('''SELECT id, name from players
+                          WHERE id != %s''', (playerID, ))
+        other_players = sorted(cursor.fetchall(), key=lambda x: x[1])
     dbconn.close()
 
     return flask.render_template('playerstatistics.html',  
@@ -151,7 +156,8 @@ def playerstatistics(playerID):
                                 rating=mu-3*sigma,
                                 mu=mu, 
                                 sigma=sigma, 
-                                games=games)
+                                games=games,
+                                others=other_players)
 
 
 @app.route('/playerrating')
@@ -245,6 +251,42 @@ def gamestatistics(gameID):
                                 replay=replay)
 
 
+@app.route('/compare')
+def playerscompare():
+    '''Show summary statistics for a given player.'''
+    playerIDs = flask.request.args.getlist('player')
+    if len(playerIDs) < 2:
+        return flask.render_template('404.html', notfound='player'), 404
+
+    dbconn = connect_to_db()
+    players = []
+    with dbconn.cursor() as cursor:
+        for playerID in playerIDs:
+            p = { 'ID' : playerID }
+            cursor.execute('''SELECT name, rating_mu, rating_sigma 
+                           FROM players WHERE id = %s''', (playerID, ))
+            if not cursor.rowcount:
+                return flask.render_template('404.html', notfound='player'), 404
+            p['name'], p['mu'], p['sigma'] = cursor.fetchone()
+            cursor.execute('''SELECT game_id, score
+                           FROM participation
+                           WHERE player_id = %s;''', (playerID, ))
+            gamelist = cursor.fetchall()
+            p['gamelist'] = { g[0] : g[1] for g in gamelist }
+            players.append(p)
+    dbconn.close()
+    commongames = set.intersection(*[set(p['gamelist'].keys()) for p in players])
+    for i in range(len(players)):
+        players[i]['win_probability'] = win_probability(players, i)
+        players[i]['won_games'] = won_games(commongames, players, i)
+
+    return flask.render_template('playerscompare.html', 
+                                 players=players, 
+                                 gamecount=len(commongames),
+                                 IDs=playerIDs)
+
+
+
 @app.route('/replay<gameID>.json')
 def downloadreplay(gameID):
     '''Create link for downloading replay in json format.'''
@@ -275,10 +317,34 @@ def downloadmap(mapname):
 
 
 def url_for_other_page(before):
+    # for gamelists
     args = flask.request.args.copy()
     args['before'] = before
     return flask.url_for(flask.request.endpoint, **args)
 app.jinja_env.globals['url_for_other_page'] = url_for_other_page
+
+
+def win_probability(players, i):
+    # for player comparison
+    P = 1
+    for j in range(len(players)):
+        if j == i:
+            continue
+        mu = players[i]['mu'] - players[j]['mu']
+        s = players[i]['sigma'] ** 2 + players[j]['sigma'] ** 2
+        P *= 0.5 * (1 + erf(mu / (2 * s)))
+    return P
+
+
+def won_games(commongames, players, i):
+    # for player comparison
+    s = 0
+    for gameID in commongames:
+        if all(players[i]['gamelist'][gameID] >= players[j]['gamelist'][gameID] 
+                    for j in range(len(players))):
+            s += 1
+    return s
+
 
 @app.template_filter('datetimeformat')
 def datetimeformat(value, format='%Y-%m-%d %H:%M:%S'):
@@ -288,6 +354,7 @@ def datetimeformat(value, format='%Y-%m-%d %H:%M:%S'):
 def timedeltaformat(value, format='%H:%M:%S'):
     s = value.total_seconds()
     return '{:02}:{:02}:{:02}'.format(int(s // 3600), int(s % 3600 // 60), int(s % 60))
+
 
 # ----------------------------- AUXILIARY -------------------------------#
 
@@ -357,7 +424,7 @@ def _playerperfomances(replay: dict, playerIDs):
 def _get_games_conditioned(conn) -> List[GameBaseInfo]:
     '''Get a list of games with filters provided as string query_args.'''
     query, query_args = _get_query_for_game_conditions(flask.request.args)
-
+    
     with conn.cursor() as cursor:
         cursor.execute(query, query_args)
         if cursor.rowcount == 0:
@@ -390,6 +457,7 @@ def _get_games_conditioned(conn) -> List[GameBaseInfo]:
 
 
 def _get_query_for_game_conditions(request_args):
+    '''Returns query and list of arguments for gamelist.'''
     query_args = tuple()
     query = '''SELECT games.id, mapname, futures, options, splurges, timefinish 
                FROM games INNER JOIN participation 
@@ -405,9 +473,17 @@ def _get_query_for_game_conditions(request_args):
     if 'errors' in request_args:
         query += 'AND forcedmoves=%s '
         query_args += (request_args['errors'],)
-    
+    if 'commonfor' in request_args:
+        playerlist = request_args.getlist('commonfor')
+        query += 'AND (player_id IN %s) '
+        query_args += (tuple(playerlist), )
 
-    query += 'GROUP BY games.id ORDER BY timefinish DESC LIMIT %s;'
+    query += 'GROUP BY games.id '
+    if 'commonfor' in request_args:
+        query += 'HAVING COUNT(*) = %s '
+        query_args += (len(playerlist), )
+    query += 'ORDER BY timefinish DESC LIMIT %s;'
+
     query_args += (config.GAMES_PER_PAGE + 1,)
     return query, query_args
 
@@ -421,3 +497,5 @@ if __name__ == '__main__':
         app.debug = True
 
     app.run(port=config.WEB_SERVER_PORT)
+
+

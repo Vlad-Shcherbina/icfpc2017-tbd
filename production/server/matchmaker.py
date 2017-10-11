@@ -1,6 +1,6 @@
 from random import random, randrange, choice
 from typing import NamedTuple, List, Optional, Dict, Tuple
-from math import exp, factorial, sqrt, erf
+from math import exp, factorial, sqrt
 from collections import defaultdict
 from datetime import datetime, timedelta
 import trueskill
@@ -52,13 +52,6 @@ def random_map() -> Tuple[Map, str, int, Settings]:
                     raw_settings = {})
 
     return (m, mapname, playernum, setts)
-
-
-def win_probability(mu1, sigma1, mu2, sigma2):
-    # never used
-    mu = m2 - mu1
-    s = sigma1 ** 2 + sigma2 ** 2
-    return 0.5 * (1 + erf(mu / (2 * s)))
 
 
 def postpone_match_making(players: List[Player]) -> bool:
