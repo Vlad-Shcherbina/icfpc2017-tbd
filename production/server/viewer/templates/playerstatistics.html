@@ -18,8 +18,8 @@
 
 <br /><br />
 <hr align="left" />
-<div>Compare to: <br /></div>
+<div class="tabbed">Compare to: </div><br />
 {% for p in others %}
-    <div class="tabbed"><a href={{ url_for('playerscompare', player=[playerID, p[0]])}}>{{ p[1] }}</a></div>
+    <div class="tabbed"><a class="weak" href={{ url_for('playerscompare', player=[playerID, p[0]])}}>{{ p[1] }}</a></div>
 {% endfor %}
 {% endblock %}

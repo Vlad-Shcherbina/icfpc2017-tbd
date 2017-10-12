@@ -32,7 +32,7 @@
 
         {% for player in playerperfs %}
         <tr>
-            <td class="text">{{ player.name }}</td>
+            <td class="text"><a class="weak" href={{ url_for('playerstatistics', playerID=player.ID) }}>{{ player.name }}</a></td>
             <td class="number">{{ player.place }}</td>
             <td class="number">{{ player.score }}</td>
             <td class="text">{{ player.futures }}</td>
@@ -73,7 +73,7 @@
 
     </table>
 </div>
-
+<br />
 <div class="tabbed"><a href="{{ url_for('downloadreplay', gameID=gameID) }}">download replay</a></div><div class="tabbed">|</div><div class="tabbed"><a href="{{ url_for('downloadmap', mapname=mapname) }}">download map</a></div>
     
 

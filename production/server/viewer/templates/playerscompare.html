@@ -21,12 +21,16 @@
         <br />
     {% endfor %}
 </p>
+
+<!--
 <p><br />
     Estimated probability of winning: <br /><br />
     {% for p in players %}
         &nbsp;&nbsp;&nbsp;&nbsp;{{ (p['win_probability']*100) | round | int }}% <span class="shaded">for</span> {{ p['name'] }} <br />
     {% endfor %}
 </p>
+-->
+
 <p><br />
     {% if gamecount > 0 %}
     Common games: {{ gamecount }} <br /><br />

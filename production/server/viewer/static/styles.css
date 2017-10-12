@@ -72,6 +72,15 @@ div.tabbed {
     margin-right: 12px;
 }
 
+a.weak {
+    color: var(--verydarkcolor);
+    text-decoration: none;
+}
+
+a.weak:hover {
+    color: var(--highlightcolor);
+}
+
 
  /*----------------*/
 /* navigation bar */
