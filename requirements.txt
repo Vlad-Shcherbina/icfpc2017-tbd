@@ -7,3 +7,4 @@ pillow
 psycopg2
 flask
 jinja2
+trueskill
