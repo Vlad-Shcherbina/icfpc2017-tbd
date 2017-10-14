@@ -31,7 +31,7 @@
         </tr>
 
         {% for player in playerperfs %}
-        <tr>
+        <tr class="player-hoverable" id="player{{ loop.index0 }}">
             <td class="text"><a class="weak" href={{ url_for('playerstatistics', playerID=player.ID) }}>{{ player.name }}</a></td>
             <td class="number">{{ player.place }}</td>
             <td class="number">{{ player.score }}</td>
@@ -60,7 +60,7 @@
         </tr>
 
         {% for player in playerperfs %}
-        <tr>
+        <tr class="player-hoverable" id="player{{ loop.index0 }}">
             <td class="text">{{ player.name }}</td>
             <td class="number">{{ player.place }}</td>
             <td class="number">{{ player.forcedpasses }}</td>

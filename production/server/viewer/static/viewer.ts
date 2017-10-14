@@ -218,8 +218,31 @@ function runViewer(map: GameMap, replay: Replay) {
     const canvas = <HTMLCanvasElement>document.getElementById('vis')
     const vis = new Vis(canvas, map)
 
-    vis.ctx.clearRect(0, 0, canvas.width, canvas.height)
-    drawMapBackground(vis)
-    drawMoves(vis, flattenMoves(replay.moves))
-    drawSites(vis)
+    const flatMoves = flattenMoves(replay.moves)
+
+    function draw(playerHighlight?: number) {
+        vis.ctx.clearRect(0, 0, canvas.width, canvas.height)
+        drawMapBackground(vis)
+        drawMoves(vis, flatMoves)
+        drawSites(vis)
+        if (playerHighlight !== undefined) {
+            vis.ctx.fillStyle = 'rgba(255, 255, 255, 0.33)';
+            vis.ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const hm = flatMoves.filter(
+                m=>(m.pass || m.option || m.claim)!.punter == playerHighlight)
+            drawMoves(vis, hm)
+        }
+    }
+    draw()
+
+    Array.from(document.getElementsByClassName('player-hoverable')).forEach(row => {
+        const idx = parseInt(row.id.match(/player(\d+)/)![1])
+        row.addEventListener('mouseover', ()=> {
+            draw(idx)
+        })
+        row.addEventListener('mouseleave', ()=> {
+            draw()
+        })
+    })
 }
