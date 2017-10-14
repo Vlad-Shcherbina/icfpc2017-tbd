@@ -6,12 +6,22 @@
 
 <p>If you want one or more of your bots to play, send an e-mail to <span style="color : var(--highlightcolor)">absurd.punter@yandex.com</span> and list the names you want for your bots. We will send you back an e-mail with security <b>tokens</b> for each of the names.</p>
 
-<p>After that you can connect to <span style="color : var(--highlightcolor)">punt.absurd.pw:53400</span> by the same protocol with the only alternation: during handshake you send <span class="json">{"me" : token}</span> instead of <span class="json">{"me" : name}</span>. You may setup up to 10 connections for each token simultaniously. There may be pause between handshake and game start up to one minute due to matchmaking.</p>
+<p>After that you can connect to <span style="color : var(--highlightcolor)">punt.absurd.pw:53400</span> by the same online protocol with the only alternation: during handshake you send <span class="json">{"me" : token}</span> instead of <span class="json">{"me" : name}</span>.
 
-<p>If your token was disclosed or lost, you may request a new token from the same e-mail address.</p>
+<p>
+If you are using lamduct, pass the following arguments:
+<code><pre>
+    lamduct --game-hostname=punt.absurd.pw --game-port=53400 ./my_awesome_punter
+</pre></code>
+</p>
+
+<p>
+You may setup up to 10 connections for each token simultaneously. There may be a pause between handshake and game start due to matchmaking (it may take seconds, minutes, or more).</p>
+
+<p>If your token was compromised or lost, you may request a new token from the same e-mail address.</p>
 <p>We're glad you're with us! Have fun!</p>
 
-        <h2>Changes in protocol</h2>
+        <h2>Protocol changes</h2>
 
 <p><b>1.</b> At handshake stage you send <span class="json">{"me": token}</span> instead of <span class="json">{"me": name}</span>. <br />
 You may receive <span class="json">{"you": name}</span> or <span class="json">{"kicked": reason}</span> in response.<br />
